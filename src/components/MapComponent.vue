@@ -1,22 +1,40 @@
 <template>
-  <div class="w-full h-[100vh] overflow-hidden">
+  <div class="w-full h-[100vh] overflow-hidden relative">
     <div id="map" class="w-full h-[calc(100vh+30px)] z-0"></div>
+    <MarkerConfirmDialog 
+      v-if="showMarkerDialog && markerScreenPosition" 
+      :style="{ position: 'absolute', left: markerScreenPosition.x + 'px', top: (markerScreenPosition.y - 50) + 'px', transform: 'translate(-50%, -100%)', zIndex: 1000 }"
+      @confirm="handleConfirmMarker" 
+    />
   </div>
 </template>
 
 <script setup>
-import { onMounted, watch, ref, createApp } from 'vue';
+import { onMounted, watch, ref, createApp, nextTick } from 'vue';
 import { storeToRefs } from 'pinia';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useMapStore } from '@/stores/mapStore';
 import BaseMarker from './BaseMarker.vue';
+import MarkerConfirmDialog from './MarkerConfirmDialog.vue';
 
 const mapStore = useMapStore();
-const { center, zoom, marker } = storeToRefs(mapStore);
+const { center, zoom, marker, showMarkerDialog } = storeToRefs(mapStore);
 
 const mapRef = ref(null);
 const markerRef = ref(null);
+const markerScreenPosition = ref(null);
+
+const updateMarkerScreenPosition = () => {
+  if (mapRef.value && markerRef.value) {
+    const point = mapRef.value.latLngToContainerPoint(markerRef.value.getLatLng());
+    markerScreenPosition.value = { x: point.x, y: point.y };
+  }
+};
+
+const handleConfirmMarker = () => {
+  mapStore.hideMarkerDialog();
+};
 
 onMounted(() => {
   mapRef.value = L.map('map').setView(center.value, zoom.value);
@@ -25,6 +43,10 @@ onMounted(() => {
     subdomains: 'abcd',
     maxZoom: 19,
   }).addTo(mapRef.value);
+
+  // Actualizar posición del diálogo cuando el mapa se mueve
+  mapRef.value.on('move', updateMarkerScreenPosition);
+  mapRef.value.on('zoom', updateMarkerScreenPosition);
 });
 
 watch([center, zoom], ([newCenter, newZoom]) => {
@@ -33,15 +55,15 @@ watch([center, zoom], ([newCenter, newZoom]) => {
   }
 });
 
-watch(marker, (newMarker) => {
+watch(marker, async (newMarker) => {
   if (markerRef.value) {
     markerRef.value.remove();
     markerRef.value = null;
   }
   if (mapRef.value && newMarker) {
-    // Crear un contenedor temporal para montar el componente Vue
+    // Crear el marcador simple sin el diálogo
     const container = document.createElement('div');
-    const app = createApp(BaseMarker);
+    const app = createApp(BaseMarker, { showDialog: false });
     app.mount(container);
     
     const customIcon = L.divIcon({
@@ -52,8 +74,17 @@ watch(marker, (newMarker) => {
     });
     markerRef.value = L.marker(newMarker, { icon: customIcon }).addTo(mapRef.value);
     
-    // Limpiar la app temporal
     app.unmount();
+    
+    // Actualizar posición del diálogo
+    await nextTick();
+    updateMarkerScreenPosition();
+  }
+});
+
+watch(showMarkerDialog, () => {
+  if (showMarkerDialog.value) {
+    updateMarkerScreenPosition();
   }
 });
 </script>

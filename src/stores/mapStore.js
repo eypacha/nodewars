@@ -6,6 +6,7 @@ export const useMapStore = defineStore('map', () => {
   const center = ref([20, 0]);
   const zoom = ref(3);
   const marker = ref(null);
+  const showMarkerDialog = ref(false);
 
   // Acciones
   const setCenter = (newCenter) => {
@@ -18,6 +19,13 @@ export const useMapStore = defineStore('map', () => {
 
   const setMarker = (newMarker) => {
     marker.value = newMarker;
+    if (newMarker) {
+      showMarkerDialog.value = true;
+    }
+  };
+
+  const hideMarkerDialog = () => {
+    showMarkerDialog.value = false;
   };
 
   const centerOnLocation = (location, targetZoom = 15) => {
@@ -30,11 +38,13 @@ export const useMapStore = defineStore('map', () => {
     center,
     zoom,
     marker,
+    showMarkerDialog,
 
     // Actions
     setCenter,
     setZoom,
     setMarker,
+    hideMarkerDialog,
     centerOnLocation,
   };
 });
