@@ -33,7 +33,11 @@ const updateMarkerScreenPosition = () => {
 };
 
 const handleConfirmMarker = () => {
-  mapStore.hideMarkerDialog();
+  mapStore.confirmBase();
+  // Deshabilitar el arrastre del marcador
+  if (markerRef.value) {
+    markerRef.value.dragging.disable();
+  }
 };
 
 onMounted(() => {
@@ -72,7 +76,24 @@ watch(marker, async (newMarker) => {
       iconSize: [40, 40],
       iconAnchor: [20, 20],
     });
-    markerRef.value = L.marker(newMarker, { icon: customIcon }).addTo(mapRef.value);
+    
+    // Hacer el marcador arrastrable
+    markerRef.value = L.marker(newMarker, { 
+      icon: customIcon,
+      draggable: true 
+    }).addTo(mapRef.value);
+    
+    // Actualizar la posición en el store cuando se arrastra
+    markerRef.value.on('dragend', () => {
+      const newPos = markerRef.value.getLatLng();
+      mapStore.updateMarkerPosition([newPos.lat, newPos.lng]);
+      updateMarkerScreenPosition();
+    });
+    
+    // Actualizar posición del diálogo durante el arrastre
+    markerRef.value.on('drag', () => {
+      updateMarkerScreenPosition();
+    });
     
     app.unmount();
     
