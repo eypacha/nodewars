@@ -5,11 +5,12 @@
 </template>
 
 <script setup>
-import { onMounted, watch, ref } from 'vue';
+import { onMounted, watch, ref, createApp } from 'vue';
 import { storeToRefs } from 'pinia';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useMapStore } from '@/stores/mapStore';
+import MapMarker from './MapMarker.vue';
 
 const mapStore = useMapStore();
 const { center, zoom, marker } = storeToRefs(mapStore);
@@ -38,7 +39,21 @@ watch(marker, (newMarker) => {
     markerRef.value = null;
   }
   if (mapRef.value && newMarker) {
-    markerRef.value = L.marker(newMarker).addTo(mapRef.value);
+    // Crear un contenedor temporal para montar el componente Vue
+    const container = document.createElement('div');
+    const app = createApp(MapMarker);
+    app.mount(container);
+    
+    const customIcon = L.divIcon({
+      html: container.innerHTML,
+      className: 'custom-marker',
+      iconSize: [40, 40],
+      iconAnchor: [20, 20],
+    });
+    markerRef.value = L.marker(newMarker, { icon: customIcon }).addTo(mapRef.value);
+    
+    // Limpiar la app temporal
+    app.unmount();
   }
 });
 </script>
