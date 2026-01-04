@@ -10,7 +10,7 @@
 </template>
 
 <script setup>
-import { onMounted, watch, ref, createApp, nextTick } from 'vue';
+import { onMounted, watch, ref, createApp, nextTick, computed } from 'vue';
 import { storeToRefs } from 'pinia';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -19,11 +19,14 @@ import BaseMarker from './BaseMarker.vue';
 import MarkerConfirmDialog from './MarkerConfirmDialog.vue';
 
 const mapStore = useMapStore();
-const { center, zoom, marker, showMarkerDialog } = storeToRefs(mapStore);
+const { center, zoom, marker, showMarkerDialog, baseConfirmed } = storeToRefs(mapStore);
 
 const mapRef = ref(null);
 const markerRef = ref(null);
 const markerScreenPosition = ref(null);
+const radarRef = ref(null);
+const RADAR_RADIUS_METERS = 1000;
+const RADAR_COLOR = '#00bcff';
 
 const updateMarkerScreenPosition = () => {
   if (mapRef.value && markerRef.value) {
@@ -64,6 +67,10 @@ watch(marker, async (newMarker) => {
     markerRef.value.remove();
     markerRef.value = null;
   }
+  if (radarRef.value) {
+    radarRef.value.remove();
+    radarRef.value = null;
+  }
   if (mapRef.value && newMarker) {
     // Crear el marcador simple sin el diálogo
     const container = document.createElement('div');
@@ -88,18 +95,53 @@ watch(marker, async (newMarker) => {
       const newPos = markerRef.value.getLatLng();
       mapStore.updateMarkerPosition([newPos.lat, newPos.lng]);
       updateMarkerScreenPosition();
+      // Mover el radar junto con el marcador
+      if (radarRef.value) {
+        radarRef.value.setLatLng(newPos);
+      }
     });
     
     // Actualizar posición del diálogo durante el arrastre
     markerRef.value.on('drag', () => {
       updateMarkerScreenPosition();
+      if (radarRef.value) {
+        radarRef.value.setLatLng(markerRef.value.getLatLng());
+      }
     });
     
     app.unmount();
     
+    // Dibujar el radar solo si la base está confirmada
+    if (baseConfirmed.value) {
+      radarRef.value = L.circle(newMarker, {
+        color: RADAR_COLOR,
+        fillColor: RADAR_COLOR,
+        fillOpacity: 0.9,
+        radius: RADAR_RADIUS_METERS,
+        weight: 2,
+      }).addTo(mapRef.value);
+    }
+    
     // Actualizar posición del diálogo
     await nextTick();
     updateMarkerScreenPosition();
+  }
+});
+
+// Si se confirma la base después de que ya hay marcador, dibujar el radar
+watch(baseConfirmed, (confirmed) => {
+  if (confirmed && mapRef.value && markerRef.value && !radarRef.value) {
+    radarRef.value = L.circle(markerRef.value.getLatLng(), {
+      color: RADAR_COLOR,
+      fillColor: RADAR_COLOR,
+      fillOpacity: 0.1,
+      radius: RADAR_RADIUS_METERS,
+      weight: 2,
+    }).addTo(mapRef.value);
+  }
+  if (!confirmed && radarRef.value) {
+    radarRef.value.remove();
+    radarRef.value = null;
   }
 });
 
