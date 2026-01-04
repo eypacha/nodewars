@@ -1,5 +1,5 @@
 <template>
-  <div class="w-screen h-screen overflow-hidden">
+  <div class="w-screen h-screen overflow-hidden bg-map">
     <MapComponent />
   </div>
 </template>

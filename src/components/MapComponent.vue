@@ -10,10 +10,12 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
 onMounted(() => {
-  const map = L.map('map').setView([40.4168, -3.7038], 6);
+  const map = L.map('map').setView([20, 0], 3);
 
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  // Mapa con tema oscuro
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
     attribution: '',
+    subdomains: 'abcd',
     maxZoom: 19,
   }).addTo(map);
 
