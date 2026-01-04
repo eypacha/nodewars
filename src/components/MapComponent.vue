@@ -10,7 +10,7 @@ import { storeToRefs } from 'pinia';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useMapStore } from '@/stores/mapStore';
-import MapMarker from './MapMarker.vue';
+import BaseMarker from './BaseMarker.vue';
 
 const mapStore = useMapStore();
 const { center, zoom, marker } = storeToRefs(mapStore);
@@ -41,7 +41,7 @@ watch(marker, (newMarker) => {
   if (mapRef.value && newMarker) {
     // Crear un contenedor temporal para montar el componente Vue
     const container = document.createElement('div');
-    const app = createApp(MapMarker);
+    const app = createApp(BaseMarker);
     app.mount(container);
     
     const customIcon = L.divIcon({
