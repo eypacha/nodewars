@@ -1,6 +1,6 @@
 <template>
     <div class="w-full h-[100vh] overflow-hidden">
-        <div id="map" class="w-full h-[calc(100vh+30px)]"></div>
+        <div class="w-full h-[calc(100vh+30px)]"></div>
     </div>
 </template>
 
@@ -12,25 +12,12 @@ import 'leaflet/dist/leaflet.css';
 onMounted(() => {
   const map = L.map('map').setView([20, 0], 3);
 
-  // Mapa con tema oscuro
   L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
     attribution: '',
     subdomains: 'abcd',
     maxZoom: 19,
   }).addTo(map);
 
-  // Fix para los iconos de Leaflet en Vite
-  delete L.Icon.Default.prototype._getIconUrl;
-  L.Icon.Default.mergeOptions({
-    iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
-    iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
-    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
-  });
+ 
 });
 </script>
-
-<style scoped>
-#map {
-  z-index: 0;
-}
-</style>
