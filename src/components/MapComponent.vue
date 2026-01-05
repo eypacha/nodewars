@@ -186,7 +186,11 @@ const handleScan = async () => {
 };
 
 // Manejar clic en el marcador cuando está confirmado
-const handleMarkerClick = () => {
+const handleMarkerClick = (e) => {
+  // Prevenir que el evento se propague al mapa
+  if (e) {
+    L.DomEvent.stopPropagation(e);
+  }
   if (baseConfirmed.value) {
     mapStore.openBaseMarkerDialog();
     updateMarkerScreenPosition();
@@ -317,14 +321,18 @@ watch(showPOIDialog, (visible) => {
   }
 });
 
-// Cerrar diálogo de POI al hacer clic en el mapa
+// Cerrar diálogos al hacer clic en el mapa
 const handleMapClick = (e) => {
-  // Cerrar el diálogo si está abierto y el clic fue en el mapa (no en un marcador POI)
+  // Cerrar el diálogo de POI si está abierto
   if (showPOIDialog.value) {
     // El evento de clic en el mapa se dispara, pero necesitamos verificar que no fue en un POI
     // Los marcadores POI tienen su propio handler que se ejecuta primero
     // Así que si llegamos aquí y el diálogo está abierto, fue un clic en el mapa vacío
     poiStore.closePOIDialog();
+  }
+  // Cerrar el diálogo de la base si está abierto
+  if (showBaseMarkerDialog.value) {
+    mapStore.closeBaseMarkerDialog();
   }
 };
 </script>
