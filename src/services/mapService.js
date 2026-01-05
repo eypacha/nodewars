@@ -42,6 +42,15 @@ export const MAP_CONFIG = {
     center: [20, 0],
     zoom: 3,
   },
+
+  // Configuración de puntos de interés (POI)
+  POI: {
+    radius: 6, // Radio del círculo en píxeles
+    weight: 2,
+    fillOpacity: 0.7,
+    opacity: 1,
+    className: 'poi-marker',
+  },
 };
 
 /**
@@ -54,6 +63,11 @@ export const getTileLayerConfig = () => MAP_CONFIG.TILE_LAYER;
  */
 export const getRadarConfig = () => MAP_CONFIG.RADAR;
 
+
+/**
+ * Obtener configuración de puntos de interés
+ */
+export const getPOIConfig = () => MAP_CONFIG.POI;
 /**
  * Obtener configuración del marcador
  */
