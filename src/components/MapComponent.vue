@@ -12,6 +12,13 @@
       :poi="selectedPOI"
       @close="handleClosePOIDialog"
     />
+    <div 
+      v-if="isLoading && markerScreenPosition" 
+      class="radar-sweep"
+      :style="radarSweepStyle"
+    >
+      <div class="sweep-line"></div>
+    </div>
   </div>
 </template>
 
@@ -33,7 +40,7 @@ import POIDialog from './POIDialog.vue';
 const mapStore = useMapStore();
 const poiStore = usePoiStore();
 const { center, zoom, marker, showMarkerDialog, baseConfirmed } = storeToRefs(mapStore);
-const { selectedPOI, showPOIDialog } = storeToRefs(poiStore);
+const { selectedPOI, showPOIDialog, isLoading } = storeToRefs(poiStore);
 
 // Inicializar composables
 const { mapRef, initMap, flyTo, on } = useLeafletMap('map', center.value, zoom.value);
@@ -66,6 +73,38 @@ const dialogStyle = computed(() => {
 const poiDialogStyle = computed(() => {
   if (!poiScreenPosition.value) return {};
   return createOverlayStyle(poiScreenPosition.value);
+});
+
+// Estilo de la animación del radar
+const radarSweepStyle = computed(() => {
+  if (!markerScreenPosition.value || !mapRef.value || !markerRef.value) return {};
+  
+  // Calcular el radio del radar en píxeles
+  const radarConfig = getRadarConfig();
+  const markerLatLng = markerRef.value.getLatLng();
+  
+  // Crear un punto a la distancia del radio del radar
+  const earthRadius = 6371000; // Radio de la Tierra en metros
+  const lat = markerLatLng.lat;
+  const lng = markerLatLng.lng;
+  const radiusInMeters = radarConfig.radius;
+  
+  // Calcular un punto al norte a la distancia del radio
+  const latOffset = (radiusInMeters / earthRadius) * (180 / Math.PI);
+  const pointAtRadius = [lat + latOffset, lng];
+  
+  // Convertir a píxeles
+  const centerPoint = mapRef.value.latLngToContainerPoint(markerLatLng);
+  const edgePoint = mapRef.value.latLngToContainerPoint(pointAtRadius);
+  const radiusInPixels = Math.abs(edgePoint.y - centerPoint.y);
+  
+  return {
+    position: 'absolute',
+    left: `${markerScreenPosition.value.x}px`,
+    top: `${markerScreenPosition.value.y}px`,
+    zIndex: 999,
+    '--radar-radius': `${radiusInPixels}px`,
+  };
 });
 
 // Manejar confirmación del marcador
@@ -160,7 +199,9 @@ watch(baseConfirmed, async (confirmed) => {
 // Observar visibilidad del diálogo
 watch(showMarkerDialog, (visible) => {
   if (visible) {
-   
+    updateMarkerScreenPosition();
+  }
+});
 
 // Observar cambios en el POI seleccionado
 watch(selectedPOI, (poi) => {
@@ -174,8 +215,6 @@ watch(showPOIDialog, (visible) => {
   if (visible) {
     updatePOIScreenPosition();
   }
-}); updateMarkerScreenPosition();
-  }
 });
 </script>
 
@@ -188,5 +227,33 @@ watch(showPOIDialog, (visible) => {
 
 :deep(.poi-marker:hover) {
   filter: brightness(1.2);
+}
+
+/* Estilos para la animación del radar */
+/* Animación de barrido del radar */
+.radar-sweep {
+  pointer-events: none;
+}
+
+.sweep-line {
+  position: absolute;
+  width: 3px;
+  height: var(--radar-radius, 500px);
+  background: linear-gradient(to top, rgba(0, 188, 255, 0) 0%, rgba(0, 188, 255, 0.8) 50%, rgba(0, 188, 255, 0) 100%);
+  transform-origin: bottom center;
+  animation: sweep 2s linear infinite;
+  filter: blur(1px);
+  box-shadow: 0 0 10px rgba(0, 188, 255, 0.5);
+  left: -1.5px;
+  bottom: 0;
+}
+
+@keyframes sweep {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 </style>
