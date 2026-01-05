@@ -18,6 +18,7 @@
       :poi="selectedPOI"
       :base-position="baseMarkerPosition"
       @close="handleClosePOIDialog"
+      @attack="handleAttack"
     />
     <div 
       v-if="isLoading && markerScreenPosition" 
@@ -25,6 +26,13 @@
       :style="radarSweepStyle"
     >
       <div class="sweep-line"></div>
+    </div>
+    <div 
+      v-if="attackTriangle" 
+      class="attack-triangle"
+      :style="attackTriangleStyle"
+    >
+      ▲
     </div>
   </div>
 </template>
@@ -39,7 +47,10 @@ import { useLeafletMap } from '@/composables/useLeafletMap';
 import { useMapMarker } from '@/composables/useMapMarker';
 import { useRadar } from '@/composables/useRadar';
 import { usePointsOfInterest } from '@/composables/usePointsOfInterest';
-import { getScreenPosition, createOverlayStyle } from '@/utils/mapHelpers';
+import { useAttackAnimation } from '@/composables/useAttackAnimation';
+import { useConnectionLines } from '@/composables/useConnectionLines';
+import { useScreenPositions } from '@/composables/useScreenPositions';
+import { useMapDialogs } from '@/composables/useMapDialogs';
 import { getRadarConfig } from '@/services/mapService';
 import BaseMarker from './BaseMarker.vue';
 import MarkerConfirmDialog from './MarkerConfirmDialog.vue';
@@ -51,45 +62,30 @@ const poiStore = usePoiStore();
 const { center, zoom, marker, showMarkerDialog, baseConfirmed, showBaseMarkerDialog } = storeToRefs(mapStore);
 const { selectedPOI, showPOIDialog, isLoading } = storeToRefs(poiStore);
 
-// Inicializar composables
+// Inicializar composables principales
 const { mapRef, initMap, flyTo, on } = useLeafletMap('map', center.value, zoom.value);
 const { markerRef, createMarker, disableDragging, removeMarker, on: onMarker } = useMapMarker(mapRef);
 const { radarRef, createRadar, updatePosition: updateRadarPosition, removeRadar } = useRadar(mapRef);
 const { clearPOIMarkers } = usePointsOfInterest(mapRef);
 
-const markerScreenPosition = ref(null);
-const poiScreenPosition = ref(null);
-const connectionLineRef = ref(null);
+// Composables para funcionalidades específicas
+const { attackTriangle, attackTriangleStyle, startAttack, cancelAttack } = useAttackAnimation(mapRef, markerRef);
+const { createConnectionLine, removeConnectionLine, updateConnectionLine } = useConnectionLines(mapRef, markerRef);
+const { 
+  markerScreenPosition, 
+  poiScreenPosition, 
+  updateMarkerScreenPosition, 
+  updatePOIScreenPosition,
+  dialogStyle,
+  poiDialogStyle 
+} = useScreenPositions(mapRef, markerRef);
+const { closePOIDialog: closeDialog, handleMapClick } = useMapDialogs();
 
 // Posición del marcador base para calcular distancia
 const baseMarkerPosition = computed(() => {
   if (!markerRef.value) return null;
   const latLng = markerRef.value.getLatLng();
   return { lat: latLng.lat, lng: latLng.lng };
-});
-
-// Calcular posición en pantalla del marcador
-const updateMarkerScreenPosition = () => {
-  if (!mapRef.value || !markerRef.value) return;
-  markerScreenPosition.value = getScreenPosition(mapRef.value, markerRef.value.getLatLng());
-};
-
-// Calcular posición en pantalla del POI seleccionado
-const updatePOIScreenPosition = () => {
-  if (!mapRef.value || !selectedPOI.value) return;
-  poiScreenPosition.value = getScreenPosition(mapRef.value, [selectedPOI.value.lat, selectedPOI.value.lng]);
-};
-
-// Estilo del diálogo de confirmación
-const dialogStyle = computed(() => {
-  if (!markerScreenPosition.value) return {};
-  return createOverlayStyle(markerScreenPosition.value);
-});
-
-// Estilo del diálogo de POI
-const poiDialogStyle = computed(() => {
-  if (!poiScreenPosition.value) return {};
-  return createOverlayStyle(poiScreenPosition.value);
 });
 
 // Estilo de la animación del radar
@@ -130,50 +126,14 @@ const handleConfirmMarker = () => {
   disableDragging();
 };
 
+// Manejar ataque al POI
+const handleAttack = () => {
+  startAttack(selectedPOI.value);
+};
+
 // Manejar cierre del diálogo de POI
 const handleClosePOIDialog = () => {
-  poiStore.closePOIDialog();
-  removeConnectionLine();
-};
-
-// Crear línea de conexión entre el marcador base y el POI seleccionado
-const createConnectionLine = () => {
-  if (!mapRef.value || !markerRef.value || !selectedPOI.value) return;
-  
-  // Eliminar línea anterior si existe
-  removeConnectionLine();
-  
-  const markerPosition = markerRef.value.getLatLng();
-  const poiPosition = [selectedPOI.value.lat, selectedPOI.value.lng];
-  
-  // Crear línea punteada con el color de la categoría del POI
-  connectionLineRef.value = L.polyline(
-    [[markerPosition.lat, markerPosition.lng], poiPosition],
-    {
-      color: selectedPOI.value.color,
-      weight: 2,
-      opacity: 0.6,
-      dashArray: '10, 5',
-      className: 'poi-connection-line'
-    }
-  ).addTo(mapRef.value);
-};
-
-// Eliminar línea de conexión
-const removeConnectionLine = () => {
-  if (connectionLineRef.value) {
-    connectionLineRef.value.remove();
-    connectionLineRef.value = null;
-  }
-};
-
-// Actualizar línea de conexión cuando el mapa se mueve o hace zoom
-const updateConnectionLine = () => {
-  if (showPOIDialog.value && connectionLineRef.value && markerRef.value && selectedPOI.value) {
-    const markerPosition = markerRef.value.getLatLng();
-    const poiPosition = [selectedPOI.value.lat, selectedPOI.value.lng];
-    connectionLineRef.value.setLatLngs([[markerPosition.lat, markerPosition.lng], poiPosition]);
-  }
+  closeDialog(removeConnectionLine, cancelAttack);
 };
 
 // Manejar scan desde el diálogo del marcador
@@ -210,7 +170,7 @@ const handleMarkerDragEnd = () => {
   mapStore.updateMarkerPosition([position.lat, position.lng]);
   updateMarkerScreenPosition();
   updateRadarPosition([position.lat, position.lng]);
-  updateConnectionLine();
+  updateConnectionLine(selectedPOI.value);
 };
 
 const handleMarkerDrag = () => {
@@ -218,7 +178,7 @@ const handleMarkerDrag = () => {
   if (markerRef.value) {
     updateRadarPosition(markerRef.value.getLatLng());
   }
-  updateConnectionLine();
+  updateConnectionLine(selectedPOI.value);
 };
 
 // Inicializar mapa
@@ -226,10 +186,10 @@ onMounted(() => {
   initMap();
   on('move', updateMarkerScreenPosition);
   on('zoom', updateMarkerScreenPosition);
-  on('move', updatePOIScreenPosition);
-  on('zoom', updatePOIScreenPosition);
-  on('move', updateConnectionLine);
-  on('zoom', updateConnectionLine);
+  on('move', () => updatePOIScreenPosition(selectedPOI.value));
+  on('zoom', () => updatePOIScreenPosition(selectedPOI.value));
+  on('move', () => updateConnectionLine(selectedPOI.value));
+  on('zoom', () => updateConnectionLine(selectedPOI.value));
   // Agregar listener para cerrar diálogo al hacer clic en el mapa
   if (mapRef.value) {
     mapRef.value.on('click', handleMapClick);
@@ -306,10 +266,10 @@ watch(showBaseMarkerDialog, (visible) => {
 // Observar cambios en el POI seleccionado
 watch(selectedPOI, (poi) => {
   if (poi) {
-    updatePOIScreenPosition();
+    updatePOIScreenPosition(poi);
     // Actualizar línea de conexión cuando se selecciona un nuevo POI
     nextTick(() => {
-      createConnectionLine();
+      createConnectionLine(poi);
     });
   }
 });
@@ -317,31 +277,16 @@ watch(selectedPOI, (poi) => {
 // Actualizar posición del diálogo de POI cuando el mapa se mueve
 watch(showPOIDialog, (visible) => {
   if (visible) {
-    updatePOIScreenPosition();
+    updatePOIScreenPosition(selectedPOI.value);
     // Crear línea de conexión cuando se abre el diálogo
     nextTick(() => {
-      createConnectionLine();
+      createConnectionLine(selectedPOI.value);
     });
   } else {
     // Eliminar línea de conexión cuando se cierra el diálogo
     removeConnectionLine();
   }
 });
-
-// Cerrar diálogos al hacer clic en el mapa
-const handleMapClick = (e) => {
-  // Cerrar el diálogo de POI si está abierto
-  if (showPOIDialog.value) {
-    // El evento de clic en el mapa se dispara, pero necesitamos verificar que no fue en un POI
-    // Los marcadores POI tienen su propio handler que se ejecuta primero
-    // Así que si llegamos aquí y el diálogo está abierto, fue un clic en el mapa vacío
-    poiStore.closePOIDialog();
-  }
-  // Cerrar el diálogo de la base si está abierto
-  if (showBaseMarkerDialog.value) {
-    mapStore.closeBaseMarkerDialog();
-  }
-};
 </script>
 
 <style scoped>
@@ -353,6 +298,15 @@ const handleMapClick = (e) => {
 
 :deep(.poi-marker:hover) {
   filter: brightness(1.2);
+}
+
+/* Estilos para el triángulo de ataque */
+.attack-triangle {
+  pointer-events: none;
+  color: white;
+  font-size: 24px;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+  filter: drop-shadow(0 0 5px white);
 }
 
 /* Estilos para la animación del radar */
