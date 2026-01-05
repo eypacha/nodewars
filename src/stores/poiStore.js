@@ -45,6 +45,9 @@ export const usePoiStore = defineStore('poi', () => {
           ...poi,
           // Usar la categoría si existe, sino usar el tipo
           color: getPOIColor(poi.category || poi.type),
+          health: 100,
+          maxHealth: 100,
+          owned: false,
         }));
       
       // Crear un Set con los IDs existentes para verificar duplicados
@@ -123,6 +126,25 @@ export const usePoiStore = defineStore('poi', () => {
     selectedPOI.value = null;
   };
 
+  const damagePOI = (poiId, damage = 10) => {
+    const poi = getPOIById(poiId);
+    if (poi) {
+      // Solo reducir health si no está owned
+      if (!poi.owned) {
+        poi.health = Math.max(0, poi.health - damage);
+        
+        // Si el health llega a 0, marcar como owned
+        if (poi.health <= 0) {
+          poi.owned = true;
+          // Cerrar el diálogo si este POI estaba seleccionado
+          if (selectedPOI.value?.id === poiId) {
+            closePOIDialog();
+          }
+        }
+      }
+    }
+  };
+
   return {
     // State
     pois,
@@ -144,5 +166,6 @@ export const usePoiStore = defineStore('poi', () => {
     getPOIById,
     selectPOI,
     closePOIDialog,
+    damagePOI,
   };
 });

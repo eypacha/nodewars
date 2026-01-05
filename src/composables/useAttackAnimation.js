@@ -4,10 +4,12 @@
  */
 import { ref } from 'vue';
 import L from 'leaflet';
+import { usePoiStore } from '@/stores/poiStore';
 
 export const useAttackAnimation = (mapRef, markerRef) => {
   const attackTriangles = ref([]);
   let nextAttackId = 0;
+  const poiStore = usePoiStore();
 
   /**
    * Inicia la animación de ataque hacia un POI
@@ -72,7 +74,10 @@ export const useAttackAnimation = (mapRef, markerRef) => {
       if (progress < 1) {
         attack.animationFrame = requestAnimationFrame(animate);
       } else {
-        // Animación completada - eliminar el ataque después de un breve delay
+        // Animación completada - reducir health del POI
+        poiStore.damagePOI(targetPOI.id, 10);
+        
+        // Eliminar el ataque después de un breve delay
         setTimeout(() => {
           const index = attackTriangles.value.findIndex(a => a.id === attackId);
           if (index !== -1) {

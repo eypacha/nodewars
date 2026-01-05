@@ -67,7 +67,7 @@ import POIDialog from './POIDialog.vue';
 const mapStore = useMapStore();
 const poiStore = usePoiStore();
 const { center, zoom, marker, showMarkerDialog, baseConfirmed, showBaseMarkerDialog } = storeToRefs(mapStore);
-const { selectedPOI, showPOIDialog, isLoading } = storeToRefs(poiStore);
+const { selectedPOI, showPOIDialog, isLoading, pois } = storeToRefs(poiStore);
 
 // Inicializar composables principales
 const { mapRef, initMap, flyTo, on } = useLeafletMap('map', center.value, zoom.value);
@@ -77,7 +77,14 @@ const { clearPOIMarkers } = usePointsOfInterest(mapRef);
 
 // Composables para funcionalidades específicas
 const { attackTriangles, startAttack, cancelAttack } = useAttackAnimation(mapRef, markerRef);
-const { createConnectionLine, removeConnectionLine, updateConnectionLine } = useConnectionLines(mapRef, markerRef);
+const { 
+  createConnectionLine, 
+  removeConnectionLine, 
+  updateConnectionLine,
+  createOwnedConnectionLines,
+  updateOwnedConnectionLines,
+  removeOwnedConnectionLines 
+} = useConnectionLines(mapRef, markerRef);
 const { 
   markerScreenPosition, 
   poiScreenPosition, 
@@ -186,6 +193,7 @@ const handleMarkerDrag = () => {
     updateRadarPosition(markerRef.value.getLatLng());
   }
   updateConnectionLine(selectedPOI.value);
+  updateOwnedConnectionLines(pois.value);
 };
 
 // Inicializar mapa
@@ -197,6 +205,8 @@ onMounted(() => {
   on('zoom', () => updatePOIScreenPosition(selectedPOI.value));
   on('move', () => updateConnectionLine(selectedPOI.value));
   on('zoom', () => updateConnectionLine(selectedPOI.value));
+  on('move', () => updateOwnedConnectionLines(pois.value));
+  on('zoom', () => updateOwnedConnectionLines(pois.value));
   // Agregar listener para cerrar diálogo al hacer clic en el mapa
   if (mapRef.value) {
     mapRef.value.on('click', handleMapClick);
@@ -294,6 +304,13 @@ watch(showPOIDialog, (visible) => {
     removeConnectionLine();
   }
 });
+
+// Observar cambios en los POIs para actualizar líneas owned
+watch(pois, (newPois) => {
+  if (mapRef.value && markerRef.value) {
+    createOwnedConnectionLines(newPois);
+  }
+}, { deep: true });
 </script>
 
 <style scoped>

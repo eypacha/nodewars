@@ -6,8 +6,24 @@
         <p v-if="formattedDistance" class="text-white text-xs mb-2 opacity-75">
           {{ formattedDistance }}
         </p>
+        
+        <!-- Health bar -->
+        <div class="mb-2">
+          <div class="flex justify-between text-white text-xs mb-1">
+            <span>Health</span>
+            <span>{{ poi.health }} / {{ poi.maxHealth }}</span>
+          </div>
+          <div class="w-full bg-gray-700 h-1 overflow-hidden">
+            <div 
+              class="h-full transition-all duration-300"
+              :class="healthBarColor"
+              :style="{ width: healthPercentage + '%' }"
+            ></div>
+          </div>
+        </div>
+        
         <span 
-          class="inline-block px-2 py-1 text-xs rounded"
+          class="inline-block px-2 py-1 text-xs rounded hidden"
           :style="{ backgroundColor: poi.color, color: 'white' }"
         >
           {{ poi.type }}
@@ -41,6 +57,20 @@ const props = defineProps({
 });
 
 defineEmits(['close', 'attack']);
+
+// Calcular porcentaje de health
+const healthPercentage = computed(() => {
+  if (!props.poi || !props.poi.health || !props.poi.maxHealth) return 0;
+  return (props.poi.health / props.poi.maxHealth) * 100;
+});
+
+// Color de la barra de health según el porcentaje
+const healthBarColor = computed(() => {
+  const percentage = healthPercentage.value;
+  if (percentage > 60) return 'bg-green-500';
+  if (percentage > 30) return 'bg-yellow-500';
+  return 'bg-red-500';
+});
 
 // Calcular y formatear la distancia
 const formattedDistance = computed(() => {
