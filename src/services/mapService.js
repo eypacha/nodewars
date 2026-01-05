@@ -16,7 +16,7 @@ export const MAP_CONFIG = {
 
   // Configuración del radar
   RADAR: {
-    radius: 1000, // metros
+    radius: 700, // metros
     color: '#00bcff',
     fillOpacity: 0.1,
     weight: 2,

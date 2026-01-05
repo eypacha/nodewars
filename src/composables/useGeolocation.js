@@ -19,7 +19,7 @@ export function useGeolocation() {
           const location = [latitude, longitude];
           
           // Actualizar estado del mapa
-          mapStore.centerOnLocation(location, 15);
+          mapStore.centerOnLocation(location, 16);
           
           // Mostrar marcador después de la animación
           setTimeout(() => {
