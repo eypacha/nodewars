@@ -14,12 +14,14 @@ const OVERPASS_URL = 'https://overpass-api.de/api/interpreter';
  */
 const buildOverpassQuery = (lat, lng, radius) => {
   // Consultar varios tipos de POIs populares
+  // Buscar tanto nodes como ways para obtener más resultados
   return `
     [out:json][timeout:25];
     (
-      node["amenity"~"restaurant|fast_food|supermarket"](around:${radius},${lat},${lng});
+      node["amenity"~"restaurant|fast_food|supermarket|pharmacy|fuel|bank|school"](around:${radius},${lat},${lng});
+      way["amenity"~"restaurant|fast_food|supermarket|pharmacy|fuel|bank|school"](around:${radius},${lat},${lng});
     );
-    out body;
+    out center;
   `;
 };
 
@@ -35,10 +37,10 @@ export const fetchPointsOfInterest = async (lat, lng, radius) => {
     const query = buildOverpassQuery(lat, lng, radius);
     const response = await fetch(OVERPASS_URL, {
       method: 'POST',
-      body: `data=${encodeURIComponent(query)}`,
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
+        'Content-Type': 'text/plain'
       },
+      body: query
     });
 
     if (!response.ok) {
@@ -48,14 +50,22 @@ export const fetchPointsOfInterest = async (lat, lng, radius) => {
     const data = await response.json();
     
     // Transformar los datos en un formato más manejable
-    return data.elements.map((element) => ({
-      id: element.id,
-      lat: element.lat,
-      lng: element.lon,
-      type: element.tags?.amenity || element.tags?.shop || element.tags?.tourism || element.tags?.leisure || 'unknown',
-      name: element.tags?.name || 'Sin nombre',
-      tags: element.tags,
-    }));
+    // Manejar tanto nodes (con lat/lon directos) como ways (con center)
+    return data.elements.map((element) => {
+      const lat = element.lat || element.center?.lat;
+      const lng = element.lon || element.center?.lon;
+      
+      if (!lat || !lng) return null;
+      
+      return {
+        id: element.id,
+        lat,
+        lng,
+        type: element.tags?.amenity || element.tags?.shop || element.tags?.tourism || element.tags?.leisure || 'unknown',
+        name: element.tags?.name || 'Sin nombre',
+        tags: element.tags,
+      };
+    }).filter(Boolean);
   } catch (error) {
     console.error('Error fetching POIs from Overpass API:', error);
     return [];
