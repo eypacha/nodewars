@@ -10,6 +10,7 @@ export const useGameStore = defineStore('game', () => {
     pharmacy: 0,
     fuel: 0,
     bank: 0,
+    police: 0,
   });
 
   // Acciones

@@ -18,11 +18,12 @@ const buildOverpassQuery = (lat, lng, radius) => {
   return `
     [out:json][timeout:25];
     (
-      node["amenity"~"restaurant|fast_food|supermarket|pharmacy|fuel|bank"](around:${radius},${lat},${lng});
-      way["amenity"~"restaurant|fast_food|supermarket|pharmacy|fuel|bank"](around:${radius},${lat},${lng});
+      node["amenity"~"restaurant|fast_food|supermarket|pharmacy|fuel|bank|police"](around:${radius},${lat},${lng});
+      way["amenity"~"restaurant|fast_food|supermarket|pharmacy|fuel|bank|police"](around:${radius},${lat},${lng});
     );
     out center;
   `;
+
 };
 
 /**
@@ -124,6 +125,10 @@ const normalizePOICategory = (type) => {
   if (type === 'restaurant' || type === 'fast_food' || type === 'supermarket') {
     return 'food';
   }
+  // Police category stays as is
+  if (type === 'police') {
+    return 'police';
+  }
   // Otros tipos mantienen su nombre
   return type;
 };
@@ -136,15 +141,16 @@ const normalizePOICategory = (type) => {
 export const getPOIColor = (type) => {
   // Si ya es una categoría normalizada, usarla directamente
   // Si no, normalizarla
-  const category = ['food', 'pharmacy', 'fuel', 'bank'].includes(type) 
+  const category = ['food', 'pharmacy', 'fuel', 'bank', 'police'].includes(type) 
     ? type 
     : normalizePOICategory(type);
   
   const colorMap = {
-    food: '#fdcb6e',      // Amarillo/naranja para comida
-    pharmacy: '#e17055',  // Rojo/naranja para farmacia
-    fuel: '#00b894',      // Verde para combustible
-    bank: '#0984e3',      // Azul para banco
+    food: '#FF8C42',      // Naranja para comida
+    pharmacy: '#4CAF50',  // Verde para farmacia/medicina
+    fuel: '#E74C3C',      // Rojo para combustible
+    bank: '#FFD700',      // Amarillo/oro para banco/dinero
+    police: '#1E90FF',    // Celeste para comisarías
   };
 
   return colorMap[category] || '#95a5a6'; // Gris por defecto para tipos desconocidos

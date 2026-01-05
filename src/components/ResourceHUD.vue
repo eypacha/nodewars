@@ -22,9 +22,10 @@ const gameStore = useGameStore();
 const { resources } = storeToRefs(gameStore);
 
 const resourceList = computed(() => [
-  { key: 'food', label: 'Food', bg: '#fdcb6e' },
-  { key: 'pharmacy', label: 'Pharma', bg: '#e17055' },
-  { key: 'fuel', label: 'Fuel', bg: '#00b894' },
-  { key: 'bank', label: 'Bank', bg: '#0984e3' },
+  { key: 'food', label: 'Food', bg: '#FF8C42' },
+  { key: 'pharmacy', label: 'Pharma', bg: '#4CAF50' },
+  { key: 'fuel', label: 'Fuel', bg: '#E74C3C' },
+  { key: 'bank', label: 'Bank', bg: '#FFD700' },
+  { key: 'police', label: 'Police', bg: '#1E90FF' },
 ]);
 </script>
