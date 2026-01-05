@@ -16,6 +16,7 @@
       v-if="showPOIDialog && selectedPOI && poiScreenPosition"
       :style="poiDialogStyle"
       :poi="selectedPOI"
+      :base-position="baseMarkerPosition"
       @close="handleClosePOIDialog"
     />
     <div 
@@ -59,6 +60,13 @@ const { clearPOIMarkers } = usePointsOfInterest(mapRef);
 const markerScreenPosition = ref(null);
 const poiScreenPosition = ref(null);
 const connectionLineRef = ref(null);
+
+// Posición del marcador base para calcular distancia
+const baseMarkerPosition = computed(() => {
+  if (!markerRef.value) return null;
+  const latLng = markerRef.value.getLatLng();
+  return { lat: latLng.lat, lng: latLng.lng };
+});
 
 // Calcular posición en pantalla del marcador
 const updateMarkerScreenPosition = () => {
