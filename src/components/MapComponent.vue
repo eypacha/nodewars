@@ -22,6 +22,7 @@
       @close="handleClosePOIDialog"
       @attack="handleAttack"
       @extract="handleExtract"
+      @convertToBarracks="handleConvertToBarracks"
     />
     <UpgradesPanel
       v-if="showUpgradesPanel"
@@ -183,6 +184,12 @@ const handleExtract = () => {
   startResourceCollection(selectedPOI.value, resourceType, resourceColor);
 };
 
+  // Manejar conversión a cuartel
+  const handleConvertToBarracks = () => {
+    if (!selectedPOI.value) return;
+    poiStore.convertToBarracks(selectedPOI.value.id);
+  };
+  
 // Manejar cierre del diálogo de POI
 const handleClosePOIDialog = () => {
   closeDialog(removeConnectionLine, cancelAttack);

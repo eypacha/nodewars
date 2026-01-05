@@ -112,6 +112,16 @@ export const usePoiStore = defineStore('poi', () => {
     });
   };
 
+  // Convierte un POI conquistado en cuartel
+  const convertToBarracks = (poiId) => {
+    const poi = getPOIById(poiId);
+    if (!poi) return false;
+    if (!poi.owned) return false;
+    if (poi.type === 'cuartel') return false;
+    poi.type = 'cuartel';
+    return true;
+  };
+
   const getPOIById = (id) => {
     return pois.value.find(poi => poi.id === id);
   };
@@ -174,5 +184,6 @@ export const usePoiStore = defineStore('poi', () => {
     closePOIDialog,
     damagePOI,
     consumeResource,
+    convertToBarracks,
   };
 });

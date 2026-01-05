@@ -2,11 +2,12 @@
  * Composable para gestionar puntos de interés en el mapa
  * Maneja la creación, actualización y visualización de POIs
  */
-import { ref, watch } from 'vue';
+import { ref, watch, createApp } from 'vue';
 import L from 'leaflet';
 import { storeToRefs } from 'pinia';
 import { usePoiStore } from '@/stores/poiStore';
 import { getPOIConfig } from '@/services/mapService';
+import BarracksMarker from '@/components/BarracksMarker.vue';
 
 export const usePointsOfInterest = (mapRef) => {
   const poiStore = usePoiStore();
@@ -27,36 +28,59 @@ export const usePointsOfInterest = (mapRef) => {
 
     // Crear un marcador circular para cada POI
     pois.value.forEach((poi) => {
-      const marker = L.circleMarker([poi.lat, poi.lng], {
-        radius: config.radius,
-        fillColor: poi.color,
-        color: poi.color,
-        weight: config.weight,
-        opacity: config.opacity,
-        fillOpacity: config.fillOpacity,
-        className: config.className,
-      }).addTo(mapRef.value);
+      let marker;
+      
+      // Si el POI es un cuartel, usar BarracksMarker
+      if (poi.type === 'cuartel') {
+        const container = document.createElement('div');
+        const app = createApp(BarracksMarker);
+        app.mount(container);
+
+        const customIcon = L.divIcon({
+          html: container.innerHTML,
+          className: 'barracks-marker-icon',
+          iconSize: [40, 40],
+          iconAnchor: [20, 20],
+        });
+
+        marker = L.marker([poi.lat, poi.lng], {
+          icon: customIcon,
+        }).addTo(mapRef.value);
+
+        app.unmount();
+      } else {
+        // POI normal - usar círculo
+        marker = L.circleMarker([poi.lat, poi.lng], {
+          radius: config.radius,
+          fillColor: poi.color,
+          color: poi.color,
+          weight: config.weight,
+          opacity: config.opacity,
+          fillOpacity: config.fillOpacity,
+          className: config.className,
+        }).addTo(mapRef.value);
+
+        // Cambiar cursor al pasar sobre el POI (solo para círculos)
+        marker.on('mouseover', function() {
+          this.setStyle({
+            radius: config.radius * 1.5,
+            weight: config.weight + 1,
+          });
+        });
+
+        marker.on('mouseout', function() {
+          this.setStyle({
+            radius: config.radius,
+            weight: config.weight,
+          });
+        });
+      }
 
       // Añadir evento de click para mostrar el diálogo
       marker.on('click', (e) => {
         // Prevenir que el evento se propague al mapa
         L.DomEvent.stopPropagation(e);
         poiStore.selectPOI(poi.id);
-      });
-
-      // Cambiar cursor al pasar sobre el POI
-      marker.on('mouseover', function() {
-        this.setStyle({
-          radius: config.radius * 1.5,
-          weight: config.weight + 1,
-        });
-      });
-
-      marker.on('mouseout', function() {
-        this.setStyle({
-          radius: config.radius,
-          weight: config.weight,
-        });
       });
 
       poiMarkers.value.push({

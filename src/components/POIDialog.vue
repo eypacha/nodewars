@@ -22,7 +22,7 @@
         </div>
 
         <!-- Resources bar -->
-        <div class="mb-2">
+        <div v-if="poi.type !== 'cuartel'" class="mb-2">
           <div class="flex justify-between text-white text-xs mb-1">
             <span>Recursos</span>
             <span>{{ poi.resourceAmount }} / {{ poi.resourceCapacity }}</span>
@@ -57,20 +57,29 @@
         ></div>
         Attack
       </button>
-      <button 
-        v-else
-        @click="handleExtract"
-        :disabled="isExtractOnCooldown || !poi.resourceAmount"
-        class="font-bold py-2 px-4 border-1 text-sm mx-auto block w-full mt-3 relative overflow-hidden"
-        :class="(isExtractOnCooldown || !poi.resourceAmount) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'"
-      >
-        <div
-          v-if="isExtractOnCooldown"
-          class="absolute top-0 left-0 h-1 bg-white"
-          :style="{ width: extractCooldownProgress + '%' }"
-        ></div>
-        {{ poi.resourceAmount ? 'Extraer' : 'Sin recursos' }}
-      </button>
+      <div v-else>
+        <button
+          v-if="poi.type !== 'cuartel'"
+          @click="handleExtract"
+          :disabled="isExtractOnCooldown || !poi.resourceAmount"
+          class="font-bold py-2 px-4 border-1 text-sm mx-auto block w-full mt-3 relative overflow-hidden"
+          :class="(isExtractOnCooldown || !poi.resourceAmount) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'"
+        >
+          <div
+            v-if="isExtractOnCooldown"
+            class="absolute top-0 left-0 h-1 bg-white"
+            :style="{ width: extractCooldownProgress + '%' }"
+          ></div>
+          {{ poi.resourceAmount ? 'Extraer' : 'Sin recursos' }}
+        </button>
+        <button
+          v-if="poi.type !== 'cuartel'"
+          @click="handleConvertToBarracks"
+          class="font-bold py-2 px-4 border-1 text-sm mx-auto block w-full mt-2 relative overflow-hidden cursor-pointer"
+        >
+          Convertir en cuartel
+        </button>
+      </div>
       <div class="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-8 border-l-transparent border-r-8 border-r-transparent border-t-8 border-t-white"></div>
       <div class="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[6px] border-t-black mt-[-2px]"></div>
     </div>
@@ -92,7 +101,11 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['close', 'attack', 'extract']);
+const emit = defineEmits(['close', 'attack', 'extract', 'convertToBarracks']);
+// Emitir evento para convertir en cuartel
+const handleConvertToBarracks = () => {
+  emit('convertToBarracks');
+};
 
 // Estado del cooldown
 const isOnCooldown = ref(false);
