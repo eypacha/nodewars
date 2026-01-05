@@ -26,6 +26,12 @@ export const useGameStore = defineStore('game', () => {
     showStartPopup.value = true;
   };
 
+  const addResource = (resourceType) => {
+    if (resources.value.hasOwnProperty(resourceType)) {
+      resources.value[resourceType] += 1;
+    }
+  };
+
   return {
     // State
     showStartPopup,
@@ -36,5 +42,6 @@ export const useGameStore = defineStore('game', () => {
     startGame,
     showLocationError,
     retryLocationPermission,
+    addResource,
   };
 });

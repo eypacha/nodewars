@@ -42,6 +42,19 @@
     >
       ▲
     </div>
+    <div 
+      v-for="particle in resourceParticles" 
+      :key="particle.id"
+      class="resource-particle"
+      :style="{
+        position: 'absolute',
+        left: `${particle.x}px`,
+        top: `${particle.y}px`,
+        transform: 'translate(-50%, -50%)',
+        backgroundColor: particle.resourceColor,
+        zIndex: 998,
+      }"
+    ></div>
   </div>
 </template>
 
@@ -57,6 +70,7 @@ import { useMapMarker } from '@/composables/useMapMarker';
 import { useRadar } from '@/composables/useRadar';
 import { usePointsOfInterest } from '@/composables/usePointsOfInterest';
 import { useAttackAnimation } from '@/composables/useAttackAnimation';
+import { useResourceCollection } from '@/composables/useResourceCollection';
 import { useConnectionLines } from '@/composables/useConnectionLines';
 import { useScreenPositions } from '@/composables/useScreenPositions';
 import { useMapDialogs } from '@/composables/useMapDialogs';
@@ -80,7 +94,8 @@ const { radarRef, createRadar, updatePosition: updateRadarPosition, removeRadar 
 const { clearPOIMarkers } = usePointsOfInterest(mapRef);
 
 // Composables para funcionalidades específicas
-const { attackTriangles, startAttack, cancelAttack } = useAttackAnimation(mapRef, markerRef);
+const { resourceParticles, startResourceCollection } = useResourceCollection(mapRef, markerRef);
+const { attackTriangles, startAttack, cancelAttack } = useAttackAnimation(mapRef, markerRef, startResourceCollection);
 const { 
   createConnectionLine, 
   removeConnectionLine, 
@@ -335,6 +350,14 @@ watch(pois, (newPois) => {
   font-size: 24px;
   text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
   filter: drop-shadow(0 0 5px white);
+}
+
+/* Estilos para las partículas de recurso */
+.resource-particle {
+  pointer-events: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
 }
 
 /* Estilos para la animación del radar */
