@@ -20,6 +20,20 @@
             ></div>
           </div>
         </div>
+
+        <!-- Resources bar -->
+        <div class="mb-2">
+          <div class="flex justify-between text-white text-xs mb-1">
+            <span>Recursos</span>
+            <span>{{ poi.resourceAmount }} / {{ poi.resourceCapacity }}</span>
+          </div>
+          <div class="w-full bg-gray-700 h-1 overflow-hidden">
+            <div 
+              class="h-full transition-all duration-300"
+              :style="{ width: resourcePercentage + '%', backgroundColor: poi.color }"
+            ></div>
+          </div>
+        </div>
         
         <span 
           class="inline-block px-2 py-1 text-xs rounded hidden"
@@ -46,16 +60,16 @@
       <button 
         v-else
         @click="handleExtract"
-        :disabled="isExtractOnCooldown"
+        :disabled="isExtractOnCooldown || !poi.resourceAmount"
         class="font-bold py-2 px-4 border-1 text-sm mx-auto block w-full mt-3 relative overflow-hidden"
-        :class="isExtractOnCooldown ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'"
+        :class="(isExtractOnCooldown || !poi.resourceAmount) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'"
       >
         <div
           v-if="isExtractOnCooldown"
           class="absolute top-0 left-0 h-1 bg-white"
           :style="{ width: extractCooldownProgress + '%' }"
         ></div>
-        Extraer
+        {{ poi.resourceAmount ? 'Extraer' : 'Sin recursos' }}
       </button>
       <div class="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-8 border-l-transparent border-r-8 border-r-transparent border-t-8 border-t-white"></div>
       <div class="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[6px] border-t-black mt-[-2px]"></div>
@@ -147,6 +161,11 @@ const handleExtract = () => {
 const healthPercentage = computed(() => {
   if (!props.poi || !props.poi.health || !props.poi.maxHealth) return 0;
   return (props.poi.health / props.poi.maxHealth) * 100;
+});
+
+const resourcePercentage = computed(() => {
+  if (!props.poi || !props.poi.resourceCapacity) return 0;
+  return (props.poi.resourceAmount / props.poi.resourceCapacity) * 100;
 });
 
 // Color de la barra de health según el porcentaje

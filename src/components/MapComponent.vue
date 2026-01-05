@@ -169,6 +169,8 @@ const handleAttack = () => {
 // Manejar extracción manual de recursos
 const handleExtract = () => {
   if (!selectedPOI.value || !selectedPOI.value.owned) return;
+  const consumed = poiStore.consumeResource(selectedPOI.value.id);
+  if (!consumed) return;
   const resourceType = selectedPOI.value.category || selectedPOI.value.type;
   const resourceColor = getPOIColor(resourceType);
   startResourceCollection(selectedPOI.value, resourceType, resourceColor);

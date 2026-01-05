@@ -48,6 +48,8 @@ export const usePoiStore = defineStore('poi', () => {
           health: 100,
           maxHealth: 100,
           owned: false,
+          resourceAmount: 5,
+          resourceCapacity: 5,
         }));
       
       // Crear un Set con los IDs existentes para verificar duplicados
@@ -126,6 +128,14 @@ export const usePoiStore = defineStore('poi', () => {
     selectedPOI.value = null;
   };
 
+  const consumeResource = (poiId) => {
+    const poi = getPOIById(poiId);
+    if (!poi) return false;
+    if (poi.resourceAmount <= 0) return false;
+    poi.resourceAmount -= 1;
+    return true;
+  };
+
   const damagePOI = (poiId, damage = 10) => {
     const poi = getPOIById(poiId);
     if (poi) {
@@ -163,5 +173,6 @@ export const usePoiStore = defineStore('poi', () => {
     selectPOI,
     closePOIDialog,
     damagePOI,
+    consumeResource,
   };
 });
