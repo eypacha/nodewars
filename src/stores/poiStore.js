@@ -36,7 +36,7 @@ export const usePoiStore = defineStore('poi', () => {
       const fetchedPOIs = await fetchPointsOfInterest(center.lat, center.lng, radius);
       
       // Filtrar POIs dentro del radio y añadir color
-      pois.value = fetchedPOIs
+      const newPOIs = fetchedPOIs
         .filter(poi => {
           const distance = calculateDistance([center.lat, center.lng], [poi.lat, poi.lng]);
           return distance <= radius;
@@ -45,6 +45,15 @@ export const usePoiStore = defineStore('poi', () => {
           ...poi,
           color: getPOIColor(poi.type),
         }));
+      
+      // Crear un Set con los IDs existentes para verificar duplicados
+      const existingIds = new Set(pois.value.map(poi => poi.id));
+      
+      // Agregar solo los POIs nuevos (que no estén ya en la lista)
+      const uniqueNewPOIs = newPOIs.filter(poi => !existingIds.has(poi.id));
+      
+      // Sumar los nuevos POIs a los existentes
+      pois.value = [...pois.value, ...uniqueNewPOIs];
       
       lastFetchCenter.value = center;
       lastFetchRadius.value = radius;

@@ -38,7 +38,9 @@ export const usePointsOfInterest = (mapRef) => {
       }).addTo(mapRef.value);
 
       // Añadir evento de click para mostrar el diálogo
-      marker.on('click', () => {
+      marker.on('click', (e) => {
+        // Prevenir que el evento se propague al mapa
+        L.DomEvent.stopPropagation(e);
         poiStore.selectPOI(poi.id);
       });
 

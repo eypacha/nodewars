@@ -31,6 +31,7 @@
 <script setup>
 import { onMounted, watch, ref, nextTick, computed } from 'vue';
 import { storeToRefs } from 'pinia';
+import L from 'leaflet';
 import { useMapStore } from '@/stores/mapStore';
 import { usePoiStore } from '@/stores/poiStore';
 import { useLeafletMap } from '@/composables/useLeafletMap';
@@ -57,6 +58,7 @@ const { clearPOIMarkers } = usePointsOfInterest(mapRef);
 
 const markerScreenPosition = ref(null);
 const poiScreenPosition = ref(null);
+const connectionLineRef = ref(null);
 
 // Calcular posición en pantalla del marcador
 const updateMarkerScreenPosition = () => {
@@ -123,6 +125,48 @@ const handleConfirmMarker = () => {
 // Manejar cierre del diálogo de POI
 const handleClosePOIDialog = () => {
   poiStore.closePOIDialog();
+  removeConnectionLine();
+};
+
+// Crear línea de conexión entre el marcador base y el POI seleccionado
+const createConnectionLine = () => {
+  if (!mapRef.value || !markerRef.value || !selectedPOI.value) return;
+  
+  // Eliminar línea anterior si existe
+  removeConnectionLine();
+  
+  const markerPosition = markerRef.value.getLatLng();
+  const poiPosition = [selectedPOI.value.lat, selectedPOI.value.lng];
+  const radarConfig = getRadarConfig();
+  
+  // Crear línea punteada con el color del radar
+  connectionLineRef.value = L.polyline(
+    [[markerPosition.lat, markerPosition.lng], poiPosition],
+    {
+      color: radarConfig.color,
+      weight: 2,
+      opacity: 0.6,
+      dashArray: '10, 5',
+      className: 'poi-connection-line'
+    }
+  ).addTo(mapRef.value);
+};
+
+// Eliminar línea de conexión
+const removeConnectionLine = () => {
+  if (connectionLineRef.value) {
+    connectionLineRef.value.remove();
+    connectionLineRef.value = null;
+  }
+};
+
+// Actualizar línea de conexión cuando el mapa se mueve o hace zoom
+const updateConnectionLine = () => {
+  if (showPOIDialog.value && connectionLineRef.value && markerRef.value && selectedPOI.value) {
+    const markerPosition = markerRef.value.getLatLng();
+    const poiPosition = [selectedPOI.value.lat, selectedPOI.value.lng];
+    connectionLineRef.value.setLatLngs([[markerPosition.lat, markerPosition.lng], poiPosition]);
+  }
 };
 
 // Manejar scan desde el diálogo del marcador
@@ -155,6 +199,7 @@ const handleMarkerDragEnd = () => {
   mapStore.updateMarkerPosition([position.lat, position.lng]);
   updateMarkerScreenPosition();
   updateRadarPosition([position.lat, position.lng]);
+  updateConnectionLine();
 };
 
 const handleMarkerDrag = () => {
@@ -162,6 +207,7 @@ const handleMarkerDrag = () => {
   if (markerRef.value) {
     updateRadarPosition(markerRef.value.getLatLng());
   }
+  updateConnectionLine();
 };
 
 // Inicializar mapa
@@ -171,6 +217,12 @@ onMounted(() => {
   on('zoom', updateMarkerScreenPosition);
   on('move', updatePOIScreenPosition);
   on('zoom', updatePOIScreenPosition);
+  on('move', updateConnectionLine);
+  on('zoom', updateConnectionLine);
+  // Agregar listener para cerrar diálogo al hacer clic en el mapa
+  if (mapRef.value) {
+    mapRef.value.on('click', handleMapClick);
+  }
 });
 
 // Observar cambios de centro y zoom
@@ -182,6 +234,7 @@ watch([center, zoom], ([newCenter, newZoom]) => {
 watch(marker, async (newMarker) => {
   removeMarker();
   removeRadar();
+  removeConnectionLine();
   
   if (mapRef.value && newMarker) {
     // Crear el marcador
@@ -218,6 +271,7 @@ watch(baseConfirmed, async (confirmed) => {
     // No hacer scan automático - el usuario debe hacer clic en "Scan"
   } else {
     removeRadar();
+    removeConnectionLine();
     // Limpiar POIs cuando se oculta el radar
     poiStore.clearPOIs();
     clearPOIMarkers();
@@ -242,6 +296,10 @@ watch(showBaseMarkerDialog, (visible) => {
 watch(selectedPOI, (poi) => {
   if (poi) {
     updatePOIScreenPosition();
+    // Actualizar línea de conexión cuando se selecciona un nuevo POI
+    nextTick(() => {
+      createConnectionLine();
+    });
   }
 });
 
@@ -249,8 +307,26 @@ watch(selectedPOI, (poi) => {
 watch(showPOIDialog, (visible) => {
   if (visible) {
     updatePOIScreenPosition();
+    // Crear línea de conexión cuando se abre el diálogo
+    nextTick(() => {
+      createConnectionLine();
+    });
+  } else {
+    // Eliminar línea de conexión cuando se cierra el diálogo
+    removeConnectionLine();
   }
 });
+
+// Cerrar diálogo de POI al hacer clic en el mapa
+const handleMapClick = (e) => {
+  // Cerrar el diálogo si está abierto y el clic fue en el mapa (no en un marcador POI)
+  if (showPOIDialog.value) {
+    // El evento de clic en el mapa se dispara, pero necesitamos verificar que no fue en un POI
+    // Los marcadores POI tienen su propio handler que se ejecuta primero
+    // Así que si llegamos aquí y el diálogo está abierto, fue un clic en el mapa vacío
+    poiStore.closePOIDialog();
+  }
+};
 </script>
 
 <style scoped>
