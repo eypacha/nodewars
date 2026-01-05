@@ -5,9 +5,8 @@
 import { ref } from 'vue';
 import L from 'leaflet';
 import { usePoiStore } from '@/stores/poiStore';
-import { getPOIColor } from '@/services/overpassService';
 
-export const useAttackAnimation = (mapRef, markerRef, onResourceCollect = null) => {
+export const useAttackAnimation = (mapRef, markerRef) => {
   const attackTriangles = ref([]);
   let nextAttackId = 0;
   const poiStore = usePoiStore();
@@ -77,17 +76,6 @@ export const useAttackAnimation = (mapRef, markerRef, onResourceCollect = null) 
       } else {
         // Animación completada - reducir health del POI
         poiStore.damagePOI(targetPOI.id, 10);
-        
-        // Obtener el POI actualizado para verificar si fue conquistado
-        const updatedPOI = poiStore.getPOIById(targetPOI.id);
-        
-        // Si el POI fue conquistado y hay un callback de recolección, iniciarlo
-        if (updatedPOI && updatedPOI.owned && onResourceCollect) {
-          // Determinar el tipo de recurso basado en la categoría
-          const resourceType = updatedPOI.category || updatedPOI.type;
-          const resourceColor = getPOIColor(resourceType);
-          onResourceCollect(targetPOI, resourceType, resourceColor);
-        }
         
         // Eliminar el ataque después de un breve delay
         setTimeout(() => {

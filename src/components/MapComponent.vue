@@ -20,6 +20,7 @@
       :base-position="baseMarkerPosition"
       @close="handleClosePOIDialog"
       @attack="handleAttack"
+      @extract="handleExtract"
     />
     <div 
       v-if="isLoading && markerScreenPosition" 
@@ -75,6 +76,7 @@ import { useConnectionLines } from '@/composables/useConnectionLines';
 import { useScreenPositions } from '@/composables/useScreenPositions';
 import { useMapDialogs } from '@/composables/useMapDialogs';
 import { getRadarConfig } from '@/services/mapService';
+import { getPOIColor } from '@/services/overpassService';
 import BaseMarker from './BaseMarker.vue';
 import MarkerConfirmDialog from './MarkerConfirmDialog.vue';
 import BaseMarkerDialog from './BaseMarkerDialog.vue';
@@ -95,7 +97,7 @@ const { clearPOIMarkers } = usePointsOfInterest(mapRef);
 
 // Composables para funcionalidades específicas
 const { resourceParticles, startResourceCollection } = useResourceCollection(mapRef, markerRef);
-const { attackTriangles, startAttack, cancelAttack } = useAttackAnimation(mapRef, markerRef, startResourceCollection);
+const { attackTriangles, startAttack, cancelAttack } = useAttackAnimation(mapRef, markerRef);
 const { 
   createConnectionLine, 
   removeConnectionLine, 
@@ -162,6 +164,14 @@ const handleConfirmMarker = () => {
 // Manejar ataque al POI
 const handleAttack = () => {
   startAttack(selectedPOI.value);
+};
+
+// Manejar extracción manual de recursos
+const handleExtract = () => {
+  if (!selectedPOI.value || !selectedPOI.value.owned) return;
+  const resourceType = selectedPOI.value.category || selectedPOI.value.type;
+  const resourceColor = getPOIColor(resourceType);
+  startResourceCollection(selectedPOI.value, resourceType, resourceColor);
 };
 
 // Manejar cierre del diálogo de POI
