@@ -1,5 +1,5 @@
 <template>
-  <div class="pointer-events-auto mb-2 max-w-xs">
+  <div class="pointer-events-auto mb-2 w-60">
     <div class="bg-black border-2 border-white px-4 py-3 shadow-2xl relative">
       <div>
         <h3 class="text-white text-sm font-bold mb-2">{{ poi.name }}</h3>
@@ -10,7 +10,6 @@
         <!-- Health bar -->
         <div class="mb-2">
           <div class="flex justify-between text-white text-xs mb-1">
-            <span>Health</span>
             <span>{{ poi.health }} / {{ poi.maxHealth }}</span>
           </div>
           <div class="w-full bg-gray-700 h-1 overflow-hidden">
@@ -30,9 +29,18 @@
         </span>
       </div>
       <button 
-        @click="$emit('attack')"
-        class="cursor-pointer font-bold py-2 px-4 border-1 text-sm mx-auto block w-full mt-3"
+        v-if="!poi.owned"
+        @click="handleAttack"
+        :disabled="isOnCooldown"
+        class="font-bold py-2 px-4 border-1 text-sm mx-auto block w-full mt-3 relative overflow-hidden transition-opacity"
+        :class="isOnCooldown ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'"
       >
+        <!-- Barra de progreso del cooldown -->
+        <div 
+          v-if="isOnCooldown"
+          class="absolute top-0 left-0 h-1 bg-white"
+          :style="{ width: cooldownProgress + '%' }"
+        ></div>
         Attack
       </button>
       <div class="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-8 border-l-transparent border-r-8 border-r-transparent border-t-8 border-t-white"></div>
@@ -42,7 +50,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { calculateDistance } from '@/utils/mapHelpers';
 
 const props = defineProps({
@@ -56,7 +64,43 @@ const props = defineProps({
   },
 });
 
-defineEmits(['close', 'attack']);
+const emit = defineEmits(['close', 'attack']);
+
+// Estado del cooldown
+const isOnCooldown = ref(false);
+const cooldownProgress = ref(0);
+const COOLDOWN_DURATION = 2000; // 2 segundos en milisegundos
+
+// Manejar click en Attack con cooldown
+const handleAttack = () => {
+  if (isOnCooldown.value) return;
+  
+  // Emitir evento de ataque
+  emit('attack');
+  
+  // Iniciar cooldown
+  isOnCooldown.value = true;
+  cooldownProgress.value = 0;
+  
+  const startTime = performance.now();
+  
+  const updateCooldown = (currentTime) => {
+    const elapsed = currentTime - startTime;
+    const progress = Math.min((elapsed / COOLDOWN_DURATION) * 100, 100);
+    
+    cooldownProgress.value = progress;
+    
+    if (progress < 100) {
+      requestAnimationFrame(updateCooldown);
+    } else {
+      // Cooldown completado
+      isOnCooldown.value = false;
+      cooldownProgress.value = 0;
+    }
+  };
+  
+  requestAnimationFrame(updateCooldown);
+};
 
 // Calcular porcentaje de health
 const healthPercentage = computed(() => {

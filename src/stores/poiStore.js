@@ -136,10 +136,6 @@ export const usePoiStore = defineStore('poi', () => {
         // Si el health llega a 0, marcar como owned
         if (poi.health <= 0) {
           poi.owned = true;
-          // Cerrar el diálogo si este POI estaba seleccionado
-          if (selectedPOI.value?.id === poiId) {
-            closePOIDialog();
-          }
         }
       }
     }
