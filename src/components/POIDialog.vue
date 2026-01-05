@@ -22,7 +22,7 @@
         </div>
 
         <!-- Resources bar -->
-        <div v-if="poi.type !== 'cuartel'" class="mb-2">
+        <div v-if="poi.type !== 'barrack'" class="mb-2">
           <div class="flex justify-between text-white text-xs mb-1">
             <span>Recursos</span>
             <span>{{ poi.resourceAmount }} / {{ poi.resourceCapacity }}</span>
@@ -59,7 +59,7 @@
       </button>
       <div v-else>
         <button
-          v-if="poi.type !== 'cuartel'"
+          v-if="poi.type !== 'barrack'"
           @click="handleExtract"
           :disabled="isExtractOnCooldown || !poi.resourceAmount"
           class="font-bold py-2 px-4 border-1 text-sm mx-auto block w-full mt-3 relative overflow-hidden"
@@ -73,11 +73,11 @@
           {{ poi.resourceAmount ? 'Extraer' : 'Sin recursos' }}
         </button>
         <button
-          v-if="poi.type !== 'cuartel'"
+          v-if="poi.type !== 'barrack'"
           @click="handleConvertToBarracks"
           class="font-bold py-2 px-4 border-1 text-sm mx-auto block w-full mt-2 relative overflow-hidden cursor-pointer"
         >
-          Convertir en cuartel
+          Convertir en barrack
         </button>
       </div>
       <div class="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-8 border-l-transparent border-r-8 border-r-transparent border-t-8 border-t-white"></div>
@@ -102,7 +102,7 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['close', 'attack', 'extract', 'convertToBarracks']);
-// Emitir evento para convertir en cuartel
+// Emitir evento para convertir en barrack
 const handleConvertToBarracks = () => {
   emit('convertToBarracks');
 };

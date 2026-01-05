@@ -112,13 +112,13 @@ export const usePoiStore = defineStore('poi', () => {
     });
   };
 
-  // Convierte un POI conquistado en cuartel
+  // Convierte un POI conquistado en barrack
   const convertToBarracks = (poiId) => {
     const poi = getPOIById(poiId);
     if (!poi) return false;
     if (!poi.owned) return false;
-    if (poi.type === 'cuartel') return false;
-    poi.type = 'cuartel';
+    if (poi.type === 'barrack') return false;
+    poi.type = 'barrack';
     return true;
   };
 

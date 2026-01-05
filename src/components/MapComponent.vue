@@ -184,7 +184,7 @@ const handleExtract = () => {
   startResourceCollection(selectedPOI.value, resourceType, resourceColor);
 };
 
-  // Manejar conversión a cuartel
+  // Manejar conversión a barrack
   const handleConvertToBarracks = () => {
     if (!selectedPOI.value) return;
     poiStore.convertToBarracks(selectedPOI.value.id);

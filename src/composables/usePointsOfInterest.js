@@ -30,8 +30,8 @@ export const usePointsOfInterest = (mapRef) => {
     pois.value.forEach((poi) => {
       let marker;
       
-      // Si el POI es un cuartel, usar BarracksMarker
-      if (poi.type === 'cuartel') {
+      // Si el POI es un barrack, usar BarracksMarker
+      if (poi.type === 'barrack') {
         const container = document.createElement('div');
         const app = createApp(BarracksMarker);
         app.mount(container);
