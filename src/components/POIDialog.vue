@@ -46,8 +46,15 @@
       <button 
         v-else
         @click="handleExtract"
-        class="font-bold py-2 px-4 border-1 text-sm mx-auto block w-full mt-3 cursor-pointer"
+        :disabled="isExtractOnCooldown"
+        class="font-bold py-2 px-4 border-1 text-sm mx-auto block w-full mt-3 relative overflow-hidden"
+        :class="isExtractOnCooldown ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'"
       >
+        <div
+          v-if="isExtractOnCooldown"
+          class="absolute top-0 left-0 h-1 bg-white"
+          :style="{ width: extractCooldownProgress + '%' }"
+        ></div>
         Extraer
       </button>
       <div class="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-8 border-l-transparent border-r-8 border-r-transparent border-t-8 border-t-white"></div>
@@ -77,6 +84,9 @@ const emit = defineEmits(['close', 'attack', 'extract']);
 const isOnCooldown = ref(false);
 const cooldownProgress = ref(0);
 const COOLDOWN_DURATION = 2000; // 2 segundos en milisegundos
+const isExtractOnCooldown = ref(false);
+const extractCooldownProgress = ref(0);
+const EXTRACT_COOLDOWN_DURATION = 2000;
 
 // Manejar click en Attack con cooldown
 const handleAttack = () => {
@@ -110,7 +120,27 @@ const handleAttack = () => {
 };
 
 const handleExtract = () => {
+  if (isExtractOnCooldown.value) return;
   emit('extract');
+
+  isExtractOnCooldown.value = true;
+  extractCooldownProgress.value = 0;
+  const startTime = performance.now();
+
+  const updateExtractCooldown = (currentTime) => {
+    const elapsed = currentTime - startTime;
+    const progress = Math.min((elapsed / EXTRACT_COOLDOWN_DURATION) * 100, 100);
+    extractCooldownProgress.value = progress;
+
+    if (progress < 100) {
+      requestAnimationFrame(updateExtractCooldown);
+    } else {
+      isExtractOnCooldown.value = false;
+      extractCooldownProgress.value = 0;
+    }
+  };
+
+  requestAnimationFrame(updateExtractCooldown);
 };
 
 // Calcular porcentaje de health
