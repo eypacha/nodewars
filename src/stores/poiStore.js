@@ -51,6 +51,7 @@ export const usePoiStore = defineStore('poi', () => {
           resourceAmount: 5,
           resourceCapacity: 5,
           radarActive: false,
+          conqueredFrom: null, // null = base, o ID del cuartel desde donde fue conquistado
         }));
       
       // Crear un Set con los IDs existentes para verificar duplicados
@@ -157,7 +158,7 @@ export const usePoiStore = defineStore('poi', () => {
     return true;
   };
 
-  const damagePOI = (poiId, damage = 10) => {
+  const damagePOI = (poiId, damage = 10, attackOriginId = null) => {
     const poi = getPOIById(poiId);
     if (poi) {
       // Solo reducir health si no está owned
@@ -167,6 +168,8 @@ export const usePoiStore = defineStore('poi', () => {
         // Si el health llega a 0, marcar como owned
         if (poi.health <= 0) {
           poi.owned = true;
+          // Registrar desde dónde fue conquistado (base = null, o ID del cuartel)
+          poi.conqueredFrom = attackOriginId;
         }
       }
     }

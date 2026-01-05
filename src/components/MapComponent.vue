@@ -19,11 +19,15 @@
       :style="poiDialogStyle"
       :poi="selectedPOI"
       :base-position="baseMarkerPosition"
+      :selected-barracks-for-attack="selectedBarracksForAttack"
+      :radar-radius="radarRadius"
+      :all-pois="pois"
       @close="handleClosePOIDialog"
       @attack="handleAttack"
       @extract="handleExtract"
       @convertToBarracks="handleConvertToBarracks"
       @scan="handleScanFromBarracks"
+      @selectAsAttackOrigin="handleSelectAsAttackOrigin"
     />
     <UpgradesPanel
       v-if="showUpgradesPanel"
@@ -106,6 +110,7 @@ const { center, zoom, marker, showMarkerDialog, baseConfirmed, showBaseMarkerDia
 const { radarLevel } = storeToRefs(gameStore);
 const { selectedPOI, showPOIDialog, isLoading, pois } = storeToRefs(poiStore);
 const isScanningFromBarracks = ref(false);
+const selectedBarracksForAttack = ref(null); // Cuartel seleccionado para lanzar ataques
 
 // Inicializar composables principales
 const { mapRef, initMap, flyTo, on } = useLeafletMap('map', center.value, zoom.value);
@@ -140,6 +145,12 @@ const baseMarkerPosition = computed(() => {
   if (!markerRef.value) return null;
   const latLng = markerRef.value.getLatLng();
   return { lat: latLng.lat, lng: latLng.lng };
+});
+
+// Radio actual del radar según el nivel
+const radarRadius = computed(() => {
+  const radarConfig = getRadarConfig(gameStore.radarLevel);
+  return radarConfig.radius;
 });
 
 // Estilo de la animación del radar
@@ -206,7 +217,7 @@ const handleConfirmMarker = () => {
 
 // Manejar ataque al POI
 const handleAttack = () => {
-  startAttack(selectedPOI.value);
+  startAttack(selectedPOI.value, selectedBarracksForAttack.value);
 };
 
 // Manejar extracción manual de recursos
@@ -216,7 +227,7 @@ const handleExtract = () => {
   if (!consumed) return;
   const resourceType = selectedPOI.value.category || selectedPOI.value.type;
   const resourceColor = getPOIColor(resourceType);
-  startResourceCollection(selectedPOI.value, resourceType, resourceColor);
+  startResourceCollection(selectedPOI.value, resourceType, resourceColor, pois.value);
 };
 
   // Manejar conversión a barrack
@@ -243,6 +254,18 @@ const handleExtract = () => {
     setTimeout(() => {
       isScanningFromBarracks.value = false;
     }, 3000);
+  };
+
+  // Manejar selección de cuartel como punto de ataque
+  const handleSelectAsAttackOrigin = (barracks) => {
+    if (barracks && barracks.type === 'barrack' && barracks.owned) {
+      // Toggle: si ya está seleccionado, deseleccionar; si no, seleccionar
+      if (selectedBarracksForAttack.value && selectedBarracksForAttack.value.id === barracks.id) {
+        selectedBarracksForAttack.value = null;
+      } else {
+        selectedBarracksForAttack.value = barracks;
+      }
+    }
   };
   
 // Manejar cierre del diálogo de POI
@@ -303,8 +326,8 @@ onMounted(() => {
   on('zoom', updateMarkerScreenPosition);
   on('move', () => updatePOIScreenPosition(selectedPOI.value));
   on('zoom', () => updatePOIScreenPosition(selectedPOI.value));
-  on('move', () => updateConnectionLine(selectedPOI.value));
-  on('zoom', () => updateConnectionLine(selectedPOI.value));
+  on('move', () => updateConnectionLine(selectedPOI.value, selectedBarracksForAttack.value));
+  on('zoom', () => updateConnectionLine(selectedPOI.value, selectedBarracksForAttack.value));
   on('move', () => updateOwnedConnectionLines(pois.value));
   on('zoom', () => updateOwnedConnectionLines(pois.value));
   // Agregar listener para cerrar diálogo al hacer clic en el mapa
@@ -386,7 +409,7 @@ watch(selectedPOI, (poi) => {
     updatePOIScreenPosition(poi);
     // Actualizar línea de conexión cuando se selecciona un nuevo POI
     nextTick(() => {
-      createConnectionLine(poi);
+      createConnectionLine(poi, selectedBarracksForAttack.value);
     });
   }
 });
@@ -397,7 +420,7 @@ watch(showPOIDialog, (visible) => {
     updatePOIScreenPosition(selectedPOI.value);
     // Crear línea de conexión cuando se abre el diálogo
     nextTick(() => {
-      createConnectionLine(selectedPOI.value);
+      createConnectionLine(selectedPOI.value, selectedBarracksForAttack.value);
     });
   } else {
     // Eliminar línea de conexión cuando se cierra el diálogo

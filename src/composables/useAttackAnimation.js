@@ -14,12 +14,17 @@ export const useAttackAnimation = (mapRef, markerRef) => {
   /**
    * Inicia la animación de ataque hacia un POI
    * @param {Object} targetPOI - POI objetivo con lat y lng
+   * @param {Object} attackOrigin - Cuartel desde el que atacar (opcional, usa base si no se proporciona)
    */
-  const startAttack = (targetPOI) => {
+  const startAttack = (targetPOI, attackOrigin = null) => {
     if (!markerRef.value || !targetPOI || !mapRef.value) return;
     
     const attackId = nextAttackId++;
-    const startLatLng = markerRef.value.getLatLng();
+    
+    // Usar cuartel como origen si se proporciona, sino usar la base
+    const startLatLng = attackOrigin 
+      ? L.latLng([attackOrigin.lat, attackOrigin.lng])
+      : markerRef.value.getLatLng();
     const endLatLng = [targetPOI.lat, targetPOI.lng];
     
     // Calcular distancia real en metros
@@ -75,7 +80,9 @@ export const useAttackAnimation = (mapRef, markerRef) => {
         attack.animationFrame = requestAnimationFrame(animate);
       } else {
         // Animación completada - reducir health del POI
-        poiStore.damagePOI(targetPOI.id, 10);
+        // Pasar el ID del origen de ataque (cuartel o null para base)
+        const attackOriginId = attackOrigin ? attackOrigin.id : null;
+        poiStore.damagePOI(targetPOI.id, 10, attackOriginId);
         
         // Eliminar el ataque después de un breve delay
         setTimeout(() => {

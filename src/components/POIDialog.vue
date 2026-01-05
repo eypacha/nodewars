@@ -4,7 +4,7 @@
       <div>
         <h3 class="text-white text-sm font-bold mb-2">{{ poi.name }}</h3>
         <p v-if="formattedDistance" class="text-white text-xs mb-2 opacity-75">
-          {{ formattedDistance }}
+          {{ formattedDistance }}<span v-if="!poi.owned && !isInRange" class="text-red-400"> (Fuera de alcance)</span>
         </p>
         
         <!-- Health bar -->
@@ -45,9 +45,9 @@
       <button 
         v-if="!poi.owned"
         @click="handleAttack"
-        :disabled="isOnCooldown"
+        :disabled="isOnCooldown || !isInRange"
         class="font-bold py-2 px-4 border-1 text-sm mx-auto block w-full mt-3 relative overflow-hidden transition-opacity"
-        :class="isOnCooldown ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'"
+        :class="(isOnCooldown || !isInRange) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'"
       >
         <!-- Barra de progreso del cooldown -->
         <div 
@@ -86,6 +86,14 @@
         >
           Scan
         </button>
+        <button
+          v-if="poi.type === 'barrack'"
+          @click="handleSelectAsAttackOrigin"
+          class="font-bold py-2 px-4 border-1 text-sm mx-auto block w-full mt-2 relative overflow-hidden cursor-pointer"
+          :class="isSelectedAsAttackOrigin ? 'border-sky-400 text-sky-400' : ''"
+        >
+          {{ isSelectedAsAttackOrigin ? '✓ Punto de ataque' : 'Usar como punto de ataque' }}
+        </button>
       </div>
       <div class="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-8 border-l-transparent border-r-8 border-r-transparent border-t-8 border-t-white"></div>
       <div class="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[6px] border-t-black mt-[-2px]"></div>
@@ -106,9 +114,21 @@ const props = defineProps({
     type: Object,
     default: null,
   },
+  selectedBarracksForAttack: {
+    type: Object,
+    default: null,
+  },
+  radarRadius: {
+    type: Number,
+    default: 700,
+  },
+  allPois: {
+    type: Array,
+    default: () => [],
+  },
 });
 
-const emit = defineEmits(['close', 'attack', 'extract', 'convertToBarracks', 'scan']);
+const emit = defineEmits(['close', 'attack', 'extract', 'convertToBarracks', 'scan', 'selectAsAttackOrigin']);
 // Emitir evento para convertir en barrack
 const handleConvertToBarracks = () => {
   emit('convertToBarracks');
@@ -116,6 +136,15 @@ const handleConvertToBarracks = () => {
 // Emitir evento para escanear desde cuartel
 const handleScan = () => {
   emit('scan');
+};
+
+// Manejar selección de cuartel como punto de ataque
+const isSelectedAsAttackOrigin = computed(() => {
+  return props.selectedBarracksForAttack && props.selectedBarracksForAttack.id === props.poi.id;
+});
+
+const handleSelectAsAttackOrigin = () => {
+  emit('selectAsAttackOrigin', props.poi);
 };
 // Estado del cooldown
 const isOnCooldown = ref(false);
@@ -216,5 +245,32 @@ const formattedDistance = computed(() => {
     const distanceInKm = distanceInMeters / 1000;
     return `${distanceInKm.toFixed(1)} km`;
   }
+});
+
+// Verificar si el POI está en rango de ataque
+const isInRange = computed(() => {
+  if (!props.poi || props.poi.owned) return true;
+  
+  const BARRACKS_RADAR_RADIUS = 500; // metros
+  
+  // Si hay un cuartel seleccionado como punto de ataque, verificar SOLO desde ese cuartel
+  if (props.selectedBarracksForAttack) {
+    const distanceFromBarrack = calculateDistance(
+      [props.selectedBarracksForAttack.lat, props.selectedBarracksForAttack.lng],
+      [props.poi.lat, props.poi.lng]
+    );
+    return distanceFromBarrack <= BARRACKS_RADAR_RADIUS;
+  }
+  
+  // Si no hay cuartel seleccionado, verificar desde el radar principal
+  if (props.basePosition) {
+    const distanceFromBase = calculateDistance(
+      [props.basePosition.lat, props.basePosition.lng],
+      [props.poi.lat, props.poi.lng]
+    );
+    return distanceFromBase <= props.radarRadius;
+  }
+  
+  return false;
 });
 </script>

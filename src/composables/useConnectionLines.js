@@ -12,14 +12,18 @@ export const useConnectionLines = (mapRef, markerRef) => {
   /**
    * Crea línea de conexión entre el marcador base y un POI
    * @param {Object} poi - POI con lat, lng y color
+   * @param {Object} originPoint - Punto de origen alternativo (cuartel) - opcional
    */
-  const createConnectionLine = (poi) => {
+  const createConnectionLine = (poi, originPoint = null) => {
     if (!mapRef.value || !markerRef.value || !poi) return;
     
     // Eliminar línea anterior si existe
     removeConnectionLine();
     
-    const markerPosition = markerRef.value.getLatLng();
+    // Usar el punto de origen alternativo si se proporciona, sino usar el marcador base
+    const markerPosition = originPoint 
+      ? L.latLng([originPoint.lat, originPoint.lng])
+      : markerRef.value.getLatLng();
     const poiPosition = [poi.lat, poi.lng];
     
     // Determinar color: azul cian para cuarteles, color del POI para normales
@@ -51,10 +55,13 @@ export const useConnectionLines = (mapRef, markerRef) => {
   /**
    * Actualiza la línea de conexión cuando el mapa se mueve
    * @param {Object} poi - POI actual
+   * @param {Object} originPoint - Punto de origen alternativo (cuartel) - opcional
    */
-  const updateConnectionLine = (poi) => {
+  const updateConnectionLine = (poi, originPoint = null) => {
     if (connectionLineRef.value && markerRef.value && poi) {
-      const markerPosition = markerRef.value.getLatLng();
+      const markerPosition = originPoint 
+        ? L.latLng([originPoint.lat, originPoint.lng])
+        : markerRef.value.getLatLng();
       const poiPosition = [poi.lat, poi.lng];
       connectionLineRef.value.setLatLngs([[markerPosition.lat, markerPosition.lng], poiPosition]);
     }
@@ -70,17 +77,27 @@ export const useConnectionLines = (mapRef, markerRef) => {
     // Eliminar líneas anteriores
     removeOwnedConnectionLines();
     
-    const markerPosition = markerRef.value.getLatLng();
+    const baseMarkerPosition = markerRef.value.getLatLng();
     
     // Crear línea para cada POI owned
     pois.filter(poi => poi.owned).forEach(poi => {
       const poiPosition = [poi.lat, poi.lng];
       
+      // Determinar el punto de origen: si fue conquistado desde un cuartel, encontrarlo
+      let originPosition = baseMarkerPosition;
+      if (poi.conqueredFrom) {
+        // Buscar el cuartel desde el cual fue conquistado
+        const barracks = pois.find(p => p.id === poi.conqueredFrom && p.type === 'barrack');
+        if (barracks) {
+          originPosition = L.latLng([barracks.lat, barracks.lng]);
+        }
+      }
+      
       // Determinar color: azul cian para cuarteles, color del POI para normales
       const lineColor = poi.type === 'barrack' ? '#00bcff' : poi.color;
       
       const line = L.polyline(
-        [[markerPosition.lat, markerPosition.lng], poiPosition],
+        [[originPosition.lat, originPosition.lng], poiPosition],
         {
           color: lineColor,
           weight: 2,
@@ -104,13 +121,23 @@ export const useConnectionLines = (mapRef, markerRef) => {
   const updateOwnedConnectionLines = (pois) => {
     if (!markerRef.value) return;
     
-    const markerPosition = markerRef.value.getLatLng();
+    const baseMarkerPosition = markerRef.value.getLatLng();
     
     ownedConnectionLines.value.forEach(({ id, line }) => {
       const poi = pois.find(p => p.id === id);
       if (poi) {
         const poiPosition = [poi.lat, poi.lng];
-        line.setLatLngs([[markerPosition.lat, markerPosition.lng], poiPosition]);
+        
+        // Determinar el punto de origen: si fue conquistado desde un cuartel, encontrarlo
+        let originPosition = baseMarkerPosition;
+        if (poi.conqueredFrom) {
+          const barracks = pois.find(p => p.id === poi.conqueredFrom && p.type === 'barrack');
+          if (barracks) {
+            originPosition = L.latLng([barracks.lat, barracks.lng]);
+          }
+        }
+        
+        line.setLatLngs([[originPosition.lat, originPosition.lng], poiPosition]);
       }
     });
   };
