@@ -6,6 +6,11 @@
       :style="dialogStyle"
       @confirm="handleConfirmMarker" 
     />
+    <BaseMarkerDialog
+      v-if="showBaseMarkerDialog && markerScreenPosition && baseConfirmed"
+      :style="dialogStyle"
+      @scan="handleScan"
+    />
     <POIDialog
       v-if="showPOIDialog && selectedPOI && poiScreenPosition"
       :style="poiDialogStyle"
@@ -35,11 +40,12 @@ import { getScreenPosition, createOverlayStyle } from '@/utils/mapHelpers';
 import { getRadarConfig } from '@/services/mapService';
 import BaseMarker from './BaseMarker.vue';
 import MarkerConfirmDialog from './MarkerConfirmDialog.vue';
+import BaseMarkerDialog from './BaseMarkerDialog.vue';
 import POIDialog from './POIDialog.vue';
 
 const mapStore = useMapStore();
 const poiStore = usePoiStore();
-const { center, zoom, marker, showMarkerDialog, baseConfirmed } = storeToRefs(mapStore);
+const { center, zoom, marker, showMarkerDialog, baseConfirmed, showBaseMarkerDialog } = storeToRefs(mapStore);
 const { selectedPOI, showPOIDialog, isLoading } = storeToRefs(poiStore);
 
 // Inicializar composables
@@ -118,6 +124,20 @@ const handleClosePOIDialog = () => {
   poiStore.closePOIDialog();
 };
 
+// Manejar scan desde el diálogo del marcador
+const handleScan = () => {
+  // TODO: Implementar lógica de scan
+  mapStore.closeBaseMarkerDialog();
+};
+
+// Manejar clic en el marcador cuando está confirmado
+const handleMarkerClick = () => {
+  if (baseConfirmed.value) {
+    mapStore.openBaseMarkerDialog();
+    updateMarkerScreenPosition();
+  }
+};
+
 // Manejar arrastre del marcador
 const handleMarkerDragEnd = () => {
   const position = markerRef.value.getLatLng();
@@ -163,8 +183,9 @@ watch(marker, async (newMarker) => {
     onMarker('dragend', handleMarkerDragEnd);
     onMarker('drag', handleMarkerDrag);
     
-    // Crear el radar si la base está confirmada
+    // Si la base está confirmada, añadir listener de click y crear radar
     if (baseConfirmed.value) {
+      onMarker('click', handleMarkerClick);
       createRadar(newMarker);
     }
     
@@ -179,6 +200,9 @@ watch(baseConfirmed, async (confirmed) => {
   if (confirmed && markerRef.value) {
     const position = markerRef.value.getLatLng();
     createRadar(position);
+    
+    // Añadir listener de click al marcador cuando está confirmado
+    onMarker('click', handleMarkerClick);
     
     // Obtener el radio del radar de la configuración
     const radarConfig = getRadarConfig();
@@ -198,6 +222,13 @@ watch(baseConfirmed, async (confirmed) => {
 
 // Observar visibilidad del diálogo
 watch(showMarkerDialog, (visible) => {
+  if (visible) {
+    updateMarkerScreenPosition();
+  }
+});
+
+// Observar visibilidad del diálogo del marcador base
+watch(showBaseMarkerDialog, (visible) => {
   if (visible) {
     updateMarkerScreenPosition();
   }
