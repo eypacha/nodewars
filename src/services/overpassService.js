@@ -18,8 +18,8 @@ const buildOverpassQuery = (lat, lng, radius) => {
   return `
     [out:json][timeout:25];
     (
-      node["amenity"~"restaurant|fast_food|supermarket|pharmacy|fuel|bank|school"](around:${radius},${lat},${lng});
-      way["amenity"~"restaurant|fast_food|supermarket|pharmacy|fuel|bank|school"](around:${radius},${lat},${lng});
+      node["amenity"~"restaurant|fast_food|supermarket|pharmacy|fuel|bank"](around:${radius},${lat},${lng});
+      way["amenity"~"restaurant|fast_food|supermarket|pharmacy|fuel|bank"](around:${radius},${lat},${lng});
     );
     out center;
   `;
@@ -57,11 +57,15 @@ export const fetchPointsOfInterest = async (lat, lng, radius) => {
       
       if (!lat || !lng) return null;
       
+      const rawType = element.tags?.amenity || element.tags?.shop || element.tags?.tourism || element.tags?.leisure || 'unknown';
+      const category = normalizePOICategory(rawType);
+      
       return {
         id: element.id,
         lat,
         lng,
-        type: element.tags?.amenity || element.tags?.shop || element.tags?.tourism || element.tags?.leisure || 'unknown',
+        type: rawType, // Mantener el tipo original para mostrar
+        category: category, // Categoría normalizada para agrupación
         name: element.tags?.name || 'Sin nombre',
         tags: element.tags,
       };
@@ -111,16 +115,37 @@ const calculateDistance = (coord1, coord2) => {
 };
 
 /**
- * Categoriza un POI y devuelve un color representativo
+ * Normaliza el tipo de POI a una categoría
  * @param {string} type - Tipo de POI
+ * @returns {string} Categoría normalizada
+ */
+const normalizePOICategory = (type) => {
+  // Agrupar fastfood, restaurant, supermarket en la categoría "food"
+  if (type === 'restaurant' || type === 'fast_food' || type === 'supermarket') {
+    return 'food';
+  }
+  // Otros tipos mantienen su nombre
+  return type;
+};
+
+/**
+ * Categoriza un POI y devuelve un color representativo
+ * @param {string} type - Tipo de POI (puede ser tipo original o categoría)
  * @returns {string} Color hexadecimal
  */
 export const getPOIColor = (type) => {
+  // Si ya es una categoría normalizada, usarla directamente
+  // Si no, normalizarla
+  const category = ['food', 'pharmacy', 'fuel', 'bank'].includes(type) 
+    ? type 
+    : normalizePOICategory(type);
+  
   const colorMap = {
-    restaurant: '#fdcb6e',
-    fast_food: '#fdcb6e',
-    supermarket: '#fdcb6e'
+    food: '#fdcb6e',      // Amarillo/naranja para comida
+    pharmacy: '#e17055',  // Rojo/naranja para farmacia
+    fuel: '#00b894',      // Verde para combustible
+    bank: '#0984e3',      // Azul para banco
   };
 
-  return colorMap[type] || colorMap.unknown;
+  return colorMap[category] || '#95a5a6'; // Gris por defecto para tipos desconocidos
 };

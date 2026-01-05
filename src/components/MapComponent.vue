@@ -137,13 +137,12 @@ const createConnectionLine = () => {
   
   const markerPosition = markerRef.value.getLatLng();
   const poiPosition = [selectedPOI.value.lat, selectedPOI.value.lng];
-  const radarConfig = getRadarConfig();
   
-  // Crear línea punteada con el color del radar
+  // Crear línea punteada con el color de la categoría del POI
   connectionLineRef.value = L.polyline(
     [[markerPosition.lat, markerPosition.lng], poiPosition],
     {
-      color: radarConfig.color,
+      color: selectedPOI.value.color,
       weight: 2,
       opacity: 0.6,
       dashArray: '10, 5',

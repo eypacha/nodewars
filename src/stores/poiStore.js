@@ -43,7 +43,8 @@ export const usePoiStore = defineStore('poi', () => {
         })
         .map(poi => ({
           ...poi,
-          color: getPOIColor(poi.type),
+          // Usar la categoría si existe, sino usar el tipo
+          color: getPOIColor(poi.category || poi.type),
         }));
       
       // Crear un Set con los IDs existentes para verificar duplicados
