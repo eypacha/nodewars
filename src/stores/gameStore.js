@@ -5,6 +5,12 @@ export const useGameStore = defineStore('game', () => {
   // Estado de los popups
   const showStartPopup = ref(true);
   const showLocationPopup = ref(false);
+  const resources = ref({
+    food: 0,
+    pharmacy: 0,
+    fuel: 0,
+    bank: 0,
+  });
 
   // Acciones
   const startGame = () => {
@@ -24,6 +30,7 @@ export const useGameStore = defineStore('game', () => {
     // State
     showStartPopup,
     showLocationPopup,
+    resources,
 
     // Actions
     startGame,

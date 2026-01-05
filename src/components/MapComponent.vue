@@ -1,5 +1,6 @@
 <template>
   <div class="w-full h-[100vh] overflow-hidden relative">
+    <ResourceHUD />
     <div id="map" class="w-full h-[calc(100vh+30px)] z-0"></div>
     <MarkerConfirmDialog 
       v-if="showMarkerDialog && markerScreenPosition" 
@@ -45,11 +46,12 @@
 </template>
 
 <script setup>
-import { onMounted, watch, ref, nextTick, computed } from 'vue';
+import { onMounted, watch, nextTick, computed } from 'vue';
 import { storeToRefs } from 'pinia';
 import L from 'leaflet';
 import { useMapStore } from '@/stores/mapStore';
 import { usePoiStore } from '@/stores/poiStore';
+import { useGameStore } from '@/stores/gameStore';
 import { useLeafletMap } from '@/composables/useLeafletMap';
 import { useMapMarker } from '@/composables/useMapMarker';
 import { useRadar } from '@/composables/useRadar';
@@ -63,9 +65,11 @@ import BaseMarker from './BaseMarker.vue';
 import MarkerConfirmDialog from './MarkerConfirmDialog.vue';
 import BaseMarkerDialog from './BaseMarkerDialog.vue';
 import POIDialog from './POIDialog.vue';
+import ResourceHUD from './ResourceHUD.vue';
 
 const mapStore = useMapStore();
 const poiStore = usePoiStore();
+const gameStore = useGameStore();
 const { center, zoom, marker, showMarkerDialog, baseConfirmed, showBaseMarkerDialog } = storeToRefs(mapStore);
 const { selectedPOI, showPOIDialog, isLoading, pois } = storeToRefs(poiStore);
 
