@@ -50,6 +50,7 @@ export const usePoiStore = defineStore('poi', () => {
           owned: false,
           resourceAmount: 5,
           resourceCapacity: 5,
+          radarActive: false,
         }));
       
       // Crear un Set con los IDs existentes para verificar duplicados
@@ -112,6 +113,10 @@ export const usePoiStore = defineStore('poi', () => {
     });
   };
 
+  const getPOIById = (id) => {
+    return pois.value.find(poi => poi.id === id);
+  };
+
   // Convierte un POI conquistado en barrack
   const convertToBarracks = (poiId) => {
     const poi = getPOIById(poiId);
@@ -122,8 +127,14 @@ export const usePoiStore = defineStore('poi', () => {
     return true;
   };
 
-  const getPOIById = (id) => {
-    return pois.value.find(poi => poi.id === id);
+  // Activa o desactiva el radar de un barrack
+  const toggleBarracksRadar = (poiId) => {
+    const poi = getPOIById(poiId);
+    if (!poi) return false;
+    if (!poi.owned) return false;
+    if (poi.type !== 'barrack') return false;
+    poi.radarActive = !poi.radarActive;
+    return poi.radarActive;
   };
 
   const selectPOI = (poiId) => {
@@ -185,5 +196,6 @@ export const usePoiStore = defineStore('poi', () => {
     damagePOI,
     consumeResource,
     convertToBarracks,
+    toggleBarracksRadar,
   };
 });

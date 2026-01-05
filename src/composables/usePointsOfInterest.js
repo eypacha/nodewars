@@ -39,8 +39,8 @@ export const usePointsOfInterest = (mapRef) => {
         const customIcon = L.divIcon({
           html: container.innerHTML,
           className: 'barracks-marker-icon',
-          iconSize: [40, 40],
-          iconAnchor: [20, 20],
+          iconSize: [32, 32],
+          iconAnchor: [16, 16],
         });
 
         marker = L.marker([poi.lat, poi.lng], {

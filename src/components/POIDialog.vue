@@ -77,7 +77,14 @@
           @click="handleConvertToBarracks"
           class="font-bold py-2 px-4 border-1 text-sm mx-auto block w-full mt-2 relative overflow-hidden cursor-pointer"
         >
-          Convertir en barrack
+          Convertir en cuartel
+        </button>
+        <button
+          v-if="poi.type === 'barrack'"
+          @click="handleScan"
+          class="font-bold py-2 px-4 border-1 text-sm mx-auto block w-full mt-3 relative overflow-hidden cursor-pointer"
+        >
+          Scan
         </button>
       </div>
       <div class="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-8 border-l-transparent border-r-8 border-r-transparent border-t-8 border-t-white"></div>
@@ -101,12 +108,15 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['close', 'attack', 'extract', 'convertToBarracks']);
+const emit = defineEmits(['close', 'attack', 'extract', 'convertToBarracks', 'scan']);
 // Emitir evento para convertir en barrack
 const handleConvertToBarracks = () => {
   emit('convertToBarracks');
 };
-
+// Emitir evento para escanear desde cuartel
+const handleScan = () => {
+  emit('scan');
+};
 // Estado del cooldown
 const isOnCooldown = ref(false);
 const cooldownProgress = ref(0);

@@ -23,15 +23,23 @@
       @attack="handleAttack"
       @extract="handleExtract"
       @convertToBarracks="handleConvertToBarracks"
+      @scan="handleScanFromBarracks"
     />
     <UpgradesPanel
       v-if="showUpgradesPanel"
       @close="mapStore.closeUpgradesPanel"
     />
     <div 
-      v-if="isLoading && markerScreenPosition" 
+      v-if="isLoading && markerScreenPosition && !isScanningFromBarracks" 
       class="radar-sweep"
       :style="radarSweepStyle"
+    >
+      <div class="sweep-line"></div>
+    </div>
+    <div 
+      v-if="isScanningFromBarracks" 
+      class="radar-sweep"
+      :style="barracksRadarSweepStyle"
     >
       <div class="sweep-line"></div>
     </div>
@@ -66,7 +74,7 @@
 </template>
 
 <script setup>
-import { onMounted, watch, nextTick, computed } from 'vue';
+import { onMounted, watch, nextTick, computed, ref } from 'vue';
 import { storeToRefs } from 'pinia';
 import L from 'leaflet';
 import { useMapStore } from '@/stores/mapStore';
@@ -75,6 +83,7 @@ import { useGameStore } from '@/stores/gameStore';
 import { useLeafletMap } from '@/composables/useLeafletMap';
 import { useMapMarker } from '@/composables/useMapMarker';
 import { useRadar } from '@/composables/useRadar';
+import { useBarracksRadar } from '@/composables/useBarracksRadar';
 import { usePointsOfInterest } from '@/composables/usePointsOfInterest';
 import { useAttackAnimation } from '@/composables/useAttackAnimation';
 import { useResourceCollection } from '@/composables/useResourceCollection';
@@ -96,11 +105,13 @@ const gameStore = useGameStore();
 const { center, zoom, marker, showMarkerDialog, baseConfirmed, showBaseMarkerDialog, showUpgradesPanel } = storeToRefs(mapStore);
 const { radarLevel } = storeToRefs(gameStore);
 const { selectedPOI, showPOIDialog, isLoading, pois } = storeToRefs(poiStore);
+const isScanningFromBarracks = ref(false);
 
 // Inicializar composables principales
 const { mapRef, initMap, flyTo, on } = useLeafletMap('map', center.value, zoom.value);
 const { markerRef, createMarker, disableDragging, removeMarker, on: onMarker } = useMapMarker(mapRef);
 const { radarRef, createRadar, updatePosition: updateRadarPosition, removeRadar } = useRadar(mapRef);
+const { updateBarracksRadars, clearBarracksRadars } = useBarracksRadar(mapRef);
 const { clearPOIMarkers } = usePointsOfInterest(mapRef);
 
 // Composables para funcionalidades específicas
@@ -163,6 +174,30 @@ const radarSweepStyle = computed(() => {
   };
 });
 
+// Estilo para la animación del radar del cuartel
+const barracksRadarSweepStyle = computed(() => {
+  if (!isScanningFromBarracks.value || !selectedPOI.value || !mapRef.value) return {};
+  
+  const barracksLatLng = L.latLng(selectedPOI.value.lat, selectedPOI.value.lng);
+  const screenPoint = mapRef.value.latLngToContainerPoint(barracksLatLng);
+  
+  // Radio del cuartel: 500 metros
+  const earthRadius = 6371000;
+  const barracksRadius = 500;
+  const latOffset = (barracksRadius / earthRadius) * (180 / Math.PI);
+  const pointAtRadius = L.latLng(selectedPOI.value.lat + latOffset, selectedPOI.value.lng);
+  const edgePoint = mapRef.value.latLngToContainerPoint(pointAtRadius);
+  const radiusInPixels = Math.abs(edgePoint.y - screenPoint.y);
+  
+  return {
+    position: 'absolute',
+    left: `${screenPoint.x}px`,
+    top: `${screenPoint.y}px`,
+    zIndex: 999,
+    '--radar-radius': `${radiusInPixels}px`,
+  };
+});
+
 // Manejar confirmación del marcador
 const handleConfirmMarker = () => {
   mapStore.confirmBase();
@@ -188,6 +223,26 @@ const handleExtract = () => {
   const handleConvertToBarracks = () => {
     if (!selectedPOI.value) return;
     poiStore.convertToBarracks(selectedPOI.value.id);
+  };
+  // Manejar scan desde un cuartel
+  const handleScanFromBarracks = async () => {
+    if (!selectedPOI.value || selectedPOI.value.type !== 'barrack') return;
+    
+    const position = { lat: selectedPOI.value.lat, lng: selectedPOI.value.lng };
+    const radarRadius = 500; // Usar el mismo radio que el radar del cuartel
+    
+    console.log('Scanning from barracks:', position, 'radius:', radarRadius);
+    
+    // Activar animación de scan del cuartel
+    isScanningFromBarracks.value = true;
+    
+    // Hacer fetch de POIs desde el cuartel
+    await poiStore.fetchPOIs(position, radarRadius);
+    
+    // Desactivar animación después de completar
+    setTimeout(() => {
+      isScanningFromBarracks.value = false;
+    }, 3000);
   };
   
 // Manejar cierre del diálogo de POI
@@ -358,11 +413,13 @@ watch(radarLevel, (newLevel) => {
   }
 });
 
-// Observar cambios en los POIs para actualizar líneas owned
+// Observar cambios en los POIs para actualizar líneas owned y radares de cuarteles
 watch(pois, (newPois) => {
   if (mapRef.value && markerRef.value) {
     createOwnedConnectionLines(newPois);
   }
+  // Actualizar radares de cuarteles
+  updateBarracksRadars(newPois);
 }, { deep: true });
 </script>
 
