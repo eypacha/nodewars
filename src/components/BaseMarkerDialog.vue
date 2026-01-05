@@ -1,5 +1,5 @@
 <template>
-  <div class="pointer-events-auto mb-2 max-w-xs">
+  <div class="pointer-events-auto mb-2 w-120">
     <div class="bg-black border-2 border-white px-4 py-3 shadow-2xl relative">
       <div class="flex gap-2">
         <button 
@@ -11,6 +11,15 @@
           ]"
         >
           {{ isScanning ? 'Scanning...' : 'Scan' }}
+        </button>
+        <button 
+          @click="$emit('selectAsAttackOrigin')"
+          :class="[
+            'font-bold py-2 px-4 border-1 text-sm flex-1 cursor-pointer',
+            isAttackOrigin ? 'bg-blue-600 border-blue-400' : ''
+          ]"
+        >
+          {{ isAttackOrigin ? 'Atack point' : 'Use as attack point' }}
         </button>
         <button 
           @click="$emit('upgrades')"
@@ -30,8 +39,12 @@ defineProps({
   isScanning: {
     type: Boolean,
     default: false
+  },
+  isAttackOrigin: {
+    type: Boolean,
+    default: false
   }
 });
 
-defineEmits(['scan', 'upgrades']);
+defineEmits(['scan', 'upgrades', 'selectAsAttackOrigin']);
 </script>

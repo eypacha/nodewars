@@ -70,14 +70,14 @@
             class="absolute top-0 left-0 h-1 bg-white"
             :style="{ width: extractCooldownProgress + '%' }"
           ></div>
-          {{ poi.resourceAmount ? 'Extraer' : 'Sin recursos' }}
+          {{ poi.resourceAmount ? 'Extract' : 'No resources' }}
         </button>
         <button
           v-if="poi.type !== 'barrack'"
           @click="handleConvertToBarracks"
           class="font-bold py-2 px-4 border-1 text-sm mx-auto block w-full mt-2 relative overflow-hidden cursor-pointer"
         >
-          Convertir en cuartel
+          Convert to barrack
         </button>
         <button
           v-if="poi.type === 'barrack'"
@@ -92,7 +92,7 @@
           class="font-bold py-2 px-4 border-1 text-sm mx-auto block w-full mt-2 relative overflow-hidden cursor-pointer"
           :class="isSelectedAsAttackOrigin ? 'border-sky-400 text-sky-400' : ''"
         >
-          {{ isSelectedAsAttackOrigin ? '✓ Punto de ataque' : 'Usar como punto de ataque' }}
+          {{ isSelectedAsAttackOrigin ? '✓ Atack point' : 'Use as atack point' }}
         </button>
       </div>
       <div class="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-8 border-l-transparent border-r-8 border-r-transparent border-t-8 border-t-white"></div>
@@ -117,6 +117,10 @@ const props = defineProps({
   selectedBarracksForAttack: {
     type: Object,
     default: null,
+  },
+  isBaseAttackOrigin: {
+    type: Boolean,
+    default: false,
   },
   radarRadius: {
     type: Number,
@@ -262,7 +266,16 @@ const isInRange = computed(() => {
     return distanceFromBarrack <= BARRACKS_RADAR_RADIUS;
   }
   
-  // Si no hay cuartel seleccionado, verificar desde el radar principal
+  // Si la base está seleccionada como punto de ataque, verificar desde la base
+  if (props.isBaseAttackOrigin && props.basePosition) {
+    const distanceFromBase = calculateDistance(
+      [props.basePosition.lat, props.basePosition.lng],
+      [props.poi.lat, props.poi.lng]
+    );
+    return distanceFromBase <= props.radarRadius;
+  }
+  
+  // Si no hay punto de ataque seleccionado, verificar desde el radar principal
   if (props.basePosition) {
     const distanceFromBase = calculateDistance(
       [props.basePosition.lat, props.basePosition.lng],

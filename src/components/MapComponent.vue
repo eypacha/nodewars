@@ -11,8 +11,10 @@
       v-if="showBaseMarkerDialog && markerScreenPosition && baseConfirmed"
       :style="dialogStyle"
       :is-scanning="isLoading"
+      :is-attack-origin="isBaseAttackOrigin"
       @scan="handleScan"
       @upgrades="mapStore.openUpgradesPanel"
+      @selectAsAttackOrigin="handleSelectBaseAsAttackOrigin"
     />
     <POIDialog
       v-if="showPOIDialog && selectedPOI && poiScreenPosition"
@@ -20,6 +22,7 @@
       :poi="selectedPOI"
       :base-position="baseMarkerPosition"
       :selected-barracks-for-attack="selectedBarracksForAttack"
+      :is-base-attack-origin="isBaseAttackOrigin"
       :radar-radius="radarRadius"
       :all-pois="pois"
       @close="handleClosePOIDialog"
@@ -34,16 +37,9 @@
       @close="mapStore.closeUpgradesPanel"
     />
     <div 
-      v-if="isLoading && markerScreenPosition && !isScanningFromBarracks" 
+      v-if="(isLoading && baseConfirmed && !selectedBarracksForAttack) || (isScanningFromBarracks && selectedBarracksForAttack) || (isLoading && isBaseAttackOrigin)" 
       class="radar-sweep"
       :style="radarSweepStyle"
-    >
-      <div class="sweep-line"></div>
-    </div>
-    <div 
-      v-if="isScanningFromBarracks" 
-      class="radar-sweep"
-      :style="barracksRadarSweepStyle"
     >
       <div class="sweep-line"></div>
     </div>
@@ -86,8 +82,7 @@ import { usePoiStore } from '@/stores/poiStore';
 import { useGameStore } from '@/stores/gameStore';
 import { useLeafletMap } from '@/composables/useLeafletMap';
 import { useMapMarker } from '@/composables/useMapMarker';
-import { useRadar } from '@/composables/useRadar';
-import { useBarracksRadar } from '@/composables/useBarracksRadar';
+import { useAttackRadar } from '@/composables/useAttackRadar';
 import { usePointsOfInterest } from '@/composables/usePointsOfInterest';
 import { useAttackAnimation } from '@/composables/useAttackAnimation';
 import { useResourceCollection } from '@/composables/useResourceCollection';
@@ -111,12 +106,12 @@ const { radarLevel } = storeToRefs(gameStore);
 const { selectedPOI, showPOIDialog, isLoading, pois } = storeToRefs(poiStore);
 const isScanningFromBarracks = ref(false);
 const selectedBarracksForAttack = ref(null); // Cuartel seleccionado para lanzar ataques
+const isBaseAttackOrigin = ref(false); // Si la base está seleccionada como punto de ataque
 
 // Inicializar composables principales
 const { mapRef, initMap, flyTo, on } = useLeafletMap('map', center.value, zoom.value);
 const { markerRef, createMarker, disableDragging, removeMarker, on: onMarker } = useMapMarker(mapRef);
-const { radarRef, createRadar, updatePosition: updateRadarPosition, removeRadar } = useRadar(mapRef);
-const { updateBarracksRadars, clearBarracksRadars } = useBarracksRadar(mapRef);
+const { radarRef, createRadar, updatePosition: updateRadarPosition, updateRadius, removeRadar, hasActiveRadar, getRadarData } = useAttackRadar(mapRef);
 const { clearPOIMarkers } = usePointsOfInterest(mapRef);
 
 // Composables para funcionalidades específicas
@@ -147,66 +142,120 @@ const baseMarkerPosition = computed(() => {
   return { lat: latLng.lat, lng: latLng.lng };
 });
 
-// Radio actual del radar según el nivel
+// Radio actual del radar según el tipo de centro de ataque
 const radarRadius = computed(() => {
-  const radarConfig = getRadarConfig(gameStore.radarLevel);
-  return radarConfig.radius;
+  const radarData = getRadarData();
+  if (!radarData) return 0;
+  return radarData.radius;
 });
 
-// Estilo de la animación del radar
+// Punto de ataque activo (base o cuartel)
+const currentAttackOrigin = computed(() => {
+  if (selectedBarracksForAttack.value) {
+    return selectedBarracksForAttack.value;
+  }
+  if (isBaseAttackOrigin.value && markerRef.value) {
+    const latLng = markerRef.value.getLatLng();
+    return {
+      lat: latLng.lat,
+      lng: latLng.lng,
+      type: 'base',
+    };
+  }
+  return null;
+});
+
+// Estilo de la animación del radar (base o cuartel)
 const radarSweepStyle = computed(() => {
-  if (!markerScreenPosition.value || !mapRef.value || !markerRef.value) return {};
+  if (!mapRef.value) return {};
   
-  // Calcular el radio del radar en píxeles
-  const radarConfig = getRadarConfig(gameStore.radarLevel);
-  const markerLatLng = markerRef.value.getLatLng();
+  // Determinar si es cuartel
+  const isBarracks = selectedBarracksForAttack.value !== null;
   
-  // Crear un punto a la distancia del radio del radar
-  const earthRadius = 6371000; // Radio de la Tierra en metros
-  const lat = markerLatLng.lat;
-  const lng = markerLatLng.lng;
-  const radiusInMeters = radarConfig.radius;
+  if (isBarracks && selectedBarracksForAttack.value) {
+    // Radar del cuartel
+    const barracksLatLng = L.latLng(selectedBarracksForAttack.value.lat, selectedBarracksForAttack.value.lng);
+    const screenPoint = mapRef.value.latLngToContainerPoint(barracksLatLng);
+    
+    // Radio del cuartel: 500 metros
+    const earthRadius = 6371000;
+    const barracksRadius = 500;
+    const latOffset = (barracksRadius / earthRadius) * (180 / Math.PI);
+    const pointAtRadius = L.latLng(selectedBarracksForAttack.value.lat + latOffset, selectedBarracksForAttack.value.lng);
+    const edgePoint = mapRef.value.latLngToContainerPoint(pointAtRadius);
+    const radiusInPixels = Math.abs(edgePoint.y - screenPoint.y);
+    
+    return {
+      position: 'absolute',
+      left: `${screenPoint.x}px`,
+      top: `${screenPoint.y}px`,
+      zIndex: 999,
+      '--radar-radius': `${radiusInPixels}px`,
+    };
+  } else if (isBaseAttackOrigin.value && markerScreenPosition.value && markerRef.value) {
+    // Radar de la base como punto de ataque
+    const radarConfig = getRadarConfig(gameStore.radarLevel);
+    const markerLatLng = markerRef.value.getLatLng();
+    
+    // Crear un punto a la distancia del radio del radar
+    const earthRadius = 6371000;
+    const lat = markerLatLng.lat;
+    const lng = markerLatLng.lng;
+    const radiusInMeters = radarConfig.radius;
+    
+    // Calcular un punto al norte a la distancia del radio
+    const latOffset = (radiusInMeters / earthRadius) * (180 / Math.PI);
+    const pointAtRadius = [lat + latOffset, lng];
+    
+    // Convertir a píxeles
+    const centerPoint = mapRef.value.latLngToContainerPoint(markerLatLng);
+    const edgePoint = mapRef.value.latLngToContainerPoint(pointAtRadius);
+    const radiusInPixels = Math.abs(edgePoint.y - centerPoint.y);
+    
+    return {
+      position: 'absolute',
+      left: `${markerScreenPosition.value.x}px`,
+      top: `${markerScreenPosition.value.y}px`,
+      zIndex: 999,
+      '--radar-radius': `${radiusInPixels}px`,
+    };
+  } else if (markerScreenPosition.value && markerRef.value && baseConfirmed.value && !isBaseAttackOrigin.value) {
+    // Radar de la base (solo si no es punto de ataque)
+    // Mostrar animación de escaneo pero sin ser punto de ataque
+    const radarConfig = getRadarConfig(gameStore.radarLevel);
+    const markerLatLng = markerRef.value.getLatLng();
+    
+    // Crear un punto a la distancia del radio del radar
+    const earthRadius = 6371000;
+    const lat = markerLatLng.lat;
+    const lng = markerLatLng.lng;
+    const radiusInMeters = radarConfig.radius;
+    
+    // Calcular un punto al norte a la distancia del radio
+    const latOffset = (radiusInMeters / earthRadius) * (180 / Math.PI);
+    const pointAtRadius = [lat + latOffset, lng];
+    
+    // Convertir a píxeles
+    const centerPoint = mapRef.value.latLngToContainerPoint(markerLatLng);
+    const edgePoint = mapRef.value.latLngToContainerPoint(pointAtRadius);
+    const radiusInPixels = Math.abs(edgePoint.y - centerPoint.y);
+    
+    return {
+      position: 'absolute',
+      left: `${markerScreenPosition.value.x}px`,
+      top: `${markerScreenPosition.value.y}px`,
+      zIndex: 999,
+      '--radar-radius': `${radiusInPixels}px`,
+    };
+  }
   
-  // Calcular un punto al norte a la distancia del radio
-  const latOffset = (radiusInMeters / earthRadius) * (180 / Math.PI);
-  const pointAtRadius = [lat + latOffset, lng];
-  
-  // Convertir a píxeles
-  const centerPoint = mapRef.value.latLngToContainerPoint(markerLatLng);
-  const edgePoint = mapRef.value.latLngToContainerPoint(pointAtRadius);
-  const radiusInPixels = Math.abs(edgePoint.y - centerPoint.y);
-  
-  return {
-    position: 'absolute',
-    left: `${markerScreenPosition.value.x}px`,
-    top: `${markerScreenPosition.value.y}px`,
-    zIndex: 999,
-    '--radar-radius': `${radiusInPixels}px`,
-  };
+  return {};
 });
 
-// Estilo para la animación del radar del cuartel
+// Estilo para la animación del radar del cuartel (DEPRECATED - usar radarSweepStyle)
 const barracksRadarSweepStyle = computed(() => {
-  if (!isScanningFromBarracks.value || !selectedPOI.value || !mapRef.value) return {};
-  
-  const barracksLatLng = L.latLng(selectedPOI.value.lat, selectedPOI.value.lng);
-  const screenPoint = mapRef.value.latLngToContainerPoint(barracksLatLng);
-  
-  // Radio del cuartel: 500 metros
-  const earthRadius = 6371000;
-  const barracksRadius = 500;
-  const latOffset = (barracksRadius / earthRadius) * (180 / Math.PI);
-  const pointAtRadius = L.latLng(selectedPOI.value.lat + latOffset, selectedPOI.value.lng);
-  const edgePoint = mapRef.value.latLngToContainerPoint(pointAtRadius);
-  const radiusInPixels = Math.abs(edgePoint.y - screenPoint.y);
-  
-  return {
-    position: 'absolute',
-    left: `${screenPoint.x}px`,
-    top: `${screenPoint.y}px`,
-    zIndex: 999,
-    '--radar-radius': `${radiusInPixels}px`,
-  };
+  // Este computed se mantiene para compatibilidad pero usa radarSweepStyle
+  return radarSweepStyle.value;
 });
 
 // Manejar confirmación del marcador
@@ -217,7 +266,15 @@ const handleConfirmMarker = () => {
 
 // Manejar ataque al POI
 const handleAttack = () => {
-  startAttack(selectedPOI.value, selectedBarracksForAttack.value);
+  // Determinar el origen del ataque
+  let attackOrigin = null;
+  if (isBaseAttackOrigin.value && markerRef.value) {
+    const latLng = markerRef.value.getLatLng();
+    attackOrigin = { lat: latLng.lat, lng: latLng.lng };
+  } else if (selectedBarracksForAttack.value) {
+    attackOrigin = selectedBarracksForAttack.value;
+  }
+  startAttack(selectedPOI.value, attackOrigin);
 };
 
 // Manejar extracción manual de recursos
@@ -250,10 +307,11 @@ const handleExtract = () => {
     // Hacer fetch de POIs desde el cuartel
     await poiStore.fetchPOIs(position, radarRadius);
     
-    // Desactivar animación después de completar
+    // Desactivar animación después de que la animación del sweep termine (2s)
+    // La animación dura 2 segundos (sweep 2s linear infinite)
     setTimeout(() => {
       isScanningFromBarracks.value = false;
-    }, 3000);
+    }, 2000);
   };
 
   // Manejar selección de cuartel como punto de ataque
@@ -262,8 +320,40 @@ const handleExtract = () => {
       // Toggle: si ya está seleccionado, deseleccionar; si no, seleccionar
       if (selectedBarracksForAttack.value && selectedBarracksForAttack.value.id === barracks.id) {
         selectedBarracksForAttack.value = null;
+        removeRadar(); // Eliminar el radar del cuartel
       } else {
         selectedBarracksForAttack.value = barracks;
+        // Crear radar para el cuartel seleccionado
+        createRadar({
+          lat: barracks.lat,
+          lng: barracks.lng,
+          type: 'barrack',
+        });
+      }
+    }
+  };
+
+  // Manejar selección de base como punto de ataque
+  const handleSelectBaseAsAttackOrigin = () => {
+    if (isBaseAttackOrigin.value) {
+      // Deseleccionar base
+      isBaseAttackOrigin.value = false;
+      removeRadar();
+    } else {
+      // Deseleccionar cuartel si hay uno seleccionado
+      if (selectedBarracksForAttack.value) {
+        selectedBarracksForAttack.value = null;
+      }
+      // Seleccionar base
+      isBaseAttackOrigin.value = true;
+      if (markerRef.value) {
+        const position = markerRef.value.getLatLng();
+        createRadar({
+          lat: position.lat,
+          lng: position.lng,
+          type: 'base',
+          level: gameStore.radarLevel,
+        });
       }
     }
   };
@@ -306,16 +396,21 @@ const handleMarkerDragEnd = () => {
   const position = markerRef.value.getLatLng();
   mapStore.updateMarkerPosition([position.lat, position.lng]);
   updateMarkerScreenPosition();
-  updateRadarPosition([position.lat, position.lng]);
-  updateConnectionLine(selectedPOI.value);
+  
+  // Actualizar posición del radar solo si es la base la que está activa
+  if (baseConfirmed.value && !selectedBarracksForAttack.value) {
+    updateRadarPosition([position.lat, position.lng]);
+  }
+  
+  updateConnectionLine(selectedPOI.value, currentAttackOrigin.value);
 };
 
 const handleMarkerDrag = () => {
   updateMarkerScreenPosition();
-  if (markerRef.value) {
+  if (markerRef.value && baseConfirmed.value && !selectedBarracksForAttack.value) {
     updateRadarPosition(markerRef.value.getLatLng());
   }
-  updateConnectionLine(selectedPOI.value);
+  updateConnectionLine(selectedPOI.value, currentAttackOrigin.value);
   updateOwnedConnectionLines(pois.value);
 };
 
@@ -326,8 +421,8 @@ onMounted(() => {
   on('zoom', updateMarkerScreenPosition);
   on('move', () => updatePOIScreenPosition(selectedPOI.value));
   on('zoom', () => updatePOIScreenPosition(selectedPOI.value));
-  on('move', () => updateConnectionLine(selectedPOI.value, selectedBarracksForAttack.value));
-  on('zoom', () => updateConnectionLine(selectedPOI.value, selectedBarracksForAttack.value));
+  on('move', () => updateConnectionLine(selectedPOI.value, currentAttackOrigin.value));
+  on('zoom', () => updateConnectionLine(selectedPOI.value, currentAttackOrigin.value));
   on('move', () => updateOwnedConnectionLines(pois.value));
   on('zoom', () => updateOwnedConnectionLines(pois.value));
   // Agregar listener para cerrar diálogo al hacer clic en el mapa
@@ -344,7 +439,7 @@ watch([center, zoom], ([newCenter, newZoom]) => {
 // Observar cambios del marcador
 watch(marker, async (newMarker) => {
   removeMarker();
-  removeRadar();
+  // No eliminar el radar aquí, se gestiona en el watcher de baseConfirmed
   removeConnectionLine();
   
   if (mapRef.value && newMarker) {
@@ -358,10 +453,15 @@ watch(marker, async (newMarker) => {
     onMarker('dragend', handleMarkerDragEnd);
     onMarker('drag', handleMarkerDrag);
     
-    // Si la base está confirmada, añadir listener de click y crear radar
+    // Si la base está confirmada, crear radar y añadir listener de click
     if (baseConfirmed.value) {
+      createRadar({
+        lat: newMarker[0],
+        lng: newMarker[1],
+        type: 'base',
+        level: gameStore.radarLevel,
+      });
       onMarker('click', handleMarkerClick);
-      createRadar(newMarker);
     }
     
     // Actualizar posición del diálogo
@@ -374,14 +474,23 @@ watch(marker, async (newMarker) => {
 watch(baseConfirmed, async (confirmed) => {
   if (confirmed && markerRef.value) {
     const position = markerRef.value.getLatLng();
-    createRadar(position);
+    // Crear radar para la base
+    createRadar({
+      lat: position.lat,
+      lng: position.lng,
+      type: 'base',
+      level: gameStore.radarLevel,
+    });
     
     // Añadir listener de click al marcador cuando está confirmado
     onMarker('click', handleMarkerClick);
     
     // No hacer scan automático - el usuario debe hacer clic en "Scan"
   } else {
-    removeRadar();
+    // Solo eliminar radar si no hay cuartel seleccionado
+    if (!selectedBarracksForAttack.value) {
+      removeRadar();
+    }
     removeConnectionLine();
     // Limpiar POIs cuando se oculta el radar
     poiStore.clearPOIs();
@@ -409,7 +518,7 @@ watch(selectedPOI, (poi) => {
     updatePOIScreenPosition(poi);
     // Actualizar línea de conexión cuando se selecciona un nuevo POI
     nextTick(() => {
-      createConnectionLine(poi, selectedBarracksForAttack.value);
+      createConnectionLine(poi, currentAttackOrigin.value);
     });
   }
 });
@@ -420,7 +529,7 @@ watch(showPOIDialog, (visible) => {
     updatePOIScreenPosition(selectedPOI.value);
     // Crear línea de conexión cuando se abre el diálogo
     nextTick(() => {
-      createConnectionLine(selectedPOI.value, selectedBarracksForAttack.value);
+      createConnectionLine(selectedPOI.value, currentAttackOrigin.value);
     });
   } else {
     // Eliminar línea de conexión cuando se cierra el diálogo
@@ -428,21 +537,20 @@ watch(showPOIDialog, (visible) => {
   }
 });
 
-// Observar cambios en el nivel del radar para actualizar su radio
+// Observar cambios en el nivel del radar para actualizar su radio (solo si es base)
 watch(radarLevel, (newLevel) => {
-  if (radarRef.value) {
+  if (radarRef.value && baseConfirmed.value && !selectedBarracksForAttack.value) {
+    // Solo actualizar si el radar activo es la base
     const radarConfig = getRadarConfig(newLevel);
-    radarRef.value.setRadius(radarConfig.radius);
+    updateRadius(radarConfig.radius);
   }
 });
 
-// Observar cambios en los POIs para actualizar líneas owned y radares de cuarteles
+// Observar cambios en los POIs para actualizar líneas owned
 watch(pois, (newPois) => {
   if (mapRef.value && markerRef.value) {
     createOwnedConnectionLines(newPois);
   }
-  // Actualizar radares de cuarteles
-  updateBarracksRadars(newPois);
 }, { deep: true });
 </script>
 
