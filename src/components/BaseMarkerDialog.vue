@@ -15,11 +15,12 @@
         <button 
           @click="$emit('selectAsAttackOrigin')"
           :class="[
-            'font-bold py-2 px-4 border-1 text-sm flex-1 cursor-pointer',
-            isAttackOrigin ? 'bg-blue-600 border-blue-400' : ''
+            'font-bold py-2 px-4 border-1 text-sm flex-1',
+            isActive ? 'bg-blue-600 border-blue-400 cursor-default' : 'cursor-pointer'
           ]"
+          :disabled="isActive"
         >
-          {{ isAttackOrigin ? 'Atack point' : 'Use as attack point' }}
+          {{ isActive ? '✓ Active' : 'Make Active' }}
         </button>
         <button 
           @click="$emit('upgrades')"
@@ -40,7 +41,7 @@ defineProps({
     type: Boolean,
     default: false
   },
-  isAttackOrigin: {
+  isActive: {
     type: Boolean,
     default: false
   }

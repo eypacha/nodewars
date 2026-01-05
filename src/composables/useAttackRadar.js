@@ -70,6 +70,7 @@ export const useAttackRadar = (mapRef) => {
       fillOpacity: config.fillOpacity,
       radius: config.radius,
       weight: config.weight,
+      pointerEvents: 'none', // No bloquear clicks en POIs
     }).addTo(mapRef.value);
   };
 
