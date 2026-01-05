@@ -28,9 +28,16 @@
       <div class="sweep-line"></div>
     </div>
     <div 
-      v-if="attackTriangle" 
+      v-for="triangle in attackTriangles" 
+      :key="triangle.id"
       class="attack-triangle"
-      :style="attackTriangleStyle"
+      :style="{
+        position: 'absolute',
+        left: `${triangle.x}px`,
+        top: `${triangle.y}px`,
+        transform: `translate(-50%, -50%) rotate(${triangle.rotation}deg)`,
+        zIndex: 999,
+      }"
     >
       ▲
     </div>
@@ -69,7 +76,7 @@ const { radarRef, createRadar, updatePosition: updateRadarPosition, removeRadar 
 const { clearPOIMarkers } = usePointsOfInterest(mapRef);
 
 // Composables para funcionalidades específicas
-const { attackTriangle, attackTriangleStyle, startAttack, cancelAttack } = useAttackAnimation(mapRef, markerRef);
+const { attackTriangles, startAttack, cancelAttack } = useAttackAnimation(mapRef, markerRef);
 const { createConnectionLine, removeConnectionLine, updateConnectionLine } = useConnectionLines(mapRef, markerRef);
 const { 
   markerScreenPosition, 

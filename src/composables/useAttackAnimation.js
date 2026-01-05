@@ -1,27 +1,13 @@
 /**
  * Composable para gestionar la animación de ataque
- * Maneja la animación del triángulo desde la base hasta el POI
+ * Maneja la animación de múltiples triángulos desde la base hasta los POIs
  */
-import { ref, computed } from 'vue';
+import { ref } from 'vue';
 import L from 'leaflet';
 
 export const useAttackAnimation = (mapRef, markerRef) => {
-  const attackTriangle = ref(null);
-  const attackAnimationFrame = ref(null);
-
-  /**
-   * Estilo del triángulo de ataque
-   */
-  const attackTriangleStyle = computed(() => {
-    if (!attackTriangle.value) return {};
-    return {
-      position: 'absolute',
-      left: `${attackTriangle.value.x}px`,
-      top: `${attackTriangle.value.y}px`,
-      transform: `translate(-50%, -50%) rotate(${attackTriangle.value.rotation}deg)`,
-      zIndex: 999,
-    };
-  });
+  const attackTriangles = ref([]);
+  let nextAttackId = 0;
 
   /**
    * Inicia la animación de ataque hacia un POI
@@ -30,11 +16,7 @@ export const useAttackAnimation = (mapRef, markerRef) => {
   const startAttack = (targetPOI) => {
     if (!markerRef.value || !targetPOI || !mapRef.value) return;
     
-    // Cancelar animación anterior si existe
-    if (attackAnimationFrame.value) {
-      cancelAnimationFrame(attackAnimationFrame.value);
-    }
-    
+    const attackId = nextAttackId++;
     const startLatLng = markerRef.value.getLatLng();
     const endLatLng = [targetPOI.lat, targetPOI.lng];
     
@@ -54,6 +36,21 @@ export const useAttackAnimation = (mapRef, markerRef) => {
     
     const startTime = performance.now();
     
+    // Crear objeto de ataque
+    const attack = {
+      id: attackId,
+      x: startPoint.x,
+      y: startPoint.y,
+      rotation: rotation,
+      animationFrame: null,
+      startLatLng,
+      endLatLng,
+      startTime,
+      duration,
+    };
+    
+    attackTriangles.value.push(attack);
+    
     const animate = (currentTime) => {
       const elapsed = currentTime - startTime;
       const progress = Math.min(elapsed / duration, 1);
@@ -66,38 +63,42 @@ export const useAttackAnimation = (mapRef, markerRef) => {
       const currentPoint = mapRef.value.latLngToContainerPoint([currentLat, currentLng]);
       
       // Actualizar posición del triángulo
-      attackTriangle.value = {
-        x: currentPoint.x,
-        y: currentPoint.y,
-        rotation: rotation,
-      };
+      const attackIndex = attackTriangles.value.findIndex(a => a.id === attackId);
+      if (attackIndex !== -1) {
+        attackTriangles.value[attackIndex].x = currentPoint.x;
+        attackTriangles.value[attackIndex].y = currentPoint.y;
+      }
       
       if (progress < 1) {
-        attackAnimationFrame.value = requestAnimationFrame(animate);
+        attack.animationFrame = requestAnimationFrame(animate);
       } else {
-        // Animación completada
+        // Animación completada - eliminar el ataque después de un breve delay
         setTimeout(() => {
-          attackTriangle.value = null;
+          const index = attackTriangles.value.findIndex(a => a.id === attackId);
+          if (index !== -1) {
+            attackTriangles.value.splice(index, 1);
+          }
         }, 100);
       }
     };
     
-    attackAnimationFrame.value = requestAnimationFrame(animate);
+    attack.animationFrame = requestAnimationFrame(animate);
   };
 
   /**
-   * Cancela la animación de ataque actual
+   * Cancela todas las animaciones de ataque activas
    */
   const cancelAttack = () => {
-    if (attackAnimationFrame.value) {
-      cancelAnimationFrame(attackAnimationFrame.value);
-      attackTriangle.value = null;
-    }
+    attackTriangles.value.forEach(attack => {
+      if (attack.animationFrame) {
+        cancelAnimationFrame(attack.animationFrame);
+      }
+    });
+    attackTriangles.value = [];
   };
 
   return {
-    attackTriangle,
-    attackTriangleStyle,
+    attackTriangles,
     startAttack,
     cancelAttack,
   };
