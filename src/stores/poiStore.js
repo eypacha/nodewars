@@ -50,11 +50,38 @@ export const usePoiStore = defineStore('poi', () => {
       // Crear un Set con los IDs existentes para verificar duplicados
       const existingIds = new Set(pois.value.map(poi => poi.id));
       
-      // Agregar solo los POIs nuevos (que no estén ya en la lista)
+      // Filtrar POIs que no estén ya en la lista
       const uniqueNewPOIs = newPOIs.filter(poi => !existingIds.has(poi.id));
       
+      // Contar cuántos POIs de cada categoría ya existen
+      const categoryCounts = {};
+      pois.value.forEach(poi => {
+        const category = poi.category || poi.type;
+        categoryCounts[category] = (categoryCounts[category] || 0) + 1;
+      });
+      
+      // Agrupar los nuevos POIs por categoría
+      const poisByCategory = {};
+      uniqueNewPOIs.forEach(poi => {
+        const category = poi.category || poi.type;
+        if (!poisByCategory[category]) {
+          poisByCategory[category] = [];
+        }
+        poisByCategory[category].push(poi);
+      });
+      
+      // Agregar máximo 2 POIs por categoría en este scan
+      const poisToAdd = [];
+      Object.keys(poisByCategory).forEach(category => {
+        const existingCount = categoryCounts[category] || 0;
+        const availablePOIs = poisByCategory[category];
+        // Agregar hasta 2 POIs nuevos de esta categoría
+        const toAdd = availablePOIs.slice(0, 2);
+        poisToAdd.push(...toAdd);
+      });
+      
       // Sumar los nuevos POIs a los existentes
-      pois.value = [...pois.value, ...uniqueNewPOIs];
+      pois.value = [...pois.value, ...poisToAdd];
       
       lastFetchCenter.value = center;
       lastFetchRadius.value = radius;
