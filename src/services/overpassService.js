@@ -107,22 +107,9 @@ const calculateDistance = (coord1, coord2) => {
  */
 export const getPOIColor = (type) => {
   const colorMap = {
-    restaurant: '#ff6b6b',
-    cafe: '#a55eea',
-    bar: '#fd79a8',
+    restaurant: '#fdcb6e',
     fast_food: '#fdcb6e',
-    pub: '#e17055',
-    supermarket: '#00b894',
-    convenience: '#00cec9',
-    mall: '#0984e3',
-    attraction: '#feca57',
-    museum: '#ff9ff3',
-    hotel: '#48dbfb',
-    viewpoint: '#54a0ff',
-    park: '#26de81',
-    playground: '#fed330',
-    sports_centre: '#fc5c65',
-    unknown: '#95afc0',
+    supermarket: '#fdcb6e'
   };
 
   return colorMap[type] || colorMap.unknown;
