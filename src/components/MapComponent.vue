@@ -12,6 +12,7 @@
       :style="dialogStyle"
       :is-scanning="isLoading"
       @scan="handleScan"
+      @upgrades="mapStore.openUpgradesPanel"
     />
     <POIDialog
       v-if="showPOIDialog && selectedPOI && poiScreenPosition"
@@ -21,6 +22,10 @@
       @close="handleClosePOIDialog"
       @attack="handleAttack"
       @extract="handleExtract"
+    />
+    <UpgradesPanel
+      v-if="showUpgradesPanel"
+      @close="mapStore.closeUpgradesPanel"
     />
     <div 
       v-if="isLoading && markerScreenPosition" 
@@ -82,11 +87,13 @@ import MarkerConfirmDialog from './MarkerConfirmDialog.vue';
 import BaseMarkerDialog from './BaseMarkerDialog.vue';
 import POIDialog from './POIDialog.vue';
 import ResourceHUD from './ResourceHUD.vue';
+import UpgradesPanel from './UpgradesPanel.vue';
 
 const mapStore = useMapStore();
 const poiStore = usePoiStore();
 const gameStore = useGameStore();
-const { center, zoom, marker, showMarkerDialog, baseConfirmed, showBaseMarkerDialog } = storeToRefs(mapStore);
+const { center, zoom, marker, showMarkerDialog, baseConfirmed, showBaseMarkerDialog, showUpgradesPanel } = storeToRefs(mapStore);
+const { radarLevel } = storeToRefs(gameStore);
 const { selectedPOI, showPOIDialog, isLoading, pois } = storeToRefs(poiStore);
 
 // Inicializar composables principales
@@ -128,7 +135,7 @@ const radarSweepStyle = computed(() => {
   if (!markerScreenPosition.value || !mapRef.value || !markerRef.value) return {};
   
   // Calcular el radio del radar en píxeles
-  const radarConfig = getRadarConfig();
+  const radarConfig = getRadarConfig(gameStore.radarLevel);
   const markerLatLng = markerRef.value.getLatLng();
   
   // Crear un punto a la distancia del radio del radar
@@ -186,7 +193,7 @@ const handleScan = async () => {
   if (!markerRef.value) return;
   
   const position = markerRef.value.getLatLng();
-  const radarConfig = getRadarConfig();
+  const radarConfig = getRadarConfig(gameStore.radarLevel);
   
   // Cargar puntos de interés dentro del radio del radar
   await poiStore.fetchPOIs(
@@ -333,6 +340,14 @@ watch(showPOIDialog, (visible) => {
   } else {
     // Eliminar línea de conexión cuando se cierra el diálogo
     removeConnectionLine();
+  }
+});
+
+// Observar cambios en el nivel del radar para actualizar su radio
+watch(radarLevel, (newLevel) => {
+  if (radarRef.value) {
+    const radarConfig = getRadarConfig(newLevel);
+    radarRef.value.setRadius(radarConfig.radius);
   }
 });
 

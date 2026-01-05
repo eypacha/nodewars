@@ -3,6 +3,8 @@
  * Contiene constantes y configuraciones centralizadas
  */
 
+const BASE_RADAR_RADIUS = 700; // Radio base en metros
+
 export const MAP_CONFIG = {
   // Configuración de tiles
   TILE_LAYER: {
@@ -16,7 +18,7 @@ export const MAP_CONFIG = {
 
   // Configuración del radar
   RADAR: {
-    radius: 700, // metros
+    radius: BASE_RADAR_RADIUS, // metros
     color: '#00bcff',
     fillOpacity: 0.1,
     weight: 2,
@@ -59,9 +61,17 @@ export const MAP_CONFIG = {
 export const getTileLayerConfig = () => MAP_CONFIG.TILE_LAYER;
 
 /**
- * Obtener configuración del radar
+ * Obtener configuración del radar con radius dinámico según nivel
  */
-export const getRadarConfig = () => MAP_CONFIG.RADAR;
+export const getRadarConfig = (radarLevel = 1) => {
+  const baseConfig = MAP_CONFIG.RADAR;
+  const radiusMultiplier = 1 + (radarLevel - 1) * 0.3; // Nivel 1 = 700m, nivel 2 = 910m, nivel 3 = 1120m
+  
+  return {
+    ...baseConfig,
+    radius: Math.round(BASE_RADAR_RADIUS * radiusMultiplier),
+  };
+};
 
 
 /**

@@ -13,6 +13,15 @@ export const useGameStore = defineStore('game', () => {
     police: 0,
   });
 
+  // Upgrades
+  const radarLevel = ref(1);
+  const radarUpgradeCosts = {
+    2: 10,
+    3: 25,
+    4: 50,
+    5: 100,
+  };
+
   // Acciones
   const startGame = () => {
     showStartPopup.value = false;
@@ -33,16 +42,36 @@ export const useGameStore = defineStore('game', () => {
     }
   };
 
+  const upgradeRadar = () => {
+    const nextLevel = radarLevel.value + 1;
+    const cost = radarUpgradeCosts[nextLevel];
+    
+    if (!cost) return false; // Max level reached
+    if (resources.value.bank < cost) return false; // Not enough bank
+    
+    resources.value.bank -= cost;
+    radarLevel.value = nextLevel;
+    return true;
+  };
+
+  const getRadarUpgradeCost = () => {
+    const nextLevel = radarLevel.value + 1;
+    return radarUpgradeCosts[nextLevel] || null;
+  };
+
   return {
     // State
     showStartPopup,
     showLocationPopup,
     resources,
+    radarLevel,
 
     // Actions
     startGame,
     showLocationError,
     retryLocationPermission,
     addResource,
+    upgradeRadar,
+    getRadarUpgradeCost,
   };
 });
