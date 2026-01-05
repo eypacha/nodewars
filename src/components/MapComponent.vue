@@ -9,6 +9,7 @@
     <BaseMarkerDialog
       v-if="showBaseMarkerDialog && markerScreenPosition && baseConfirmed"
       :style="dialogStyle"
+      :is-scanning="isLoading"
       @scan="handleScan"
     />
     <POIDialog
@@ -125,8 +126,18 @@ const handleClosePOIDialog = () => {
 };
 
 // Manejar scan desde el diálogo del marcador
-const handleScan = () => {
-  // TODO: Implementar lógica de scan
+const handleScan = async () => {
+  if (!markerRef.value) return;
+  
+  const position = markerRef.value.getLatLng();
+  const radarConfig = getRadarConfig();
+  
+  // Cargar puntos de interés dentro del radio del radar
+  await poiStore.fetchPOIs(
+    { lat: position.lat, lng: position.lng },
+    radarConfig.radius
+  );
+  
   mapStore.closeBaseMarkerDialog();
 };
 
@@ -204,14 +215,7 @@ watch(baseConfirmed, async (confirmed) => {
     // Añadir listener de click al marcador cuando está confirmado
     onMarker('click', handleMarkerClick);
     
-    // Obtener el radio del radar de la configuración
-    const radarConfig = getRadarConfig();
-    
-    // Cargar puntos de interés dentro del radio del radar
-    await poiStore.fetchPOIs(
-      { lat: position.lat, lng: position.lng },
-      radarConfig.radius
-    );
+    // No hacer scan automático - el usuario debe hacer clic en "Scan"
   } else {
     removeRadar();
     // Limpiar POIs cuando se oculta el radar
