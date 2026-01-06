@@ -27,6 +27,7 @@
   "baseMarker": {
     "scan": "Scan",
     "scanning": "Scanning...",
+    "stopScan": "Stop Scan",
     "upgrades": "Upgrades"
   },
   "poi": {
@@ -36,7 +37,8 @@
     "extract": "Extract",
     "noResources": "No resources",
     "convertToBarracks": "Convert to barrack",
-    "scan": "Scan"
+    "scan": "Scan",
+    "stopScan": "Stop Scan"
   },
   "upgrades": {
     "title": "Upgrade Base",

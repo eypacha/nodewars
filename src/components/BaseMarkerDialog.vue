@@ -3,14 +3,12 @@
     <div class="bg-black border-2 border-white px-4 py-3 shadow-2xl relative">
       <div class="flex gap-2">
         <button 
-          @click="$emit('scan')"
-          :disabled="isScanning"
+          @click="$emit(isScanning ? 'stopScan' : 'scan')"
           :class="[
-            'font-bold py-2 px-4 border-1 text-sm flex-1',
-            isScanning ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+            'font-bold py-2 px-4 border-1 text-sm flex-1 cursor-pointer'
           ]"
         >
-          {{ isScanning ? $t('baseMarker.scanning') : $t('baseMarker.scan') }}
+          {{ isScanning ? $t('baseMarker.stopScan') : $t('baseMarker.scan') }}
         </button>
         <button 
           @click="$emit('upgrades')"
@@ -33,5 +31,5 @@ defineProps({
   }
 });
 
-defineEmits(['scan', 'upgrades']);
+defineEmits(['scan', 'stopScan', 'upgrades']);
 </script>

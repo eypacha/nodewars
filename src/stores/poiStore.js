@@ -12,6 +12,12 @@ export const usePoiStore = defineStore('poi', () => {
   const lastFetchRadius = ref(null);
   const selectedPOI = ref(null);
   const showPOIDialog = ref(false);
+  
+  // Estado de reintentos automáticos
+  const retryCount = ref(0);
+  const maxRetries = 10;
+  const retryTimeout = ref(null);
+  const shouldStopRetrying = ref(false);
 
   // Getters
   const poisCount = computed(() => pois.value.length);
@@ -28,12 +34,24 @@ export const usePoiStore = defineStore('poi', () => {
   });
 
   // Acciones
-  const fetchPOIs = async (center, radius) => {
+  const fetchPOIs = async (center, radius, isRetry = false) => {
+    if (!isRetry) {
+      // Si no es un reintento, resetear el contador
+      retryCount.value = 0;
+      shouldStopRetrying.value = false;
+    }
+    
+    console.log('🔍 Scanning...');
+    
     isLoading.value = true;
     error.value = null;
     
     try {
       const fetchedPOIs = await fetchPointsOfInterest(center.lat, center.lng, radius);
+      
+      // Si no hay error, resetear contador de reintentos
+      retryCount.value = 0;
+      shouldStopRetrying.value = false;
       
       // Filtrar POIs dentro del radio y añadir color
       const newPOIs = fetchedPOIs
@@ -95,8 +113,29 @@ export const usePoiStore = defineStore('poi', () => {
     } catch (err) {
       error.value = err.message;
       console.error('Error fetching POIs:', err);
+      
+      // Si no se debe detener y no se alcanzó el máximo de reintentos
+      if (!shouldStopRetrying.value && retryCount.value < maxRetries) {
+        retryCount.value++;
+        console.log(`Reintentando... (${retryCount.value}/${maxRetries})`);
+        
+        // Esperar 3 segundos antes de reintentar
+        retryTimeout.value = setTimeout(() => {
+          fetchPOIs(center, radius, true);
+        }, 3000);
+      } else {
+        // Detener después de 10 intentos o si el usuario lo detuvo
+        isLoading.value = false;
+        if (retryCount.value >= maxRetries) {
+          console.log('Máximo de reintentos alcanzado');
+        }
+      }
+      return; // No ejecutar finally si estamos reintentando
     } finally {
-      isLoading.value = false;
+      // Solo detener isLoading si no estamos en proceso de reintento
+      if (shouldStopRetrying.value || retryCount.value >= maxRetries || !error.value) {
+        isLoading.value = false;
+      }
     }
   };
 
@@ -105,6 +144,16 @@ export const usePoiStore = defineStore('poi', () => {
     lastFetchCenter.value = null;
     lastFetchRadius.value = null;
     error.value = null;
+  };
+  
+  const stopScan = () => {
+    shouldStopRetrying.value = true;
+    isLoading.value = false;
+    if (retryTimeout.value) {
+      clearTimeout(retryTimeout.value);
+      retryTimeout.value = null;
+    }
+    retryCount.value = 0;
   };
 
   const filterPOIsInRadius = (center, radius) => {
@@ -197,6 +246,7 @@ export const usePoiStore = defineStore('poi', () => {
 
     // Actions
     fetchPOIs,
+    stopScan,
     clearPOIs,
     filterPOIsInRadius,
     getPOIById,

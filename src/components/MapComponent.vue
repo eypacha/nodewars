@@ -12,6 +12,7 @@
       :style="dialogStyle"
       :is-scanning="isLoading"
       @scan="handleScan"
+      @stopScan="handleStopScan"
       @upgrades="handleOpenUpgrades"
     />
     <POIDialog
@@ -23,11 +24,13 @@
       :is-base-attack-origin="isBaseAttackOrigin"
       :radar-radius="radarRadius"
       :all-pois="pois"
+      :is-scanning="isScanningFromBarracks"
       @close="handleClosePOIDialog"
       @attack="handleAttack"
       @extract="handleExtract"
       @convertToBarracks="handleConvertToBarracks"
       @scan="handleScanFromBarracks"
+      @stopScan="handleStopScanFromBarracks"
     />
     <UpgradesPanel
       v-if="showUpgradesPanel"
@@ -360,6 +363,12 @@ const handleScan = async () => {
   );
   
   mapStore.closeBaseMarkerDialog();
+};
+
+// Manejar detención de scan
+const handleStopScan = () => {
+  poiStore.stopScan();
+  isLoading.value = false;
 };
 
 // Manejar apertura del panel de upgrades

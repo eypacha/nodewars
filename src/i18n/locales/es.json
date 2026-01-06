@@ -27,6 +27,7 @@
   "baseMarker": {
     "scan": "Escanear",
     "scanning": "Escaneando...",
+    "stopScan": "Detener Scan",
     "upgrades": "Mejoras"
   },
   "poi": {
@@ -36,7 +37,8 @@
     "extract": "Extraer",
     "noResources": "Sin recursos",
     "convertToBarracks": "Convertir en cuartel",
-    "scan": "Escanear"
+    "scan": "Escanear",
+    "stopScan": "Detener Scan"
   },
   "upgrades": {
     "title": "Mejorar Base",

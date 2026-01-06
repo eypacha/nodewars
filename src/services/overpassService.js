@@ -34,47 +34,42 @@ const buildOverpassQuery = (lat, lng, radius) => {
  * @returns {Promise<Array>} Array de POIs con sus datos
  */
 export const fetchPointsOfInterest = async (lat, lng, radius) => {
-  try {
-    const query = buildOverpassQuery(lat, lng, radius);
-    const response = await fetch(OVERPASS_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'text/plain'
-      },
-      body: query
-    });
+  const query = buildOverpassQuery(lat, lng, radius);
+  const response = await fetch(OVERPASS_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'text/plain'
+    },
+    body: query
+  });
 
-    if (!response.ok) {
-      throw new Error(`Overpass API error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    
-    // Transformar los datos en un formato más manejable
-    // Manejar tanto nodes (con lat/lon directos) como ways (con center)
-    return data.elements.map((element) => {
-      const lat = element.lat || element.center?.lat;
-      const lng = element.lon || element.center?.lon;
-      
-      if (!lat || !lng) return null;
-      
-      const rawType = element.tags?.amenity || element.tags?.shop || element.tags?.tourism || element.tags?.leisure || 'unknown';
-      const category = normalizePOICategory(rawType);
-      
-      return {
-        id: element.id,
-        lat,
-        lng,
-        type: rawType, // Mantener el tipo original para mostrar
-        category: category, // Categoría normalizada para agrupación
-        name: element.tags?.name || 'Sin nombre',
-        tags: element.tags,
-      };
-    }).filter(Boolean);
-  } catch (error) {
-    console.error('Error fetching POIs from Overpass API:', error);
-    return [];
+  if (!response.ok) {
+    throw new Error(`Overpass API error: ${response.status}`);
   }
+
+  const data = await response.json();
+  
+  // Transformar los datos en un formato más manejable
+  // Manejar tanto nodes (con lat/lon directos) como ways (con center)
+  return data.elements.map((element) => {
+    const lat = element.lat || element.center?.lat;
+    const lng = element.lon || element.center?.lon;
+    
+    if (!lat || !lng) return null;
+    
+    const rawType = element.tags?.amenity || element.tags?.shop || element.tags?.tourism || element.tags?.leisure || 'unknown';
+    const category = normalizePOICategory(rawType);
+    
+    return {
+      id: element.id,
+      lat,
+      lng,
+      type: rawType, // Mantener el tipo original para mostrar
+      category: category, // Categoría normalizada para agrupación
+      name: element.tags?.name || 'Sin nombre',
+      tags: element.tags,
+    };
+  }).filter(Boolean);
 };
 
 /**

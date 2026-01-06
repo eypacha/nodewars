@@ -81,10 +81,10 @@
         </button>
         <button
           v-if="poi.type === 'barrack' && isActive"
-          @click="handleScan"
+          @click="isScanning ? $emit('stopScan') : handleScan()"
           class="font-bold py-2 px-4 border-1 text-sm mx-auto block w-full mt-3 relative overflow-hidden cursor-pointer"
         >
-          {{ $t('poi.scan') }}
+          {{ isScanning ? $t('poi.stopScan') : $t('poi.scan') }}
         </button>
       </div>
       <div class="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-8 border-l-transparent border-r-8 border-r-transparent border-t-8 border-t-white"></div>
@@ -122,9 +122,13 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  isScanning: {
+    type: Boolean,
+    default: false,
+  },
 });
 
-const emit = defineEmits(['close', 'attack', 'extract', 'convertToBarracks', 'scan', 'selectAsAttackOrigin']);
+const emit = defineEmits(['close', 'attack', 'extract', 'convertToBarracks', 'scan', 'stopScan', 'selectAsAttackOrigin']);
 // Emitir evento para convertir en barrack
 const handleConvertToBarracks = () => {
   emit('convertToBarracks');
