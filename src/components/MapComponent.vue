@@ -470,15 +470,17 @@ watch(marker, async (newMarker) => {
   removeConnectionLine();
   
   if (mapRef.value && newMarker) {
-    // Crear el marcador
+    // Crear el marcador - solo draggable si NO está confirmado
     createMarker(newMarker, BaseMarker, {
-      draggable: true,
+      draggable: !baseConfirmed.value,
       componentProps: { showDialog: false },
     });
     
-    // Añadir eventos al marcador
-    onMarker('dragend', handleMarkerDragEnd);
-    onMarker('drag', handleMarkerDrag);
+    // Añadir eventos al marcador solo si no está confirmado
+    if (!baseConfirmed.value) {
+      onMarker('dragend', handleMarkerDragEnd);
+      onMarker('drag', handleMarkerDrag);
+    }
     
     // Si la base está confirmada, crear radar y añadir listener de click
     if (baseConfirmed.value) {

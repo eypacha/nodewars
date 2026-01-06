@@ -76,6 +76,25 @@ export const useGameStore = defineStore('game', () => {
     return calculateUpgradeCost(radarLevel.value + 1);
   };
 
+  const resetGame = () => {
+    // Resetear recursos
+    resources.value = {
+      food: 0,
+      pharmacy: 0,
+      fuel: 0,
+      bank: 0,
+      police: 0,
+    };
+    
+    // Resetear nivel del radar
+    radarLevel.value = 1;
+    
+    // Resetear popups
+    showStartPopup.value = false;
+    showBaseLocationPopup.value = true;
+    showLocationPopup.value = false;
+  };
+
   return {
     // State
     showStartPopup,
@@ -92,5 +111,6 @@ export const useGameStore = defineStore('game', () => {
     addResource,
     upgradeRadar,
     getRadarUpgradeCost,
+    resetGame,
   };
 });

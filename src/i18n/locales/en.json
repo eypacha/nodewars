@@ -4,7 +4,8 @@
   },
   "gameStart": {
     "title": "NodeWars",
-    "startButton": "Start"
+    "startButton": "Start",
+    "continueButton": "Continue"
   },
   "baseLocation": {
     "title": "Choose Your Base Location",

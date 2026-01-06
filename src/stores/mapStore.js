@@ -66,6 +66,15 @@ export const useMapStore = defineStore('map', () => {
     zoom.value = targetZoom;
   };
 
+  const resetMap = () => {
+    center.value = [20, 0];
+    zoom.value = 3;
+    marker.value = null;
+    baseConfirmed.value = false;
+    showUpgradesPanel.value = false;
+    activeDialog.value = null;
+  };
+
   return {
     // State
     center,
@@ -87,5 +96,6 @@ export const useMapStore = defineStore('map', () => {
     closeBaseMarkerDialog,
     openUpgradesPanel,
     closeUpgradesPanel,
+    resetMap,
   };
 });
