@@ -139,10 +139,12 @@ export const usePoiStore = defineStore('poi', () => {
   };
 
   const selectPOI = (poiId) => {
-    selectedPOI.value = getPOIById(poiId);
-    if (selectedPOI.value) {
+    const poi = getPOIById(poiId);
+    selectedPOI.value = poi;
+    if (poi) {
       showPOIDialog.value = true;
     }
+    return poi; // Devolver el POI para que se pueda usar en MapComponent
   };
 
   const closePOIDialog = () => {

@@ -13,16 +13,6 @@
           {{ isScanning ? $t('baseMarker.scanning') : $t('baseMarker.scan') }}
         </button>
         <button 
-          @click="$emit('selectAsAttackOrigin')"
-          :class="[
-            'font-bold py-2 px-4 border-1 text-sm flex-1',
-            isActive ? 'bg-blue-600 border-blue-400 cursor-default' : 'cursor-pointer'
-          ]"
-          :disabled="isActive"
-        >
-          {{ isActive ? $t('baseMarker.active') : $t('baseMarker.makeActive') }}
-        </button>
-        <button 
           @click="$emit('upgrades')"
           class="font-bold py-2 px-4 border-1 text-sm flex-1 cursor-pointer"
         >
@@ -40,12 +30,8 @@ defineProps({
   isScanning: {
     type: Boolean,
     default: false
-  },
-  isActive: {
-    type: Boolean,
-    default: false
   }
 });
 
-defineEmits(['scan', 'upgrades', 'selectAsAttackOrigin']);
+defineEmits(['scan', 'upgrades']);
 </script>

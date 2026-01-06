@@ -27,8 +27,6 @@
   "baseMarker": {
     "scan": "Escanear",
     "scanning": "Escaneando...",
-    "active": "✓ Activo",
-    "makeActive": "Hacer Activo",
     "upgrades": "Mejoras"
   },
   "poi": {
@@ -38,9 +36,7 @@
     "extract": "Extraer",
     "noResources": "Sin recursos",
     "convertToBarracks": "Convertir en cuartel",
-    "scan": "Escanear",
-    "active": "✓ Activo",
-    "makeActive": "Hacer Activo"
+    "scan": "Escanear"
   },
   "upgrades": {
     "title": "Mejorar Base",

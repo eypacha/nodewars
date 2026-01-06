@@ -11,10 +11,8 @@
       v-if="showBaseMarkerDialog && markerScreenPosition && baseConfirmed"
       :style="dialogStyle"
       :is-scanning="isLoading"
-      :is-active="isBaseAttackOrigin"
       @scan="handleScan"
       @upgrades="mapStore.openUpgradesPanel"
-      @selectAsAttackOrigin="handleSelectBaseAsAttackOrigin"
     />
     <POIDialog
       v-if="showPOIDialog && selectedPOI && poiScreenPosition"
@@ -30,7 +28,6 @@
       @extract="handleExtract"
       @convertToBarracks="handleConvertToBarracks"
       @scan="handleScanFromBarracks"
-      @selectAsAttackOrigin="handleSelectAsAttackOrigin"
     />
     <UpgradesPanel
       v-if="showUpgradesPanel"
@@ -373,6 +370,8 @@ const handleMarkerClick = (e) => {
   if (baseConfirmed.value) {
     mapStore.openBaseMarkerDialog();
     updateMarkerScreenPosition();
+    // Activar automáticamente la base al hacer clic
+    handleSelectBaseAsAttackOrigin();
   }
 };
 
@@ -553,6 +552,11 @@ watch(selectedPOI, (poi) => {
     nextTick(() => {
       createConnectionLine(poi, currentAttackOrigin.value);
     });
+    
+    // Si es una barraca propia, activarla automáticamente
+    if (poi.type === 'barrack' && poi.owned) {
+      handleSelectAsAttackOrigin(poi);
+    }
   }
 });
 

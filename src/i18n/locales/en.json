@@ -27,8 +27,6 @@
   "baseMarker": {
     "scan": "Scan",
     "scanning": "Scanning...",
-    "active": "✓ Active",
-    "makeActive": "Make Active",
     "upgrades": "Upgrades"
   },
   "poi": {
@@ -38,9 +36,7 @@
     "extract": "Extract",
     "noResources": "No resources",
     "convertToBarracks": "Convert to barrack",
-    "scan": "Scan",
-    "active": "✓ Active",
-    "makeActive": "Make Active"
+    "scan": "Scan"
   },
   "upgrades": {
     "title": "Upgrade Base",
