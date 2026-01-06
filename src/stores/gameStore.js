@@ -51,9 +51,9 @@ export const useGameStore = defineStore('game', () => {
     showLocationPopup.value = true;
   };
 
-  const retryLocationPermission = () => {
+  const goBackToLocationSelect = () => {
     showLocationPopup.value = false;
-    showStartPopup.value = true;
+    showBaseLocationPopup.value = true;
   };
 
   const addResource = (resourceType) => {
@@ -88,7 +88,7 @@ export const useGameStore = defineStore('game', () => {
     startGame,
     confirmBaseLocation,
     showLocationError,
-    retryLocationPermission,
+    goBackToLocationSelect,
     addResource,
     upgradeRadar,
     getRadarUpgradeCost,

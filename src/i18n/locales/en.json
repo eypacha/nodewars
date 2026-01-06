@@ -17,14 +17,8 @@
     "error": "Error searching for location. Try again."
   },
   "locationRequired": {
-    "title": "Location Permission Required",
-    "description": "The game needs access to your location to work properly.",
-    "pleaseAccept": "Please accept the permission to continue.",
-    "manualEnable": "If you already denied the permission, you must enable it manually from your browser settings.",
-    "howTo": "How to do it?",
-    "instructions": "Look for the lock icon or \"Permissions\" near the address bar, click and allow location access for this site.",
-    "thenRetry": "Then, click \"Try Again\".",
-    "retryButton": "Try Again"
+    "title": "Location could not be determined",
+    "backButton": "Back"
   },
   "markerConfirm": {
     "instruction": "Grab marker to correct the exact location",

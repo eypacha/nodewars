@@ -7,7 +7,7 @@
       @location-selected="handleLocationSelected" 
       @use-gps="handleUseGPS"
     />
-    <LocationRequiredPopup v-if="gameStore.showLocationPopup" @retry="gameStore.retryLocationPermission" />
+    <LocationRequiredPopup v-if="gameStore.showLocationPopup" @back="gameStore.goBackToLocationSelect" />
   </div>
 </template>
 
