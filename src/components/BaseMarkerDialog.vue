@@ -10,7 +10,7 @@
             isScanning ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
           ]"
         >
-          {{ isScanning ? 'Scanning...' : 'Scan' }}
+          {{ isScanning ? $t('baseMarker.scanning') : $t('baseMarker.scan') }}
         </button>
         <button 
           @click="$emit('selectAsAttackOrigin')"
@@ -20,13 +20,13 @@
           ]"
           :disabled="isActive"
         >
-          {{ isActive ? '✓ Active' : 'Make Active' }}
+          {{ isActive ? $t('baseMarker.active') : $t('baseMarker.makeActive') }}
         </button>
         <button 
           @click="$emit('upgrades')"
           class="font-bold py-2 px-4 border-1 text-sm flex-1 cursor-pointer"
         >
-          Upgrades
+          {{ $t('baseMarker.upgrades') }}
         </button>
       </div>
       <div class="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-8 border-l-transparent border-r-8 border-r-transparent border-t-8 border-t-white"></div>

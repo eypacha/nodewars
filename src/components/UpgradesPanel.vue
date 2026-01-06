@@ -2,12 +2,12 @@
   <div class="fixed inset-0 flex items-center justify-center z-[1100] bg-black/50">
     <div class="bg-black border-2 border-white p-8 shadow-2xl w-[calc(100vw-4rem)] mx-4 h-[calc(100vh-4rem)] overflow-y-auto">
       <div class="flex justify-between items-center mb-6">
-        <h2 class="text-2xl font-bold text-white">Upgrade Base</h2>
+        <h2 class="text-2xl font-bold text-white">{{ $t('upgrades.title') }}</h2>
         <button
           @click="handleClose"
           class="text-white text-1xl font-bold leading-none cursor-pointer"
         >
-          ✕
+          {{ $t('upgrades.close') }}
         </button>
       </div>
 
@@ -16,7 +16,7 @@
         <div class="border border-white p-4">
           <div class="flex justify-between items-start mb-3">
             <div>
-              <p class="text-white text-sm font-bold">Radar</p>
+              <p class="text-white text-sm font-bold">{{ $t('upgrades.radar') }}</p>
               <p class="text-gray-400 text-xs mt-1">{{ radarLevel }} → {{ radarLevel + 1 }}</p>
             </div>
             <div class="text-right">
@@ -25,8 +25,8 @@
           </div>
 
           <div class="mb-4 text-gray-300 text-sm space-y-1">
-            <p>Aumenta el rango del radar en 30%</p>
-            <p class="text-gray-500">Radio actual: <span class="text-white font-bold">{{ currentRadarRadius }}m</span></p>
+            <p>{{ $t('upgrades.increaseRange') }}</p>
+            <p class="text-gray-500">{{ $t('upgrades.currentRadius') }} <span class="text-white font-bold">{{ currentRadarRadius }}m</span></p>
           </div>
 
           <button
@@ -38,7 +38,7 @@
               'opacity-50': !canAffordUpgrade || maxLevelReached
             }"
           >
-            {{ maxLevelReached ? 'Nivel Máximo' : canAffordUpgrade ? 'Upgrade' : 'Dinero insuficiente' }}
+            {{ maxLevelReached ? $t('upgrades.maxLevel') : canAffordUpgrade ? $t('upgrades.upgradeButton') : $t('upgrades.insufficientFunds') }}
           </button>
         </div>
       </div>

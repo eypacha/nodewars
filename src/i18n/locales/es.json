@@ -2,6 +2,10 @@
   "app": {
     "title": "NodeWars"
   },
+  "gameStart": {
+    "title": "NodeWars",
+    "startButton": "Iniciar"
+  },
   "baseLocation": {
     "title": "Elige la Ubicación de tu Base",
     "description": "Ingresa una ciudad, dirección o ubicación para establecer tu base principal",
@@ -11,5 +15,47 @@
     "loading": "Buscando...",
     "notFound": "Ubicación no encontrada. Prueba otra búsqueda.",
     "error": "Error al buscar ubicación. Inténtalo de nuevo."
+  },
+  "locationRequired": {
+    "title": "Permiso de ubicación requerido",
+    "description": "El juego necesita acceso a tu ubicación para funcionar correctamente.",
+    "pleaseAccept": "Por favor, acepta el permiso para continuar.",
+    "manualEnable": "Si ya denegaste el permiso, debes habilitarlo manualmente desde la configuración de tu navegador.",
+    "howTo": "¿Cómo hacerlo?",
+    "instructions": "Busca el icono de candado o \"Permisos\" cerca de la barra de direcciones, haz clic y permite el acceso a la ubicación para este sitio.",
+    "thenRetry": "Luego, pulsa \"Intentar de nuevo\".",
+    "retryButton": "Intentar de nuevo"
+  },
+  "markerConfirm": {
+    "instruction": "Arrastra el marcador para corregir la ubicación exacta",
+    "confirm": "Confirmar"
+  },
+  "baseMarker": {
+    "scan": "Escanear",
+    "scanning": "Escaneando...",
+    "active": "✓ Activo",
+    "makeActive": "Hacer Activo",
+    "upgrades": "Mejoras"
+  },
+  "poi": {
+    "outOfRange": "(Fuera de alcance)",
+    "resources": "Recursos",
+    "attack": "Atacar",
+    "extract": "Extraer",
+    "noResources": "Sin recursos",
+    "convertToBarracks": "Convertir en cuartel",
+    "scan": "Escanear",
+    "active": "✓ Activo",
+    "makeActive": "Hacer Activo"
+  },
+  "upgrades": {
+    "title": "Mejorar Base",
+    "close": "✕",
+    "radar": "Radar",
+    "increaseRange": "Aumenta el rango del radar en 30%",
+    "currentRadius": "Radio actual:",
+    "upgradeButton": "Mejorar",
+    "maxLevel": "Nivel Máximo",
+    "insufficientFunds": "Dinero insuficiente"
   }
 }

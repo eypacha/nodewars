@@ -4,7 +4,7 @@
       <div>
         <h3 class="text-white text-sm font-bold mb-2">{{ poi.name }}</h3>
         <p v-if="formattedDistance" class="text-white text-xs mb-2 opacity-75">
-          {{ formattedDistance }}<span v-if="!poi.owned && !isInRange" class="text-red-400"> (Fuera de alcance)</span>
+          {{ formattedDistance }}<span v-if="!poi.owned && !isInRange" class="text-red-400"> {{ $t('poi.outOfRange') }}</span>
         </p>
         
         <!-- Health bar -->
@@ -24,7 +24,7 @@
         <!-- Resources bar -->
         <div v-if="poi.type !== 'barrack'" class="mb-2">
           <div class="flex justify-between text-white text-xs mb-1">
-            <span>Recursos</span>
+            <span>{{ $t('poi.resources') }}</span>
             <span>{{ poi.resourceAmount }} / {{ poi.resourceCapacity }}</span>
           </div>
           <div class="w-full bg-gray-700 h-1 overflow-hidden">
@@ -55,7 +55,7 @@
           class="absolute top-0 left-0 h-1 bg-white"
           :style="{ width: cooldownProgress + '%' }"
         ></div>
-        Attack
+        {{ $t('poi.attack') }}
       </button>
       <div v-else>
         <button
@@ -70,21 +70,21 @@
             class="absolute top-0 left-0 h-1 bg-white"
             :style="{ width: extractCooldownProgress + '%' }"
           ></div>
-          {{ poi.resourceAmount ? 'Extract' : 'No resources' }}
+          {{ poi.resourceAmount ? $t('poi.extract') : $t('poi.noResources') }}
         </button>
         <button
           v-if="poi.type !== 'barrack'"
           @click="handleConvertToBarracks"
           class="font-bold py-2 px-4 border-1 text-sm mx-auto block w-full mt-2 relative overflow-hidden cursor-pointer"
         >
-          Convert to barrack
+          {{ $t('poi.convertToBarracks') }}
         </button>
         <button
           v-if="poi.type === 'barrack' && isActive"
           @click="handleScan"
           class="font-bold py-2 px-4 border-1 text-sm mx-auto block w-full mt-3 relative overflow-hidden cursor-pointer"
         >
-          Scan
+          {{ $t('poi.scan') }}
         </button>
         <button
           v-if="poi.type === 'barrack'"
@@ -92,7 +92,7 @@
           class="font-bold py-2 px-4 border-1 text-sm mx-auto block w-full mt-2 relative overflow-hidden cursor-pointer"
           :class="isActive ? 'border-sky-400 text-sky-400' : ''"
         >
-          {{ isActive ? '✓ Active' : 'Make Active' }}
+          {{ isActive ? $t('poi.active') : $t('poi.makeActive') }}
         </button>
       </div>
       <div class="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-8 border-l-transparent border-r-8 border-r-transparent border-t-8 border-t-white"></div>
