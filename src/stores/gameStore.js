@@ -21,6 +21,20 @@ export const useGameStore = defineStore('game', () => {
     4: 50,
     5: 100,
   };
+  const maxPredefinedLevel = Math.max(...Object.keys(radarUpgradeCosts).map(Number));
+  const maxPredefinedCost = radarUpgradeCosts[maxPredefinedLevel];
+  const fallbackGrowthRate = 2; // Multiplicador exponencial para niveles superiores
+
+  const calculateUpgradeCost = (nextLevel) => {
+    if (nextLevel <= 1) return 0;
+
+    const predefined = radarUpgradeCosts[nextLevel];
+    if (predefined) return predefined;
+
+    // A partir del último nivel definido, duplicamos el costo por nivel
+    const extraLevels = nextLevel - maxPredefinedLevel;
+    return Math.round(maxPredefinedCost * Math.pow(fallbackGrowthRate, extraLevels));
+  };
 
   // Acciones
   const startGame = () => {
@@ -44,9 +58,7 @@ export const useGameStore = defineStore('game', () => {
 
   const upgradeRadar = () => {
     const nextLevel = radarLevel.value + 1;
-    const cost = radarUpgradeCosts[nextLevel];
-    
-    if (!cost) return false; // Max level reached
+    const cost = calculateUpgradeCost(nextLevel);
     if (resources.value.bank < cost) return false; // Not enough bank
     
     resources.value.bank -= cost;
@@ -55,8 +67,7 @@ export const useGameStore = defineStore('game', () => {
   };
 
   const getRadarUpgradeCost = () => {
-    const nextLevel = radarLevel.value + 1;
-    return radarUpgradeCosts[nextLevel] || null;
+    return calculateUpgradeCost(radarLevel.value + 1);
   };
 
   return {

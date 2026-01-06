@@ -20,7 +20,7 @@
               <p class="text-gray-400 text-xs mt-1">{{ radarLevel }} → {{ radarLevel + 1 }}</p>
             </div>
             <div class="text-right">
-              <p class="text-yellow-400 text-base font-bold">{{ nextUpgradeCost }}</p>
+              <p class="text-yellow-400 text-base font-bold">{{ nextUpgradeCostDisplay }}</p>
             </div>
           </div>
 
@@ -57,17 +57,14 @@ const emit = defineEmits(['close']);
 const gameStore = useGameStore();
 const { resources, radarLevel } = storeToRefs(gameStore);
 
-const nextUpgradeCost = computed(() => {
-  return gameStore.getRadarUpgradeCost() || '—';
-});
+const nextUpgradeCost = computed(() => gameStore.getRadarUpgradeCost());
+const nextUpgradeCostDisplay = computed(() => nextUpgradeCost.value ?? '—');
 
-const maxLevelReached = computed(() => {
-  return nextUpgradeCost.value === '—';
-});
+const maxLevelReached = computed(() => nextUpgradeCost.value == null);
 
 const canAffordUpgrade = computed(() => {
-  const cost = gameStore.getRadarUpgradeCost();
-  return cost && resources.value.bank >= cost;
+  const cost = nextUpgradeCost.value;
+  return cost != null && resources.value.bank >= cost;
 });
 
 const currentRadarRadius = computed(() => {

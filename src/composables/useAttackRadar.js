@@ -70,7 +70,8 @@ export const useAttackRadar = (mapRef) => {
       fillOpacity: config.fillOpacity,
       radius: config.radius,
       weight: config.weight,
-      pointerEvents: 'none', // No bloquear clicks en POIs
+      interactive: false, // No capturar eventos del mouse - permitir clicks en POIs
+      bubblingMouseEvents: false, // No propagar eventos del mouse
     }).addTo(mapRef.value);
   };
 
