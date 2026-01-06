@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "dexie": "^4.2.1",
     "leaflet": "^1.9.4",
     "pinia": "^3.0.4",
     "primevue": "^4.3.5",
