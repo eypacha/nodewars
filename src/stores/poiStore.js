@@ -138,11 +138,15 @@ export const usePoiStore = defineStore('poi', () => {
     return poi.radarActive;
   };
 
-  const selectPOI = (poiId) => {
+  const selectPOI = async (poiId) => {
     const poi = getPOIById(poiId);
     selectedPOI.value = poi;
     if (poi) {
       showPOIDialog.value = true;
+      // Cerrar otros diálogos cuando se abre un POI
+      const { useMapStore } = await import('./mapStore');
+      const mapStore = useMapStore();
+      mapStore.closeAllDialogs();
     }
     return poi; // Devolver el POI para que se pueda usar en MapComponent
   };

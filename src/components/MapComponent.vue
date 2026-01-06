@@ -3,16 +3,16 @@
     <ResourceHUD />
     <div id="map" class="w-full h-[calc(100vh+30px)] z-0"></div>
     <MarkerConfirmDialog 
-      v-if="showMarkerDialog && markerScreenPosition" 
+      v-if="activeDialog === 'markerConfirm' && markerScreenPosition" 
       :style="dialogStyle"
       @confirm="handleConfirmMarker" 
     />
     <BaseMarkerDialog
-      v-if="showBaseMarkerDialog && markerScreenPosition && baseConfirmed"
+      v-if="activeDialog === 'baseMarker' && markerScreenPosition && baseConfirmed"
       :style="dialogStyle"
       :is-scanning="isLoading"
       @scan="handleScan"
-      @upgrades="mapStore.openUpgradesPanel"
+      @upgrades="handleOpenUpgrades"
     />
     <POIDialog
       v-if="showPOIDialog && selectedPOI && poiScreenPosition"
@@ -98,7 +98,7 @@ import UpgradesPanel from './UpgradesPanel.vue';
 const mapStore = useMapStore();
 const poiStore = usePoiStore();
 const gameStore = useGameStore();
-const { center, zoom, marker, showMarkerDialog, baseConfirmed, showBaseMarkerDialog, showUpgradesPanel } = storeToRefs(mapStore);
+const { center, zoom, marker, activeDialog, baseConfirmed, showUpgradesPanel } = storeToRefs(mapStore);
 const { radarLevel } = storeToRefs(gameStore);
 const { selectedPOI, showPOIDialog, isLoading, pois } = storeToRefs(poiStore);
 const isScanningFromBarracks = ref(false);
@@ -343,6 +343,7 @@ const handleExtract = () => {
 // Manejar cierre del diálogo de POI
 const handleClosePOIDialog = () => {
   closeDialog(removeConnectionLine, cancelAttack);
+  mapStore.closeAllDialogs();
 };
 
 // Manejar scan desde el diálogo del marcador
@@ -361,6 +362,15 @@ const handleScan = async () => {
   mapStore.closeBaseMarkerDialog();
 };
 
+// Manejar apertura del panel de upgrades
+const handleOpenUpgrades = () => {
+  // Cerrar diálogo de POI si está abierto
+  if (showPOIDialog.value) {
+    poiStore.closePOIDialog();
+  }
+  mapStore.openUpgradesPanel();
+};
+
 // Manejar clic en el marcador cuando está confirmado
 const handleMarkerClick = (e) => {
   // Prevenir que el evento se propague al mapa
@@ -368,6 +378,10 @@ const handleMarkerClick = (e) => {
     L.DomEvent.stopPropagation(e);
   }
   if (baseConfirmed.value) {
+    // Cerrar diálogo de POI si está abierto
+    if (showPOIDialog.value) {
+      poiStore.closePOIDialog();
+    }
     mapStore.openBaseMarkerDialog();
     updateMarkerScreenPosition();
     // Activar automáticamente la base al hacer clic
@@ -514,16 +528,9 @@ watch(baseConfirmed, async (confirmed) => {
   }
 });
 
-// Observar visibilidad del diálogo
-watch(showMarkerDialog, (visible) => {
-  if (visible) {
-    updateMarkerScreenPosition();
-  }
-});
-
-// Observar visibilidad del diálogo del marcador base
-watch(showBaseMarkerDialog, (visible) => {
-  if (visible) {
+// Observar visibilidad del diálogo de confirmación de marcador
+watch(activeDialog, (dialog) => {
+  if (dialog === 'markerConfirm' || dialog === 'baseMarker') {
     updateMarkerScreenPosition();
   }
 });

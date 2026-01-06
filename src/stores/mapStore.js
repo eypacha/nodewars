@@ -6,10 +6,11 @@ export const useMapStore = defineStore('map', () => {
   const center = ref([20, 0]);
   const zoom = ref(3);
   const marker = ref(null);
-  const showMarkerDialog = ref(false);
   const baseConfirmed = ref(false);
-  const showBaseMarkerDialog = ref(false);
   const showUpgradesPanel = ref(false);
+  
+  // Sistema centralizado de diálogos - solo uno puede estar activo a la vez
+  const activeDialog = ref(null); // 'markerConfirm' | 'baseMarker' | null (POI se maneja en poiStore)
 
   // Acciones
   const setCenter = (newCenter) => {
@@ -23,7 +24,7 @@ export const useMapStore = defineStore('map', () => {
   const setMarker = (newMarker) => {
     marker.value = newMarker;
     if (newMarker) {
-      showMarkerDialog.value = true;
+      activeDialog.value = 'markerConfirm';
     }
   };
 
@@ -31,24 +32,28 @@ export const useMapStore = defineStore('map', () => {
     marker.value = newPosition;
   };
 
-  const hideMarkerDialog = () => {
-    showMarkerDialog.value = false;
+  const closeAllDialogs = () => {
+    activeDialog.value = null;
   };
 
   const confirmBase = () => {
     baseConfirmed.value = true;
-    hideMarkerDialog();
+    closeAllDialogs();
   };
 
   const openBaseMarkerDialog = () => {
-    showBaseMarkerDialog.value = true;
+    activeDialog.value = 'baseMarker';
   };
 
   const closeBaseMarkerDialog = () => {
-    showBaseMarkerDialog.value = false;
+    if (activeDialog.value === 'baseMarker') {
+      activeDialog.value = null;
+    }
   };
 
   const openUpgradesPanel = () => {
+    // Cerrar todos los diálogos antes de abrir el panel de upgrades
+    activeDialog.value = null;
     showUpgradesPanel.value = true;
   };
 
@@ -66,9 +71,8 @@ export const useMapStore = defineStore('map', () => {
     center,
     zoom,
     marker,
-    showMarkerDialog,
+    activeDialog,
     baseConfirmed,
-    showBaseMarkerDialog,
     showUpgradesPanel,
 
     // Actions
@@ -76,7 +80,7 @@ export const useMapStore = defineStore('map', () => {
     setZoom,
     setMarker,
     updateMarkerPosition,
-    hideMarkerDialog,
+    closeAllDialogs,
     confirmBase,
     centerOnLocation,
     openBaseMarkerDialog,

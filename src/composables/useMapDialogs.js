@@ -27,9 +27,8 @@ export const useMapDialogs = () => {
     if (poiStore.showPOIDialog) {
       poiStore.closePOIDialog();
     }
-    if (mapStore.showBaseMarkerDialog) {
-      mapStore.closeBaseMarkerDialog();
-    }
+    // Cerrar todos los diálogos del mapa
+    mapStore.closeAllDialogs();
   };
 
   return {
