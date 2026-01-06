@@ -4,6 +4,7 @@ import { ref } from 'vue';
 export const useGameStore = defineStore('game', () => {
   // Estado de los popups
   const showStartPopup = ref(true);
+  const showBaseLocationPopup = ref(false);
   const showLocationPopup = ref(false);
   const resources = ref({
     food: 0,
@@ -39,6 +40,11 @@ export const useGameStore = defineStore('game', () => {
   // Acciones
   const startGame = () => {
     showStartPopup.value = false;
+    showBaseLocationPopup.value = true;
+  };
+
+  const confirmBaseLocation = () => {
+    showBaseLocationPopup.value = false;
   };
 
   const showLocationError = () => {
@@ -73,12 +79,14 @@ export const useGameStore = defineStore('game', () => {
   return {
     // State
     showStartPopup,
+    showBaseLocationPopup,
     showLocationPopup,
     resources,
     radarLevel,
 
     // Actions
     startGame,
+    confirmBaseLocation,
     showLocationError,
     retryLocationPermission,
     addResource,

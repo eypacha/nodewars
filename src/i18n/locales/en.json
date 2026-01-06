@@ -20,5 +20,15 @@
       "title": "Section 3",
       "description": "This is the description for Section 3."
     }
+  },
+  "baseLocation": {
+    "title": "Choose Your Base Location",
+    "description": "Enter a city, address or location to establish your main base",
+    "placeholder": "e.g., Madrid, Spain",
+    "useGPS": "Use My Location",
+    "confirm": "Confirm",
+    "loading": "Searching...",
+    "notFound": "Location not found. Try another search.",
+    "error": "Error searching for location. Try again."
   }
 }
