@@ -28,7 +28,7 @@
             class="flex-1 cursor-pointer font-bold py-3 px-4 border border-white/50 hover:bg-white/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             :disabled="isLoading"
           >
-            📍 {{ $t('baseLocation.useGPS') }}
+            {{ $t('baseLocation.useGPS') }}
           </button>
           
           <button 

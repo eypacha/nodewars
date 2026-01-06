@@ -1,31 +1,12 @@
 {
   "app": {
-    "title": "Example Application",
-    "description": "This is a sample application to demonstrate internationalization.",
-    "welcome": "Welcome to our application"
-  },
-  "footer": {
-    "rights": "All rights reserved."
-  },
-  "sections": {
-    "section1": {
-      "title": "Section 1",
-      "description": "This is the description for Section 1."
-    },
-    "section2": {
-      "title": "Section 2",
-      "description": "This is the description for Section 2."
-    },
-    "section3": {
-      "title": "Section 3",
-      "description": "This is the description for Section 3."
-    }
+    "title": "NodeWars"
   },
   "baseLocation": {
     "title": "Choose Your Base Location",
     "description": "Enter a city, address or location to establish your main base",
     "placeholder": "e.g., Madrid, Spain",
-    "useGPS": "Use My Location",
+    "useGPS": "My location",
     "confirm": "Confirm",
     "loading": "Searching...",
     "notFound": "Location not found. Try another search.",

@@ -1,31 +1,12 @@
 {
   "app": {
-    "title": "Aplicación de Ejemplo",
-    "description": "Esta es una aplicación de ejemplo para demostrar la internacionalización.",
-    "welcome": "Bienvenido a nuestra aplicación"
-  },
-  "footer": {
-    "rights": "Todos los derechos reservados."
-  },
-  "sections": {
-    "section1": {
-      "title": "Sección 1",
-      "description": "Esta es la descripción de la Sección 1."
-    },
-    "section2": {
-      "title": "Sección 2",
-      "description": "Esta es la descripción de la Sección 2."
-    },
-    "section3": {
-      "title": "Sección 3",
-      "description": "Esta es la descripción de la Sección 3."
-    }
+    "title": "NodeWars"
   },
   "baseLocation": {
     "title": "Elige la Ubicación de tu Base",
     "description": "Ingresa una ciudad, dirección o ubicación para establecer tu base principal",
     "placeholder": "ej. Madrid, España",
-    "useGPS": "Usar Mi Ubicación",
+    "useGPS": "Mi ubicación",
     "confirm": "Confirmar",
     "loading": "Buscando...",
     "notFound": "Ubicación no encontrada. Prueba otra búsqueda.",
