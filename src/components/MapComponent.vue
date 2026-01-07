@@ -1,6 +1,8 @@
 <template>
   <div class="w-full h-[100vh] overflow-hidden relative">
-    <ResourceHUD v-if="baseConfirmed" />
+    <Transition name="fade">
+      <ResourceHUD v-if="baseConfirmed" />
+    </Transition>
     <div id="map" class="w-full h-[calc(100vh+30px)] z-0"></div>
     <MarkerConfirmDialog 
       v-if="activeDialog === 'markerConfirm' && markerScreenPosition" 
@@ -623,7 +625,18 @@ watch(pois, (newPois) => {
 </script>
 
 <style scoped>
-/* Estilos para los marcadores POI */
+.fade-enter-active {
+  transition: opacity 0.5s;
+}
+.fade-leave-active {
+  transition: opacity 0.3s;
+}
+.fade-enter-from, .fade-leave-to {
+  opacity: 0;
+}
+.fade-enter-to, .fade-leave-from {
+  opacity: 1;
+}
 :deep(.poi-marker) {
   cursor: pointer;
   transition: all 0.2s ease;
@@ -633,7 +646,6 @@ watch(pois, (newPois) => {
   filter: brightness(1.2);
 }
 
-/* Estilos para el triángulo de ataque */
 .attack-triangle {
   pointer-events: none;
   color: white;
@@ -642,7 +654,6 @@ watch(pois, (newPois) => {
   filter: drop-shadow(0 0 5px white);
 }
 
-/* Estilos para las partículas de recurso */
 .resource-particle {
   pointer-events: none;
   width: 12px;
@@ -650,8 +661,6 @@ watch(pois, (newPois) => {
   border-radius: 50%;
 }
 
-/* Estilos para la animación del radar */
-/* Animación de barrido del radar */
 .radar-sweep {
   pointer-events: none;
 }
