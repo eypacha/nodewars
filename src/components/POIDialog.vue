@@ -10,6 +10,7 @@
         <!-- Health bar -->
         <div class="mb-2">
           <div class="flex justify-between text-white text-xs mb-1">
+            <span>{{ $t('poi.health') }}</span>
             <span>{{ poi.health }} / {{ poi.maxHealth }}</span>
           </div>
           <div class="w-full bg-gray-700 h-1 overflow-hidden">

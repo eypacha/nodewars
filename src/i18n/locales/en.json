@@ -33,6 +33,7 @@
   },
   "poi": {
     "outOfRange": "(Out of range)",
+    "health": "Health",
     "resources": "Resources",
     "attack": "Attack",
     "extract": "Extract",

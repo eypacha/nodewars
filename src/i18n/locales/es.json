@@ -33,6 +33,7 @@
   },
   "poi": {
     "outOfRange": "(Fuera de alcance)",
+    "health": "Salud",
     "resources": "Recursos",
     "attack": "Atacar",
     "extract": "Extraer",
