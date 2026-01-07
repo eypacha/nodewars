@@ -63,8 +63,8 @@ export const usePoiStore = defineStore('poi', () => {
           ...poi,
           // Usar la categoría si existe, sino usar el tipo
           color: getPOIColor(poi.category || poi.type),
-          health: 10,
-          maxHealth: 10,
+          health: 50,
+          maxHealth: 50,
           owned: false,
           resourceAmount: 5,
           resourceCapacity: 5,

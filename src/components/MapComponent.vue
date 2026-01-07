@@ -268,6 +268,8 @@ const handleExtract = () => {
   const handleConvertToBarracks = () => {
     if (!selectedPOI.value) return;
     poiStore.convertToBarracks(selectedPOI.value.id);
+    // Seleccionar la barraca como punto de ataque para mostrar el botón de scan
+    handleSelectAsAttackOrigin(selectedPOI.value);
   };
   // Manejar scan desde un cuartel
   const handleScanFromBarracks = async () => {
