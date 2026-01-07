@@ -26,20 +26,20 @@
       :is-base-attack-origin="isBaseAttackOrigin"
       :radar-radius="radarRadius"
       :all-pois="pois"
-      :is-scanning="isScanningFromBarracks"
+      :is-scanning="scanContext && scanContext.type === 'barrack'"
       @close="handleClosePOIDialog"
       @attack="handleAttack"
       @extract="handleExtract"
       @convertToBarracks="handleConvertToBarracks"
       @scan="handleScanFromBarracks"
-      @stopScan="handleStopScanFromBarracks"
+      @stopScan="handleStopScan"
     />
     <UpgradesPanel
       v-if="showUpgradesPanel"
       @close="mapStore.closeUpgradesPanel"
     />
     <div 
-      v-if="(isLoading && baseConfirmed && !selectedBarracksForAttack) || (isScanningFromBarracks && selectedBarracksForAttack) || (isLoading && isBaseAttackOrigin)" 
+      v-if="scanContext"
       class="radar-sweep"
       :style="radarSweepStyle"
     >
@@ -109,7 +109,7 @@ const gameStore = useGameStore();
 const { center, zoom, marker, activeDialog, baseConfirmed, showUpgradesPanel } = storeToRefs(mapStore);
 const { radarLevel } = storeToRefs(gameStore);
 const { selectedPOI, showPOIDialog, isLoading, pois } = storeToRefs(poiStore);
-const isScanningFromBarracks = ref(false);
+const scanContext = ref(null); // { type: 'base' | 'barrack', position }
 const selectedBarracksForAttack = ref(null); // Cuartel seleccionado para lanzar ataques
 const isBaseAttackOrigin = ref(false); // Si la base está seleccionada como punto de ataque
 const currentAttackOrigin = ref(null); // Punto de ataque activo (se actualiza cuando cambia)
@@ -178,39 +178,40 @@ const updateAttackOriginScreenPosition = () => {
 // Estilo de la animación del radar (base o cuartel)
 const radarSweepStyle = computed(() => {
   if (!mapRef.value) return {};
-  
-  // Usar siempre la misma lógica para cualquier punto de ataque
+
   let screenPosition = null;
   let radiusInMeters = 0;
   let originLatLng = null;
-  
-  // Determinar posición en pantalla, radio y coordenadas según el tipo
-  if (selectedBarracksForAttack.value && attackOriginScreenPosition.value) {
-    // Cuartel: usar attackOriginScreenPosition y radio fijo de 500m
+
+  // Determinar origen según contexto de escaneo o selección de ataque
+  if (scanContext.value?.type === 'barrack' && selectedBarracksForAttack.value && attackOriginScreenPosition.value) {
     screenPosition = attackOriginScreenPosition.value;
     radiusInMeters = 500;
-    originLatLng = { 
-      lat: selectedBarracksForAttack.value.lat, 
-      lng: selectedBarracksForAttack.value.lng 
-    };
+    originLatLng = { lat: selectedBarracksForAttack.value.lat, lng: selectedBarracksForAttack.value.lng };
+  } else if (scanContext.value?.type === 'base' && attackOriginScreenPosition.value) {
+    screenPosition = attackOriginScreenPosition.value;
+    const radarConfig = getRadarConfig(gameStore.radarLevel);
+    radiusInMeters = radarConfig.radius;
+    originLatLng = currentAttackOrigin.value;
+  } else if (selectedBarracksForAttack.value && attackOriginScreenPosition.value) {
+    screenPosition = attackOriginScreenPosition.value;
+    radiusInMeters = 500;
+    originLatLng = { lat: selectedBarracksForAttack.value.lat, lng: selectedBarracksForAttack.value.lng };
   } else if (isBaseAttackOrigin.value && attackOriginScreenPosition.value) {
-    // Base como punto de ataque: usar attackOriginScreenPosition y radio según nivel
     screenPosition = attackOriginScreenPosition.value;
     const radarConfig = getRadarConfig(gameStore.radarLevel);
     radiusInMeters = radarConfig.radius;
     originLatLng = currentAttackOrigin.value;
   } else if (baseConfirmed.value && markerScreenPosition.value && markerRef.value) {
-    // Base normal (scanning pero no como punto de ataque): usar markerScreenPosition
     screenPosition = markerScreenPosition.value;
     const radarConfig = getRadarConfig(gameStore.radarLevel);
     radiusInMeters = radarConfig.radius;
     const latLng = markerRef.value.getLatLng();
     originLatLng = { lat: latLng.lat, lng: latLng.lng };
   }
-  
+
   if (!screenPosition || !radiusInMeters || !originLatLng) return {};
-  
-  // Calcular radio en píxeles (lógica unificada)
+
   const earthRadius = 6371000;
   const latOffset = (radiusInMeters / earthRadius) * (180 / Math.PI);
   const pointAtRadius = L.latLng(
@@ -223,7 +224,7 @@ const radarSweepStyle = computed(() => {
     originLatLng.lng
   ]);
   const radiusInPixels = Math.abs(edgePoint.y - centerPoint.y);
-  
+
   return {
     position: 'absolute',
     left: `${screenPosition.x}px`,
@@ -258,6 +259,35 @@ const handleAttack = () => {
   startAttack(selectedPOI.value, attackOrigin);
 };
 
+const scanAnimationTimeout = ref(null);
+
+const clearScanContext = () => {
+  if (scanAnimationTimeout.value) {
+    clearTimeout(scanAnimationTimeout.value);
+    scanAnimationTimeout.value = null;
+  }
+  scanContext.value = null;
+};
+
+const runScan = async ({ type, position, radius, closeDialogs = true }) => {
+  clearScanContext();
+
+  if (closeDialogs) {
+    closeDialog(removeConnectionLine);
+    mapStore.closeAllDialogs();
+  }
+
+  scanContext.value = { type, position };
+  try {
+    await poiStore.fetchPOIs(position, radius);
+  } finally {
+    scanAnimationTimeout.value = setTimeout(() => {
+      scanContext.value = null;
+      scanAnimationTimeout.value = null;
+    }, 2000);
+  }
+};
+
 // Manejar extracción manual de recursos
 const handleExtract = () => {
   if (!selectedPOI.value || !selectedPOI.value.owned) return;
@@ -268,45 +298,13 @@ const handleExtract = () => {
   startResourceCollection(selectedPOI.value, resourceType, resourceColor, pois.value);
 };
 
-  // Manejar conversión a barrack
-  const handleConvertToBarracks = () => {
-    if (!selectedPOI.value) return;
-    poiStore.convertToBarracks(selectedPOI.value.id);
-    // Seleccionar la barraca como punto de ataque para mostrar el botón de scan
-    handleSelectAsAttackOrigin(selectedPOI.value);
-  };
-  // Manejar scan desde un cuartel
-  const handleScanFromBarracks = async () => {
-    if (!selectedPOI.value || selectedPOI.value.type !== 'barrack') return;
-
-    // Guardar referencia antes de cerrar el diálogo
-    const barrackPOI = selectedPOI.value;
-    // Cerrar diálogos (especialmente el POI) al iniciar el escaneo desde un cuartel
-    closeDialog(removeConnectionLine);
-    mapStore.closeAllDialogs();
-    
-    const position = { lat: barrackPOI.lat, lng: barrackPOI.lng };
-    const radarRadius = 500; // Usar el mismo radio que el radar del cuartel
-    
-    console.log('Scanning from barracks:', position, 'radius:', radarRadius);
-    
-    // Activar animación de scan del cuartel
-    isScanningFromBarracks.value = true;
-    
-    // Hacer fetch de POIs desde el cuartel
-    await poiStore.fetchPOIs(position, radarRadius);
-    
-    // Desactivar animación después de que la animación del sweep termine (2s)
-    // La animación dura 2 segundos (sweep 2s linear infinite)
-    setTimeout(() => {
-      isScanningFromBarracks.value = false;
-    }, 2000);
-  };
-
-  const handleStopScanFromBarracks = () => {
-    poiStore.stopScan();
-    isScanningFromBarracks.value = false;
-  };
+// Manejar conversión a barrack
+const handleConvertToBarracks = () => {
+  if (!selectedPOI.value) return;
+  poiStore.convertToBarracks(selectedPOI.value.id);
+  // Seleccionar la barraca como punto de ataque para mostrar el botón de scan
+  handleSelectAsAttackOrigin(selectedPOI.value);
+};
 
   // Manejar selección de cuartel como punto de ataque
   const handleSelectAsAttackOrigin = (barracks) => {
@@ -368,6 +366,19 @@ const handleClosePOIDialog = () => {
   mapStore.closeAllDialogs();
 };
 
+const handleScanFromBarracks = async () => {
+  if (!selectedPOI.value || selectedPOI.value.type !== 'barrack') return;
+  const barrackPOI = selectedPOI.value;
+  const position = { lat: barrackPOI.lat, lng: barrackPOI.lng };
+  const radarRadius = 500;
+
+  await runScan({
+    type: 'barrack',
+    position,
+    radius: radarRadius,
+  });
+};
+
 // Manejar scan desde el diálogo del marcador
 const handleScan = async () => {
   if (!markerRef.value) return;
@@ -377,18 +388,19 @@ const handleScan = async () => {
 
   const position = markerRef.value.getLatLng();
   const radarConfig = getRadarConfig(gameStore.radarLevel);
-  
-  // Cargar puntos de interés dentro del radio del radar
-  await poiStore.fetchPOIs(
-    { lat: position.lat, lng: position.lng },
-    radarConfig.radius
-  );
+
+  await runScan({
+    type: 'base',
+    position: { lat: position.lat, lng: position.lng },
+    radius: radarConfig.radius,
+    closeDialogs: false,
+  });
 };
 
 // Manejar detención de scan
 const handleStopScan = () => {
   poiStore.stopScan();
-  isLoading.value = false;
+  clearScanContext();
 };
 
 // Manejar apertura del panel de upgrades
@@ -619,11 +631,8 @@ watch(selectedPOI, (poi, prevPoi) => {
 
     // Solo detener scans si se cambia de un POI previo a otro distinto
     if (prevPoi && !isSamePoi) {
-      if (isLoading.value) {
+      if (isLoading.value || scanContext.value) {
         handleStopScan();
-      }
-      if (isScanningFromBarracks.value) {
-        handleStopScanFromBarracks();
       }
     }
 
