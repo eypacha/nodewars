@@ -3,6 +3,7 @@
  * Controla el radar del centro de ataque (base o cuartel)
  * Solo debe haber un radar visible al mismo tiempo
  */
+
 import { ref, computed } from 'vue';
 import L from 'leaflet';
 import { getRadarConfig } from '@/services/mapService';
@@ -10,6 +11,9 @@ import { getRadarConfig } from '@/services/mapService';
 export const useAttackRadar = (mapRef) => {
   const radarRef = ref(null);
   const attackCenterRef = ref(null); // Centro de ataque actual (base o cuartel)
+
+  // Múltiples radares de barraca (inactivos)
+  const barracksRadarRefs = ref([]); // [{circle, poiId}]
 
   // Radio del radar de cuartel (menor que el de la base)
   const BARRACKS_RADAR_RADIUS = 500; // metros
@@ -19,18 +23,29 @@ export const useAttackRadar = (mapRef) => {
    * @param {Object} center - Centro de ataque {lat, lng, type, level}
    * @returns {Object} Configuración del radar
    */
-  const getRadarConfigForCenter = (center) => {
+  const getRadarConfigForCenter = (center, isActive = true) => {
     if (!center) return null;
 
     if (center.type === 'barrack') {
-      // Radar de cuartel: radio fijo de 500m
-      return {
-        color: '#00bcff',
-        fillColor: '#00bcff',
-        fillOpacity: 0.08,
-        radius: BARRACKS_RADAR_RADIUS,
-        weight: 2,
-      };
+      if (isActive) {
+        // Radar de cuartel ACTIVO
+        return {
+          color: '#00bcff',
+          fillColor: '#00bcff',
+          fillOpacity: 0.08,
+          radius: BARRACKS_RADAR_RADIUS,
+          weight: 2,
+        };
+      } else {
+        // Radar de cuartel INACTIVO (más visible y línea más oscura)
+        return {
+          color: '#0a4a6a',
+          fillColor: '#0a4a6a',
+          fillOpacity: 0.18,
+          radius: BARRACKS_RADAR_RADIUS,
+          weight: 1,
+        };
+      }
     } else if (center.type === 'base') {
       // Radar de base: usa el nivel del radar
       const radarConfig = getRadarConfig(center.level);
@@ -60,19 +75,46 @@ export const useAttackRadar = (mapRef) => {
     attackCenterRef.value = center;
 
     // Obtener configuración
-    const config = getRadarConfigForCenter(center);
+    const config = getRadarConfigForCenter(center, true);
     if (!config) return;
 
-    // Crear el radar
+    // Crear el radar principal (activo)
     radarRef.value = L.circle([center.lat, center.lng], {
       color: config.color,
       fillColor: config.fillColor,
       fillOpacity: config.fillOpacity,
       radius: config.radius,
       weight: config.weight,
-      interactive: false, // No capturar eventos del mouse - permitir clicks en POIs
-      bubblingMouseEvents: false, // No propagar eventos del mouse
+      interactive: false,
+      bubblingMouseEvents: false,
     }).addTo(mapRef.value);
+  };
+
+  /**
+   * Renderiza todos los radares de barracas (incluso inactivos)
+   * @param {Array} barracksList - Array de POIs tipo barrack {lat, lng, id, radarActive}
+   * @param {String|Number} activeId - id de la barraca activa (opcional)
+   */
+  const renderAllBarracksRadars = (barracksList, activeId = null) => {
+    // Eliminar todos los radares previos
+    barracksRadarRefs.value.forEach(obj => obj.circle.remove());
+    barracksRadarRefs.value = [];
+    if (!mapRef.value || !Array.isArray(barracksList)) return;
+    barracksList.forEach(barrack => {
+      // No dibujar el radar activo aquí (lo hace createRadar)
+      if (activeId && barrack.id === activeId) return;
+      const config = getRadarConfigForCenter(barrack, false);
+      const circle = L.circle([barrack.lat, barrack.lng], {
+        color: config.color,
+        fillColor: config.fillColor,
+        fillOpacity: config.fillOpacity,
+        radius: config.radius,
+        weight: config.weight,
+        interactive: false,
+        bubblingMouseEvents: false,
+      }).addTo(mapRef.value);
+      barracksRadarRefs.value.push({ circle, poiId: barrack.id });
+    });
   };
 
   /**
@@ -131,6 +173,9 @@ export const useAttackRadar = (mapRef) => {
       radarRef.value = null;
     }
     attackCenterRef.value = null;
+    // Eliminar todos los radares de barracas inactivos
+    barracksRadarRefs.value.forEach(obj => obj.circle.remove());
+    barracksRadarRefs.value = [];
   };
 
   /**
@@ -165,9 +210,11 @@ export const useAttackRadar = (mapRef) => {
     // Estado
     radarRef,
     attackCenterRef,
+    barracksRadarRefs,
 
     // Métodos
     createRadar,
+    renderAllBarracksRadars,
     updatePosition,
     updateRadius,
     removeRadar,

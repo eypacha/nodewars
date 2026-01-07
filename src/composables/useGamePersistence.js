@@ -77,6 +77,22 @@ export function useGamePersistence() {
       }
     }, { deep: true });
 
+    // Guardar cuando cambia el centro del mapa
+    watch(() => mapStore.center, (center) => {
+      if (mapStore.baseConfirmed) {
+        console.log('🔄 Auto-saving: Map center changed');
+        saveGame();
+      }
+    }, { deep: true });
+
+    // Guardar cuando cambia el zoom del mapa
+    watch(() => mapStore.zoom, (zoom) => {
+      if (mapStore.baseConfirmed) {
+        console.log('🔄 Auto-saving: Map zoom changed');
+        saveGame();
+      }
+    });
+
     // Guardar cuando suben los recursos (con debounce)
     let resourcesTimeout = null;
     watch(() => gameStore.resources, () => {

@@ -68,20 +68,19 @@ const handleContinueGame = async () => {
     if (result.baseConfirmed) {
       // Guardar la posición del marcador
       const savedMarker = mapStore.marker;
-      
+      // Guardar el centro y zoom restaurados
+      const savedCenter = mapStore.center;
+      const savedZoom = mapStore.zoom;
       // Ocultar marcador temporalmente (para que no aparezca el radar)
       mapStore.marker = null;
-      
-      // Iniciar el vuelo hacia la base
-      if (savedMarker) {
-        mapStore.centerOnLocation(savedMarker, 16);
-        
+      // Centrar el mapa en el último centro guardado, no en el marcador
+      if (savedCenter) {
+        mapStore.centerOnLocation(savedCenter, savedZoom ?? 16);
         // Mostrar la base y POIs después del vuelo (mismo timing que handleLocationSelected)
         setTimeout(() => {
           mapStore.marker = savedMarker;
           // Confirmar la base para que aparezca el radar
           mapStore.baseConfirmed = true;
-          
           // Restaurar POIs después de que la base aparezca
           setTimeout(() => {
             poiStore.pois = savedPois;

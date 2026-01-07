@@ -101,6 +101,9 @@ import ResourceHUD from './ResourceHUD.vue';
 import UpgradesPanel from './UpgradesPanel.vue';
 
 const mapStore = useMapStore();
+
+// Bandera global para evitar bucles watcher <-> eventos Leaflet
+let isProgrammaticMapMove = false;
 const poiStore = usePoiStore();
 const gameStore = useGameStore();
 const { center, zoom, marker, activeDialog, baseConfirmed, showUpgradesPanel } = storeToRefs(mapStore);
@@ -113,9 +116,10 @@ const currentAttackOrigin = ref(null); // Punto de ataque activo (se actualiza c
 const attackOriginScreenPosition = ref(null); // Posición en pantalla del punto de ataque
 
 // Inicializar composables principales
+// Usar refs reactivos para que el mapa se inicialice con los valores restaurados
 const { mapRef, initMap, flyTo, on } = useLeafletMap('map', center.value, zoom.value);
 const { markerRef, createMarker, disableDragging, removeMarker, on: onMarker } = useMapMarker(mapRef);
-const { radarRef, createRadar, updatePosition: updateRadarPosition, updateRadius, removeRadar, hasActiveRadar, getRadarData } = useAttackRadar(mapRef);
+const { radarRef, createRadar, renderAllBarracksRadars, updatePosition: updateRadarPosition, updateRadius, removeRadar, hasActiveRadar, getRadarData } = useAttackRadar(mapRef);
 const { clearPOIMarkers } = usePointsOfInterest(mapRef);
 
 // Composables para funcionalidades específicas
@@ -462,15 +466,38 @@ onMounted(() => {
   on('zoom', () => updateConnectionLine(selectedPOI.value, currentAttackOrigin.value));
   on('move', () => updateOwnedConnectionLines(pois.value));
   on('zoom', () => updateOwnedConnectionLines(pois.value));
-  // Agregar listener para cerrar diálogo al hacer clic en el mapa
+  // Sincronizar centro y zoom del mapa con el store
   if (mapRef.value) {
+    mapRef.value.on('moveend', () => {
+      if (!isProgrammaticMapMove) {
+        const c = mapRef.value.getCenter();
+        mapStore.setCenter([c.lat, c.lng]);
+      }
+    });
+    mapRef.value.on('zoomend', () => {
+      if (!isProgrammaticMapMove) {
+        mapStore.setZoom(mapRef.value.getZoom());
+      }
+    });
     mapRef.value.on('click', handleMapClick);
   }
 });
 
 // Observar cambios de centro y zoom
 watch([center, zoom], ([newCenter, newZoom]) => {
-  flyTo(newCenter, newZoom);
+  if (!mapRef.value) return;
+  const current = mapRef.value.getCenter();
+  const currentZoom = mapRef.value.getZoom();
+  // Solo mover si hay diferencia real
+  if (
+    Math.abs(current.lat - newCenter[0]) > 1e-6 ||
+    Math.abs(current.lng - newCenter[1]) > 1e-6 ||
+    currentZoom !== newZoom
+  ) {
+    isProgrammaticMapMove = true;
+    flyTo(newCenter, newZoom);
+    setTimeout(() => { isProgrammaticMapMove = false; }, 500);
+  }
 });
 
 // Observar cambios del marcador
@@ -521,10 +548,8 @@ watch(marker, async (newMarker) => {
 watch(baseConfirmed, async (confirmed) => {
   if (confirmed && markerRef.value) {
     const position = markerRef.value.getLatLng();
-    
     // Establecer la base como punto de ataque por defecto
     isBaseAttackOrigin.value = true;
-    
     // Crear radar para la base
     createRadar({
       lat: position.lat,
@@ -532,10 +557,11 @@ watch(baseConfirmed, async (confirmed) => {
       type: 'base',
       level: gameStore.radarLevel,
     });
-    
     // Añadir listener de click al marcador cuando está confirmado
     onMarker('click', handleMarkerClick);
-    
+    // Actualizar radares de barracas inactivos
+    const barracks = Array.isArray(pois.value) ? pois.value.filter(p => p.type === 'barrack' && p.owned) : [];
+    renderAllBarracksRadars(barracks, null);
     // No hacer scan automático - el usuario debe hacer clic en "Scan"
   } else {
     // Resetear estado
@@ -546,6 +572,8 @@ watch(baseConfirmed, async (confirmed) => {
     // Limpiar POIs cuando se oculta el radar
     poiStore.clearPOIs();
     clearPOIMarkers();
+    // Limpiar radares de barracas inactivos
+    renderAllBarracksRadars([], null);
   }
 });
 
@@ -618,12 +646,25 @@ watch(radarLevel, (newLevel) => {
   }
 });
 
-// Observar cambios en los POIs para actualizar líneas owned
+// Observar cambios en los POIs para actualizar líneas owned y radares de barracas
 watch(pois, (newPois) => {
   if (mapRef.value && markerRef.value) {
     createOwnedConnectionLines(newPois);
   }
+  // Mostrar todos los radares de barracas (menos el activo)
+  const barracks = Array.isArray(newPois) ? newPois.filter(p => p.type === 'barrack' && p.owned) : [];
+  let activeId = null;
+  if (selectedBarracksForAttack.value) activeId = selectedBarracksForAttack.value.id;
+  renderAllBarracksRadars(barracks, activeId);
 }, { deep: true });
+
+// Observar cambios en la barraca activa para actualizar los radares inactivos
+watch(selectedBarracksForAttack, (newBarrack) => {
+  const barracks = Array.isArray(pois.value) ? pois.value.filter(p => p.type === 'barrack' && p.owned) : [];
+  let activeId = null;
+  if (newBarrack) activeId = newBarrack.id;
+  renderAllBarracksRadars(barracks, activeId);
+});
 </script>
 
 <style scoped>
