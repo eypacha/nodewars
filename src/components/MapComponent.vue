@@ -472,11 +472,13 @@ onMounted(() => {
       if (!isProgrammaticMapMove) {
         const c = mapRef.value.getCenter();
         mapStore.setCenter([c.lat, c.lng]);
+        mapStore.saveMapState();
       }
     });
     mapRef.value.on('zoomend', () => {
       if (!isProgrammaticMapMove) {
         mapStore.setZoom(mapRef.value.getZoom());
+        mapStore.saveMapState();
       }
     });
     mapRef.value.on('click', handleMapClick);

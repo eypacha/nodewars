@@ -12,6 +12,45 @@ export const useMapStore = defineStore('map', () => {
   // Sistema centralizado de diálogos - solo uno puede estar activo a la vez
   const activeDialog = ref(null); // 'markerConfirm' | 'baseMarker' | null (POI se maneja en poiStore)
 
+  // Persistencia
+  const saveMapState = () => {
+    const state = {
+      center: center.value,
+      zoom: zoom.value,
+      marker: marker.value,
+      baseConfirmed: baseConfirmed.value,
+    };
+    localStorage.setItem('nodewars-map-state', JSON.stringify(state));
+    console.log('Map state saved:', state);
+  };
+
+  const loadMapState = () => {
+    const saved = localStorage.getItem('nodewars-map-state');
+    if (saved) {
+      try {
+        const state = JSON.parse(saved);
+        center.value = state.center;
+        zoom.value = state.zoom;
+        // No setear baseConfirmed ni marker aquí, se harán después del flyTo
+        console.log('Map state loaded:', state);
+        return state; // Devolver el state completo
+      } catch (error) {
+        console.error('Error loading map state:', error);
+        return null;
+      }
+    }
+    return null;
+  };
+
+  const hasSavedGame = () => {
+    return localStorage.getItem('nodewars-map-state') !== null;
+  };
+
+  const clearSavedGame = () => {
+    localStorage.removeItem('nodewars-map-state');
+    console.log('Saved game cleared');
+  };
+
   // Acciones
   const setCenter = (newCenter) => {
     center.value = newCenter;
@@ -38,6 +77,7 @@ export const useMapStore = defineStore('map', () => {
 
   const confirmBase = () => {
     baseConfirmed.value = true;
+    saveMapState();
     closeAllDialogs();
   };
 
@@ -97,5 +137,9 @@ export const useMapStore = defineStore('map', () => {
     openUpgradesPanel,
     closeUpgradesPanel,
     resetMap,
+    saveMapState,
+    loadMapState,
+    hasSavedGame,
+    clearSavedGame,
   };
 });

@@ -4,6 +4,7 @@
     <GameStartPopup 
       v-if="gameStore.showStartPopup" 
       @start-game="handleStartGame"
+      @continue-game="handleContinueGame"
     />
     <BaseLocationPopup 
       v-if="gameStore.showBaseLocationPopup" 
@@ -35,6 +36,33 @@ const handleStartGame = async () => {
   gameStore.resetGame();
   mapStore.resetMap();
   poiStore.resetPOIs();
+  mapStore.clearSavedGame();
+};
+
+const handleContinueGame = async () => {
+  // Cargar el estado guardado del mapa
+  const savedState = mapStore.loadMapState();
+  if (savedState) {
+    // Si hay base confirmada, saltar directamente al mapa
+    if (savedState.baseConfirmed) {
+      gameStore.continueGame();
+      poiStore.resetPOIs(); // Resetear POIs pero mantener mapa y base
+      // Mostrar el marker y confirmar base después del flyTo
+      setTimeout(() => {
+        if (savedState.marker) {
+          mapStore.setMarker(savedState.marker);
+        }
+        mapStore.confirmBase(); // Esto setea baseConfirmed y guarda
+      }, 1700);
+    } else {
+      // Si no hay base, mostrar el popup de base location
+      gameStore.startGame();
+      poiStore.resetPOIs();
+    }
+  } else {
+    // Si no se pudo cargar, hacer lo mismo que start
+    handleStartGame();
+  }
 };
 
 const handleLocationSelected = (location) => {

@@ -5,6 +5,15 @@
         {{ $t('gameStart.title') }}
       </h1>
       
+      <!-- Botón Continue si hay juego guardado -->
+      <button 
+        v-if="hasSavedGame"
+        @click="$emit('continue-game')"
+        class="cursor-pointer font-bold py-4 px-6 border-1 text-xl mx-auto block w-full mb-4"
+      >
+        {{ $t('gameStart.continueButton') }}
+      </button>
+      
       <!-- Botón Start -->
       <button 
         @click="$emit('start-game')"
@@ -17,5 +26,11 @@
 </template>
 
 <script setup>
-defineEmits(['start-game']);
+import { computed } from 'vue';
+import { useMapStore } from '@/stores/mapStore';
+
+defineEmits(['start-game', 'continue-game']);
+
+const mapStore = useMapStore();
+const hasSavedGame = computed(() => mapStore.hasSavedGame());
 </script>

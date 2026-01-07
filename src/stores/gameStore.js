@@ -43,6 +43,11 @@ export const useGameStore = defineStore('game', () => {
     showBaseLocationPopup.value = true;
   };
 
+  const continueGame = () => {
+    showStartPopup.value = false;
+    showBaseLocationPopup.value = false;
+  };
+
   const confirmBaseLocation = () => {
     showBaseLocationPopup.value = false;
   };
@@ -112,5 +117,6 @@ export const useGameStore = defineStore('game', () => {
     upgradeRadar,
     getRadarUpgradeCost,
     resetGame,
+    continueGame,
   };
 });
