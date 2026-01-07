@@ -8,7 +8,7 @@
         </p>
 
         <!-- Resources bar -->
-        <div v-if="poi.type !== 'barrack'" class="mb-2">
+        <div v-if="poi.type !== 'barrack' && poi.owned" class="mb-2">
           <div class="flex justify-between text-white text-xs mb-1">
             <span>{{ $t('poi.resources') }}</span>
             <span>{{ poi.resourceAmount }} / {{ poi.resourceCapacity }}</span>
@@ -36,7 +36,7 @@
           </div>
         </div>
 
-        <div v-if="poi.type !== 'barrack'" class="mb-2">
+        <div v-if="poi.type !== 'barrack' && poi.owned" class="mb-2">
           <div class="flex justify-between text-white text-xs mb-1">
             <span>Producción</span>
             <span>{{ productionLabel }}</span>
