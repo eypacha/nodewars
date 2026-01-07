@@ -3,6 +3,12 @@
     <div class="bg-black border-2 border-white px-4 py-3 shadow-2xl relative">
       <div>
         <h3 class="text-white text-sm font-bold mb-2">{{ poi.name }}</h3>
+                <span 
+          class="inline-block px-2 py-1 text-xs rounded"
+          :style="{ backgroundColor: poi.color, color: 'white' }"
+        >
+          {{ getEmojiForType(poi.type) }} {{ getCustomNameForType(poi.type) }}
+        </span>
         <p v-if="formattedDistance" class="text-white text-xs mb-2 opacity-75">
           {{ formattedDistance }}<span v-if="!poi.owned && !isInRange" class="text-red-400"> {{ $t('poi.outOfRange') }}</span>
         </p>
@@ -48,13 +54,6 @@
             ></div>
           </div>
         </div>
-        
-        <span 
-          class="inline-block px-2 py-1 text-xs rounded hidden"
-          :style="{ backgroundColor: poi.color, color: 'white' }"
-        >
-          {{ poi.type }}
-        </span>
       </div>
       <button 
         v-if="!poi.owned"
@@ -142,6 +141,30 @@ const props = defineProps({
     default: false,
   },
 });
+
+const getEmojiForType = (type) => {
+  const emojis = {
+    food: '🍽️',
+    pharmacy: '💊',
+    fuel: '⛽',
+    bank: '🏦',
+    police: '👮',
+    barrack: '🏰',
+  };
+  return emojis[type] || '📍';
+};
+
+const getCustomNameForType = (type) => {
+  const names = {
+    food: 'Supply Node',
+    pharmacy: 'Med Unit',
+    fuel: 'Energy Depot',
+    bank: 'Credit Core',
+    police: 'Security Node',
+    barrack: 'Ops Barracks',
+  };
+  return names[type] || type;
+};
 
 const emit = defineEmits(['close', 'attack', 'extract', 'convertToBarracks', 'scan', 'stopScan', 'selectAsAttackOrigin']);
 const poiStore = usePoiStore();

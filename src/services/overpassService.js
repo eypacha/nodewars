@@ -64,8 +64,7 @@ export const fetchPointsOfInterest = async (lat, lng, radius) => {
       id: element.id,
       lat,
       lng,
-      type: rawType, // Mantener el tipo original para mostrar
-      category: category, // Categoría normalizada para agrupación
+      type: category,
       name: element.tags?.name || 'Sin nombre',
       tags: element.tags,
     };
@@ -117,36 +116,23 @@ const calculateDistance = (coord1, coord2) => {
  */
 const normalizePOICategory = (type) => {
   // Agrupar fastfood, restaurant, supermarket en la categoría "food"
-  if (type === 'restaurant' || type === 'fast_food' || type === 'supermarket') {
+  const foodTypes = ['restaurant', 'fast_food', 'supermarket'];
+  if (foodTypes.includes(type)) {
     return 'food';
-  }
-  // Police category stays as is
-  if (type === 'police') {
-    return 'police';
   }
   // Otros tipos mantienen su nombre
   return type;
 };
 
-/**
- * Categoriza un POI y devuelve un color representativo
- * @param {string} type - Tipo de POI (puede ser tipo original o categoría)
- * @returns {string} Color hexadecimal
- */
 export const getPOIColor = (type) => {
-  // Si ya es una categoría normalizada, usarla directamente
-  // Si no, normalizarla
-  const category = ['food', 'pharmacy', 'fuel', 'bank', 'police'].includes(type) 
-    ? type 
-    : normalizePOICategory(type);
-  
   const colorMap = {
     food: '#FF8C42',      // Naranja para comida
     pharmacy: '#4CAF50',  // Verde para farmacia/medicina
     fuel: '#E74C3C',      // Rojo para combustible
     bank: '#FFD700',      // Amarillo/oro para banco/dinero
     police: '#1E90FF',    // Celeste para comisarías
+    barrack: '#38bdf8',   // Azul para barrack
   };
 
-  return colorMap[category] || '#95a5a6'; // Gris por defecto para tipos desconocidos
+  return colorMap[type] || '#95a5a6'; // Gris por defecto para tipos desconocidos
 };
