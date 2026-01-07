@@ -1,6 +1,7 @@
-import { watch, onMounted } from 'vue';
+import { watch, onMounted, ref } from 'vue';
 import { useGameStore } from '@/stores/gameStore';
 import { useMapStore } from '@/stores/mapStore';
+import { usePoiStore } from '@/stores/poiStore';
 import { 
   saveGameState, 
   loadGameState, 
@@ -15,12 +16,20 @@ import {
 export function useGamePersistence() {
   const gameStore = useGameStore();
   const mapStore = useMapStore();
+  const poiStore = usePoiStore();
+  
+  // Flag para pausar el auto-guardado durante la carga
+  const isLoading = ref(false);
 
   /**
    * Guardar el estado actual del juego
    */
   const saveGame = async () => {
-    const snapshot = createGameStateSnapshot(gameStore, mapStore);
+    if (isLoading.value) {
+      console.log('⏸️ Auto-save paused during loading');
+      return;
+    }
+    const snapshot = createGameStateSnapshot(gameStore, mapStore, poiStore);
     await saveGameState(snapshot);
   };
 
@@ -28,12 +37,24 @@ export function useGamePersistence() {
    * Cargar una partida guardada
    */
   const loadGame = async () => {
+    console.log('🔒 Locking auto-save for restoration');
+    isLoading.value = true;
+    
     const savedData = await loadGameState();
     if (savedData) {
-      restoreGameState(savedData, gameStore, mapStore);
-      return true;
+      const result = restoreGameState(savedData, gameStore, mapStore, poiStore);
+      
+      // Esperar un momento antes de reactivar el auto-save
+      setTimeout(() => {
+        isLoading.value = false;
+        console.log('✅ Auto-save reactivated');
+      }, 2000);
+      
+      return result;
     }
-    return false;
+    
+    isLoading.value = false;
+    return { success: false };
   };
 
   /**
@@ -75,6 +96,32 @@ export function useGamePersistence() {
         saveGame();
       }
     });
+
+    // Guardar cuando se descubren nuevos POIs
+    watch(() => poiStore.pois.length, (newCount, oldCount) => {
+      if (mapStore.baseConfirmed && newCount > oldCount) {
+        console.log('🔄 Auto-saving: New POIs discovered');
+        saveGame();
+      }
+    });
+
+    // Guardar cuando un POI es conquistado o cambia de estado (con debounce)
+    let poisTimeout = null;
+    let lastPoisString = '';
+    watch(() => poiStore.pois, (newPois) => {
+      if (mapStore.baseConfirmed && newPois.length > 0) {
+        // Evitar guardar durante la carga inicial comparando JSON
+        const currentPoisString = JSON.stringify(newPois);
+        if (currentPoisString !== lastPoisString) {
+          lastPoisString = currentPoisString;
+          clearTimeout(poisTimeout);
+          poisTimeout = setTimeout(() => {
+            console.log('🔄 Auto-saving: POI state changed');
+            saveGame();
+          }, 3000); // Esperar 3 segundos después del último cambio
+        }
+      }
+    }, { deep: true });
   };
 
   return {

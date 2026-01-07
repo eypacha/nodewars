@@ -289,6 +289,11 @@ const handleExtract = () => {
     }, 2000);
   };
 
+  const handleStopScanFromBarracks = () => {
+    poiStore.stopScan();
+    isScanningFromBarracks.value = false;
+  };
+
   // Manejar selección de cuartel como punto de ataque
   const handleSelectAsAttackOrigin = (barracks) => {
     if (barracks && barracks.type === 'barrack' && barracks.owned) {

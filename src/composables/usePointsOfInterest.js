@@ -19,10 +19,14 @@ export const usePointsOfInterest = (mapRef) => {
    * Crea marcadores visuales para todos los POIs
    */
   const createPOIMarkers = () => {
+    console.log('🗺️ createPOIMarkers called, POIs count:', pois.value.length);
     // Limpiar marcadores anteriores
     clearPOIMarkers();
 
-    if (!mapRef.value) return;
+    if (!mapRef.value) {
+      console.log('⚠️ mapRef not available');
+      return;
+    }
 
     const config = getPOIConfig();
 
@@ -88,6 +92,8 @@ export const usePointsOfInterest = (mapRef) => {
         marker,
       });
     });
+    
+    console.log('✅ Created', poiMarkers.value.length, 'POI markers on map');
   };
 
   /**
@@ -103,7 +109,8 @@ export const usePointsOfInterest = (mapRef) => {
   /**
    * Actualiza los marcadores cuando cambian los POIs en el store
    */
-  watch(pois, () => {
+  watch(pois, (newPois) => {
+    console.log('👀 POIs watcher triggered, count:', newPois.length);
     createPOIMarkers();
   }, { deep: true });
 

@@ -187,6 +187,21 @@ export const usePoiStore = defineStore('poi', () => {
     return poi.radarActive;
   };
 
+  const resetPOIs = () => {
+    pois.value = [];
+    lastFetchCenter.value = null;
+    lastFetchRadius.value = null;
+    error.value = null;
+    selectedPOI.value = null;
+    showPOIDialog.value = false;
+    retryCount.value = 0;
+    shouldStopRetrying.value = false;
+    if (retryTimeout.value) {
+      clearTimeout(retryTimeout.value);
+      retryTimeout.value = null;
+    }
+  };
+
   const selectPOI = async (poiId) => {
     const poi = getPOIById(poiId);
     selectedPOI.value = poi;
@@ -256,5 +271,6 @@ export const usePoiStore = defineStore('poi', () => {
     consumeResource,
     convertToBarracks,
     toggleBarracksRadar,
+    resetPOIs,
   };
 });

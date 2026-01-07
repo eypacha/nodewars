@@ -77,7 +77,7 @@ export async function deleteSavedGame() {
 /**
  * Crear el objeto de estado del juego para guardar
  */
-export function createGameStateSnapshot(gameStore, mapStore) {
+export function createGameStateSnapshot(gameStore, mapStore, poiStore) {
   return {
     // Estado del mapa (convertir refs a valores planos)
     mapCenter: Array.isArray(mapStore.center) ? [...mapStore.center] : mapStore.center,
@@ -89,6 +89,9 @@ export function createGameStateSnapshot(gameStore, mapStore) {
     resources: JSON.parse(JSON.stringify(gameStore.resources)),
     radarLevel: gameStore.radarLevel,
     
+    // Estado de POIs (convertir refs a valores planos)
+    pois: JSON.parse(JSON.stringify(poiStore.pois)),
+    
     // Flags de UI (para no mostrar popups al cargar)
     showStartPopup: false,
     showBaseLocationPopup: false,
@@ -99,15 +102,17 @@ export function createGameStateSnapshot(gameStore, mapStore) {
 /**
  * Restaurar el estado del juego desde los datos guardados
  */
-export function restoreGameState(savedData, gameStore, mapStore) {
-  if (!savedData) return false;
+export function restoreGameState(savedData, gameStore, mapStore, poiStore) {
+  if (!savedData) return { success: false };
 
   try {
+    console.log('🔍 Checking POIs in saved data:', savedData.pois?.length || 0);
+    
     // Restaurar estado del mapa (crear nuevos arrays para evitar referencias)
     if (savedData.mapCenter) mapStore.center = [...savedData.mapCenter];
     if (savedData.mapZoom !== undefined) mapStore.zoom = savedData.mapZoom;
     if (savedData.marker) mapStore.marker = [...savedData.marker];
-    if (savedData.baseConfirmed !== undefined) mapStore.baseConfirmed = savedData.baseConfirmed;
+    // NO restaurar baseConfirmed aún, para evitar disparar watchers
     
     // Restaurar estado del juego (crear nuevo objeto para evitar referencias)
     if (savedData.resources) {
@@ -115,15 +120,30 @@ export function restoreGameState(savedData, gameStore, mapStore) {
     }
     if (savedData.radarLevel !== undefined) gameStore.radarLevel = savedData.radarLevel;
     
+    // Restaurar POIs descubiertos
+    if (savedData.pois && Array.isArray(savedData.pois) && savedData.pois.length > 0) {
+      console.log('📦 Restoring POIs:', savedData.pois);
+      poiStore.pois = JSON.parse(JSON.stringify(savedData.pois));
+      console.log(`✅ ${savedData.pois.length} POIs restored to store`);
+      console.log('📍 POIs in store after restore:', poiStore.pois.length);
+    } else {
+      console.log('⚠️ No POIs to restore');
+    }
+    
     // Ocultar popups
     gameStore.showStartPopup = false;
     gameStore.showBaseLocationPopup = false;
     gameStore.showLocationPopup = false;
     
     console.log('✅ Game state restored');
-    return true;
+    
+    // Devolver también el estado de baseConfirmed para manejarlo externamente
+    return {
+      success: true,
+      baseConfirmed: savedData.baseConfirmed
+    };
   } catch (error) {
     console.error('❌ Error restoring game state:', error);
-    return false;
+    return { success: false };
   }
 }

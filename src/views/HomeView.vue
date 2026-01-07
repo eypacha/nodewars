@@ -23,12 +23,14 @@ import BaseLocationPopup from '../components/BaseLocationPopup.vue';
 import LocationRequiredPopup from '../components/LocationRequiredPopup.vue';
 import { useGameStore } from '@/stores/gameStore';
 import { useMapStore } from '@/stores/mapStore';
+import { usePoiStore } from '@/stores/poiStore';
 import { useGeolocation } from '@/composables/useGeolocation';
 import { useGamePersistence } from '@/composables/useGamePersistence';
 import { deleteSavedGame } from '@/services/gameDatabase';
 
 const gameStore = useGameStore();
 const mapStore = useMapStore();
+const poiStore = usePoiStore();
 const { requestLocation } = useGeolocation();
 const { loadGame, setupAutoSave } = useGamePersistence();
 
@@ -38,37 +40,55 @@ onMounted(() => {
 });
 
 const handleStartGame = async () => {
-  // Resetear el estado del juego y mapa
+  // Resetear el estado del juego, mapa y POIs
   gameStore.resetGame();
   mapStore.resetMap();
+  poiStore.resetPOIs();
   
   // Eliminar partida guardada anterior
   await deleteSavedGame();
 };
 
 const handleContinueGame = async () => {
-  const loaded = await loadGame();
-  if (loaded && mapStore.baseConfirmed) {
-    // Guardar la posición del marcador y el estado de confirmación
-    const savedMarker = mapStore.marker;
-    const wasConfirmed = mapStore.baseConfirmed;
+  console.log('🎮 Continue game clicked');
+  const result = await loadGame();
+  console.log('📥 Game loaded:', result);
+  
+  if (result?.success) {
+    // Guardar los POIs temporalmente antes de limpiarlos
+    const savedPois = [...poiStore.pois];
+    console.log('💾 Saved POIs temporarily:', savedPois.length);
     
-    // Ocultar marcador y desconfirmar temporalmente (para que no aparezca el radar)
-    mapStore.marker = null;
-    mapStore.baseConfirmed = false;
+    // Limpiar POIs del store para que no se vean durante el vuelo
+    poiStore.pois = [];
     
-    // Iniciar el vuelo hacia la base
-    if (savedMarker) {
-      mapStore.centerOnLocation(savedMarker, 16);
+    // Usar un pequeño delay para asegurar que los stores están completamente actualizados
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    if (result.baseConfirmed) {
+      // Guardar la posición del marcador
+      const savedMarker = mapStore.marker;
       
-      // Mostrar la base después del vuelo (mismo timing que handleLocationSelected)
-      setTimeout(() => {
-        mapStore.marker = savedMarker;
-        // Confirmar la base para que aparezca el radar
-        if (wasConfirmed) {
+      // Ocultar marcador temporalmente (para que no aparezca el radar)
+      mapStore.marker = null;
+      
+      // Iniciar el vuelo hacia la base
+      if (savedMarker) {
+        mapStore.centerOnLocation(savedMarker, 16);
+        
+        // Mostrar la base y POIs después del vuelo (mismo timing que handleLocationSelected)
+        setTimeout(() => {
+          mapStore.marker = savedMarker;
+          // Confirmar la base para que aparezca el radar
           mapStore.baseConfirmed = true;
-        }
-      }, 1700);
+          
+          // Restaurar POIs después de que la base aparezca
+          setTimeout(() => {
+            poiStore.pois = savedPois;
+            console.log('🎯 Base confirmed and POIs restored:', poiStore.pois.length);
+          }, 100);
+        }, 1700);
+      }
     }
   }
 };
