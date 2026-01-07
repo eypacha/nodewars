@@ -278,8 +278,14 @@ const handleExtract = () => {
   // Manejar scan desde un cuartel
   const handleScanFromBarracks = async () => {
     if (!selectedPOI.value || selectedPOI.value.type !== 'barrack') return;
+
+    // Guardar referencia antes de cerrar el diálogo
+    const barrackPOI = selectedPOI.value;
+    // Cerrar diálogos (especialmente el POI) al iniciar el escaneo desde un cuartel
+    closeDialog(removeConnectionLine);
+    mapStore.closeAllDialogs();
     
-    const position = { lat: selectedPOI.value.lat, lng: selectedPOI.value.lng };
+    const position = { lat: barrackPOI.lat, lng: barrackPOI.lng };
     const radarRadius = 500; // Usar el mismo radio que el radar del cuartel
     
     console.log('Scanning from barracks:', position, 'radius:', radarRadius);
@@ -601,15 +607,20 @@ watch(currentAttackOrigin, () => {
 });
 
 // Observar cambios en el POI seleccionado
-watch(selectedPOI, (poi) => {
+watch(selectedPOI, (poi, prevPoi) => {
   if (poi) {
-    // Si hay un scan activo (base o barracks), detenerlo antes de cambiar de POI
-    if (isLoading.value) {
-      handleStopScan();
+    const isSamePoi = prevPoi && prevPoi.id === poi.id;
+
+    // Solo detener scans si se cambia de un POI previo a otro distinto
+    if (prevPoi && !isSamePoi) {
+      if (isLoading.value) {
+        handleStopScan();
+      }
+      if (isScanningFromBarracks.value) {
+        handleStopScanFromBarracks();
+      }
     }
-    if (isScanningFromBarracks.value) {
-      handleStopScanFromBarracks();
-    }
+
     updatePOIScreenPosition(poi);
     // Limpiar línea anterior
     removeConnectionLine();
@@ -618,8 +629,12 @@ watch(selectedPOI, (poi) => {
       createConnectionLine(poi, currentAttackOrigin.value);
     });
     
-    // Si es una barraca propia, activarla automáticamente
-    if (poi.type === 'barrack' && poi.owned) {
+    // Si es una barraca propia y no está ya activa, activarla automáticamente
+    if (
+      poi.type === 'barrack' &&
+      poi.owned &&
+      (!selectedBarracksForAttack.value || selectedBarracksForAttack.value.id !== poi.id)
+    ) {
       handleSelectAsAttackOrigin(poi);
     }
   }
