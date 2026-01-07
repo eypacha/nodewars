@@ -569,7 +569,13 @@ watch(baseConfirmed, async (confirmed) => {
     onMarker('click', handleMarkerClick);
     // Actualizar radares de barracas inactivos
     const barracks = Array.isArray(pois.value) ? pois.value.filter(p => p.type === 'barrack' && p.owned) : [];
-    renderAllBarracksRadars(barracks, null);
+    const baseCenter = {
+      lat: position.lat,
+      lng: position.lng,
+      type: 'base',
+      level: gameStore.radarLevel,
+    };
+    renderAllBarracksRadars(barracks, 'base', baseCenter);
     // No hacer scan automático - el usuario debe hacer clic en "Scan"
   } else {
     // Resetear estado
@@ -581,7 +587,7 @@ watch(baseConfirmed, async (confirmed) => {
     poiStore.clearPOIs();
     clearPOIMarkers();
     // Limpiar radares de barracas inactivos
-    renderAllBarracksRadars([], null);
+    renderAllBarracksRadars([], null, null);
   }
 });
 
@@ -671,16 +677,36 @@ watch(pois, (newPois) => {
   // Mostrar todos los radares de barracas (menos el activo)
   const barracks = Array.isArray(newPois) ? newPois.filter(p => p.type === 'barrack' && p.owned) : [];
   let activeId = null;
-  if (selectedBarracksForAttack.value) activeId = selectedBarracksForAttack.value.id;
-  renderAllBarracksRadars(barracks, activeId);
+  const baseCenter = baseConfirmed.value && markerRef.value ? {
+    lat: markerRef.value.getLatLng().lat,
+    lng: markerRef.value.getLatLng().lng,
+    type: 'base',
+    level: gameStore.radarLevel,
+  } : null;
+  if (selectedBarracksForAttack.value) {
+    activeId = selectedBarracksForAttack.value.id;
+  } else if (baseCenter) {
+    activeId = 'base';
+  }
+  renderAllBarracksRadars(barracks, activeId, baseCenter);
 }, { deep: true });
 
 // Observar cambios en la barraca activa para actualizar los radares inactivos
 watch(selectedBarracksForAttack, (newBarrack) => {
   const barracks = Array.isArray(pois.value) ? pois.value.filter(p => p.type === 'barrack' && p.owned) : [];
   let activeId = null;
-  if (newBarrack) activeId = newBarrack.id;
-  renderAllBarracksRadars(barracks, activeId);
+  const baseCenter = baseConfirmed.value && markerRef.value ? {
+    lat: markerRef.value.getLatLng().lat,
+    lng: markerRef.value.getLatLng().lng,
+    type: 'base',
+    level: gameStore.radarLevel,
+  } : null;
+  if (newBarrack) {
+    activeId = newBarrack.id;
+  } else if (baseCenter) {
+    activeId = 'base';
+  }
+  renderAllBarracksRadars(barracks, activeId, baseCenter);
 });
 </script>
 

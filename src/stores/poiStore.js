@@ -5,6 +5,10 @@ import { calculateDistance } from '@/utils/mapHelpers';
 import { db } from '@/services/dbService';
 
 export const usePoiStore = defineStore('poi', () => {
+  const DEFAULT_RESOURCE_CAPACITY = 5;
+  const DEFAULT_PRODUCTION_RATE = 60000; // 1 minuto en ms
+  const BARRACK_COLOR = '#38bdf8';
+
   // Estado
   const pois = ref([]);
   const isLoading = ref(false);
@@ -34,12 +38,32 @@ export const usePoiStore = defineStore('poi', () => {
     }, {});
   });
 
+  const getPOIById = (id) => {
+    return pois.value.find(poi => poi.id === id);
+  };
+
+  const withProductionDefaults = (poi) => {
+    const capacity = poi.resourceCapacity ?? DEFAULT_RESOURCE_CAPACITY;
+    const productionRate = poi.productionRate ?? DEFAULT_PRODUCTION_RATE;
+    const lastProducedAt = poi.lastProducedAt ?? Date.now();
+    const color = poi.type === 'barrack' ? BARRACK_COLOR : poi.color;
+
+    return {
+      ...poi,
+      color,
+      resourceCapacity: capacity,
+      productionRate,
+      lastProducedAt,
+      resourceAmount: Math.min(poi.resourceAmount ?? capacity, capacity),
+    };
+  };
+
   // DB functions
   const loadPOIs = async () => {
     try {
       const loadedPOIs = await db.pois.toArray();
-      pois.value = loadedPOIs;
-      console.log('POIs loaded from DB:', loadedPOIs.length);
+      pois.value = loadedPOIs.map(poi => withProductionDefaults(poi));
+      console.log('POIs loaded from DB:', pois.value.length);
     } catch (error) {
       console.error('Error loading POIs from DB:', error);
     }
@@ -63,6 +87,36 @@ export const usePoiStore = defineStore('poi', () => {
     }
   };
 
+  const applyProductionForPOI = (poiId) => {
+    const poi = getPOIById(poiId);
+    if (!poi || poi.type === 'barrack') return poi;
+
+    const now = Date.now();
+    const lastTick = poi.lastProducedAt ?? now;
+    const elapsed = now - lastTick;
+
+    if (elapsed < poi.productionRate) {
+      return poi;
+    }
+
+    const producedCycles = Math.floor(elapsed / poi.productionRate);
+    if (producedCycles <= 0) return poi;
+
+    const maxAddable = poi.resourceCapacity - poi.resourceAmount;
+    if (maxAddable <= 0) {
+      return poi;
+    }
+
+    const effectiveProduction = Math.min(producedCycles, maxAddable);
+    const newAmount = poi.resourceAmount + effectiveProduction;
+    const newTimestamp = lastTick + effectiveProduction * poi.productionRate;
+
+    poi.resourceAmount = newAmount;
+    poi.lastProducedAt = newTimestamp;
+    updatePOI(poiId, { resourceAmount: newAmount, lastProducedAt: newTimestamp });
+    return poi;
+  };
+
   // Acciones
   const fetchPOIs = async (center, radius, isRetry = false) => {
     if (!isRetry) {
@@ -78,6 +132,7 @@ export const usePoiStore = defineStore('poi', () => {
     
     try {
       const fetchedPOIs = await fetchPointsOfInterest(center.lat, center.lng, radius);
+      const now = Date.now();
       
       // Si no hay error, resetear contador de reintentos
       retryCount.value = 0;
@@ -89,15 +144,17 @@ export const usePoiStore = defineStore('poi', () => {
           const distance = calculateDistance([center.lat, center.lng], [poi.lat, poi.lng]);
           return distance <= radius;
         })
-        .map(poi => ({
+        .map(poi => withProductionDefaults({
           ...poi,
           // Usar la categoría si existe, sino usar el tipo
           color: getPOIColor(poi.category || poi.type),
           health: 50,
           maxHealth: 50,
           owned: false,
-          resourceAmount: 5,
-          resourceCapacity: 5,
+          resourceAmount: DEFAULT_RESOURCE_CAPACITY,
+          resourceCapacity: DEFAULT_RESOURCE_CAPACITY,
+          productionRate: DEFAULT_PRODUCTION_RATE,
+          lastProducedAt: now,
           radarActive: false,
           conqueredFrom: null, // null = base, o ID del cuartel desde donde fue conquistado
         }));
@@ -196,10 +253,6 @@ export const usePoiStore = defineStore('poi', () => {
     });
   };
 
-  const getPOIById = (id) => {
-    return pois.value.find(poi => poi.id === id);
-  };
-
   // Convierte un POI conquistado en barrack
   const convertToBarracks = (poiId) => {
     const poi = getPOIById(poiId);
@@ -207,7 +260,8 @@ export const usePoiStore = defineStore('poi', () => {
     if (!poi.owned) return false;
     if (poi.type === 'barrack') return false;
     poi.type = 'barrack';
-    updatePOI(poiId, { type: 'barrack' });
+    poi.color = BARRACK_COLOR;
+    updatePOI(poiId, { type: 'barrack', color: BARRACK_COLOR });
     return true;
   };
 
@@ -245,7 +299,7 @@ export const usePoiStore = defineStore('poi', () => {
   };
 
   const selectPOI = async (poiId) => {
-    const poi = getPOIById(poiId);
+    const poi = applyProductionForPOI(poiId) || getPOIById(poiId);
     selectedPOI.value = poi;
     if (poi) {
       showPOIDialog.value = true;
@@ -266,8 +320,14 @@ export const usePoiStore = defineStore('poi', () => {
     const poi = getPOIById(poiId);
     if (!poi) return false;
     if (poi.resourceAmount <= 0) return false;
+    const wasFull = poi.resourceAmount >= poi.resourceCapacity;
     poi.resourceAmount -= 1;
-    updatePOI(poiId, { resourceAmount: poi.resourceAmount });
+    if (wasFull) {
+      poi.lastProducedAt = Date.now();
+      updatePOI(poiId, { resourceAmount: poi.resourceAmount, lastProducedAt: poi.lastProducedAt });
+    } else {
+      updatePOI(poiId, { resourceAmount: poi.resourceAmount });
+    }
     return true;
   };
 
@@ -313,6 +373,7 @@ export const usePoiStore = defineStore('poi', () => {
     closePOIDialog,
     damagePOI,
     consumeResource,
+    applyProductionForPOI,
     convertToBarracks,
     toggleBarracksRadar,
     resetPOIs,

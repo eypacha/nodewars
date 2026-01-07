@@ -52,9 +52,9 @@ export const useAttackRadar = (mapRef) => {
       return {
         color: radarConfig.color,
         fillColor: radarConfig.color,
-        fillOpacity: radarConfig.fillOpacity,
+        fillOpacity: isActive ? radarConfig.fillOpacity : (radarConfig.fillOpacity ?? 0.15) * 0.35,
         radius: radarConfig.radius,
-        weight: radarConfig.weight,
+        weight: isActive ? radarConfig.weight : 1,
       };
     }
 
@@ -95,11 +95,29 @@ export const useAttackRadar = (mapRef) => {
    * @param {Array} barracksList - Array de POIs tipo barrack {lat, lng, id, radarActive}
    * @param {String|Number} activeId - id de la barraca activa (opcional)
    */
-  const renderAllBarracksRadars = (barracksList, activeId = null) => {
+  const renderAllBarracksRadars = (barracksList, activeId = null, baseCenter = null) => {
     // Eliminar todos los radares previos
     barracksRadarRefs.value.forEach(obj => obj.circle.remove());
     barracksRadarRefs.value = [];
     if (!mapRef.value || !Array.isArray(barracksList)) return;
+
+    // Radar pasivo de la base si existe y no es el activo
+    if (baseCenter && activeId !== 'base') {
+      const baseConfig = getRadarConfigForCenter(baseCenter, false);
+      if (baseConfig) {
+        const baseCircle = L.circle([baseCenter.lat, baseCenter.lng], {
+          color: baseConfig.color,
+          fillColor: baseConfig.fillColor,
+          fillOpacity: baseConfig.fillOpacity,
+          radius: baseConfig.radius,
+          weight: baseConfig.weight,
+          interactive: false,
+          bubblingMouseEvents: false,
+        }).addTo(mapRef.value);
+        barracksRadarRefs.value.push({ circle: baseCircle, poiId: 'base-passive' });
+      }
+    }
+
     barracksList.forEach(barrack => {
       // No dibujar el radar activo aquí (lo hace createRadar)
       if (activeId && barrack.id === activeId) return;

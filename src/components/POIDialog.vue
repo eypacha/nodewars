@@ -6,6 +6,20 @@
         <p v-if="formattedDistance" class="text-white text-xs mb-2 opacity-75">
           {{ formattedDistance }}<span v-if="!poi.owned && !isInRange" class="text-red-400"> {{ $t('poi.outOfRange') }}</span>
         </p>
+
+        <!-- Resources bar -->
+        <div v-if="poi.type !== 'barrack'" class="mb-2">
+          <div class="flex justify-between text-white text-xs mb-1">
+            <span>{{ $t('poi.resources') }}</span>
+            <span>{{ poi.resourceAmount }} / {{ poi.resourceCapacity }}</span>
+          </div>
+          <div class="w-full bg-gray-700 h-3 overflow-hidden">
+            <div 
+              class="h-full transition-all duration-300"
+              :style="{ width: resourcePercentage + '%', backgroundColor: poi.color }"
+            ></div>
+          </div>
+        </div>
         
         <!-- Health bar -->
         <div class="mb-2">
@@ -22,16 +36,15 @@
           </div>
         </div>
 
-        <!-- Resources bar -->
         <div v-if="poi.type !== 'barrack'" class="mb-2">
           <div class="flex justify-between text-white text-xs mb-1">
-            <span>{{ $t('poi.resources') }}</span>
-            <span>{{ poi.resourceAmount }} / {{ poi.resourceCapacity }}</span>
+            <span>Producción</span>
+            <span>{{ productionLabel }}</span>
           </div>
           <div class="w-full bg-gray-700 h-1 overflow-hidden">
             <div 
-              class="h-full transition-all duration-300"
-              :style="{ width: resourcePercentage + '%', backgroundColor: poi.color }"
+              class="h-full bg-white transition-all duration-300"
+              :style="{ width: productionProgress + '%' }"
             ></div>
           </div>
         </div>
@@ -95,7 +108,8 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, ref, onMounted, onBeforeUnmount, watch } from 'vue';
+import { usePoiStore } from '@/stores/poiStore';
 import { calculateDistance } from '@/utils/mapHelpers';
 
 const props = defineProps({
@@ -130,6 +144,11 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['close', 'attack', 'extract', 'convertToBarracks', 'scan', 'stopScan', 'selectAsAttackOrigin']);
+const poiStore = usePoiStore();
+const productionProgress = ref(0);
+const timeToNextProduction = ref(0);
+const atCapacity = ref(false);
+let productionInterval = null;
 // Emitir evento para convertir en barrack
 const handleConvertToBarracks = () => {
   emit('convertToBarracks');
@@ -210,6 +229,47 @@ const handleExtract = () => {
   requestAnimationFrame(updateExtractCooldown);
 };
 
+const updateProductionProgress = () => {
+  if (!props.poi || props.poi.type === 'barrack') {
+    productionProgress.value = 0;
+    timeToNextProduction.value = 0;
+    atCapacity.value = false;
+    return;
+  }
+
+  const updatedPOI = poiStore.applyProductionForPOI(props.poi.id) || props.poi;
+  const rate = updatedPOI.productionRate || 0;
+  const lastProducedAt = updatedPOI.lastProducedAt || Date.now();
+
+  if (!rate) {
+    productionProgress.value = 0;
+    timeToNextProduction.value = 0;
+    atCapacity.value = false;
+    return;
+  }
+
+  const now = Date.now();
+  const elapsed = now - lastProducedAt;
+  const isFull = updatedPOI.resourceAmount >= updatedPOI.resourceCapacity;
+
+  atCapacity.value = isFull;
+  productionProgress.value = isFull ? 100 : Math.min((elapsed / rate) * 100, 100);
+  timeToNextProduction.value = isFull ? 0 : Math.max(rate - (elapsed % rate), 0);
+};
+
+const startProductionInterval = () => {
+  stopProductionInterval();
+  updateProductionProgress();
+  productionInterval = setInterval(updateProductionProgress, 500);
+};
+
+const stopProductionInterval = () => {
+  if (productionInterval) {
+    clearInterval(productionInterval);
+    productionInterval = null;
+  }
+};
+
 // Calcular porcentaje de health
 const healthPercentage = computed(() => {
   if (!props.poi || !props.poi.health || !props.poi.maxHealth) return 0;
@@ -221,12 +281,16 @@ const resourcePercentage = computed(() => {
   return (props.poi.resourceAmount / props.poi.resourceCapacity) * 100;
 });
 
+const productionLabel = computed(() => {
+  if (!props.poi || props.poi.type === 'barrack') return '';
+  if (atCapacity.value) return '';
+  const seconds = Math.max(0, Math.ceil(timeToNextProduction.value / 1000));
+  return `${seconds}s`;
+});
+
 // Color de la barra de health según el porcentaje
 const healthBarColor = computed(() => {
-  const percentage = healthPercentage.value;
-  if (percentage > 60) return 'bg-green-500';
-  if (percentage > 30) return 'bg-yellow-500';
-  return 'bg-red-500';
+  return 'bg-green-500';
 });
 
 // Calcular y formatear la distancia
@@ -282,5 +346,21 @@ const isInRange = computed(() => {
   }
   
   return false;
+});
+
+onMounted(() => {
+  startProductionInterval();
+});
+
+onBeforeUnmount(() => {
+  stopProductionInterval();
+});
+
+watch(() => props.poi.id, () => {
+  startProductionInterval();
+});
+
+watch(() => props.poi.resourceAmount, () => {
+  updateProductionProgress();
 });
 </script>

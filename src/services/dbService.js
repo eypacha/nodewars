@@ -5,8 +5,8 @@ export class NodeWarsDB extends Dexie {
 
   constructor() {
     super('NodeWarsDB');
-    this.version(1).stores({
-      pois: 'id, lat, lng, type, category, name, health, maxHealth, owned, resourceAmount, resourceCapacity, radarActive, conqueredFrom, color'
+    this.version(2).stores({
+      pois: 'id, lat, lng, type, category, name, health, maxHealth, owned, resourceAmount, resourceCapacity, productionRate, lastProducedAt, radarActive, conqueredFrom, color'
     });
   }
 }
