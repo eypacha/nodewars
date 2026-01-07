@@ -1,6 +1,6 @@
 <template>
   <div class="w-full h-[100vh] overflow-hidden relative">
-    <ResourceHUD />
+    <ResourceHUD v-if="baseConfirmed" />
     <div id="map" class="w-full h-[calc(100vh+30px)] z-0"></div>
     <MarkerConfirmDialog 
       v-if="activeDialog === 'markerConfirm' && markerScreenPosition" 
