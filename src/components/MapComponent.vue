@@ -12,7 +12,7 @@
     <BaseMarkerDialog
       v-if="activeDialog === 'baseMarker' && markerScreenPosition && baseConfirmed"
       :style="dialogStyle"
-      :is-scanning="isLoading"
+      :is-scanning="isScanning"
       @scan="handleScan"
       @stopScan="handleStopScan"
       @upgrades="handleOpenUpgrades"
@@ -114,6 +114,7 @@ const selectedBarracksForAttack = ref(null); // Cuartel seleccionado para lanzar
 const isBaseAttackOrigin = ref(false); // Si la base está seleccionada como punto de ataque
 const currentAttackOrigin = ref(null); // Punto de ataque activo (se actualiza cuando cambia)
 const attackOriginScreenPosition = ref(null); // Posición en pantalla del punto de ataque
+const isScanning = computed(() => isLoading.value || !!scanContext.value);
 
 // Inicializar composables principales
 // Usar refs reactivos para que el mapa se inicialice con los valores restaurados
@@ -279,12 +280,12 @@ const runScan = async ({ type, position, radius, closeDialogs = true }) => {
 
   scanContext.value = { type, position };
   try {
-    await poiStore.fetchPOIs(position, radius);
+    await poiStore.fetchPOIs(position, radius, { stagger: true, staggerDelay: 250 });
   } finally {
     scanAnimationTimeout.value = setTimeout(() => {
       scanContext.value = null;
       scanAnimationTimeout.value = null;
-    }, 2000);
+    }, 300);
   }
 };
 

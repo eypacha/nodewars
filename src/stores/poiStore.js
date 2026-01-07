@@ -9,6 +9,8 @@ export const usePoiStore = defineStore('poi', () => {
   const DEFAULT_PRODUCTION_RATE = 60000; // 1 minuto en ms
   const BARRACK_COLOR = '#38bdf8';
 
+  const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
   // Estado
   const pois = ref([]);
   const isLoading = ref(false);
@@ -118,7 +120,9 @@ export const usePoiStore = defineStore('poi', () => {
   };
 
   // Acciones
-  const fetchPOIs = async (center, radius, isRetry = false) => {
+  const fetchPOIs = async (center, radius, options = {}) => {
+    const { isRetry = false, stagger = false, staggerDelay = 200 } = options;
+
     if (!isRetry) {
       // Si no es un reintento, resetear el contador
       retryCount.value = 0;
@@ -192,11 +196,21 @@ export const usePoiStore = defineStore('poi', () => {
         poisToAdd.push(...toAdd);
       });
       
-      // Sumar los nuevos POIs a los existentes
-      pois.value = [...pois.value, ...poisToAdd];
-      
-      // Guardar los nuevos POIs en DB
-      poisToAdd.forEach(poi => savePOI(poi));
+      if (stagger && poisToAdd.length) {
+        for (let i = 0; i < poisToAdd.length; i++) {
+          const poi = poisToAdd[i];
+          pois.value = [...pois.value, poi];
+          await savePOI(poi);
+          if (i < poisToAdd.length - 1 && staggerDelay > 0) {
+            await sleep(staggerDelay);
+          }
+        }
+      } else {
+        // Sumar los nuevos POIs a los existentes
+        pois.value = [...pois.value, ...poisToAdd];
+        // Guardar los nuevos POIs en DB
+        await Promise.all(poisToAdd.map(poi => savePOI(poi)));
+      }
       
       lastFetchCenter.value = center;
       lastFetchRadius.value = radius;
@@ -210,9 +224,9 @@ export const usePoiStore = defineStore('poi', () => {
         console.log(`Reintentando... (${retryCount.value}/${maxRetries})`);
         
         // Esperar 3 segundos antes de reintentar
-        retryTimeout.value = setTimeout(() => {
-          fetchPOIs(center, radius, true);
-        }, 3000);
+      retryTimeout.value = setTimeout(() => {
+        fetchPOIs(center, radius, { ...options, isRetry: true });
+      }, 3000);
       } else {
         // Detener después de 10 intentos o si el usuario lo detuvo
         isLoading.value = false;
