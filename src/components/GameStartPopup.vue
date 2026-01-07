@@ -5,15 +5,6 @@
         {{ $t('gameStart.title') }}
       </h1>
       
-      <!-- Botón Continue - solo visible si hay partida guardada -->
-      <button 
-        v-if="hasSavedGame"
-        @click="$emit('continue-game')"
-        class="cursor-pointer font-bold py-4 px-6 border-1 text-xl mx-auto block w-full mb-4"
-      >
-        {{ $t('gameStart.continueButton') }}
-      </button>
-      
       <!-- Botón Start -->
       <button 
         @click="$emit('start-game')"
@@ -26,14 +17,5 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
-import { hasSavedGame as checkSavedGame } from '@/services/gameDatabase';
-
-defineEmits(['start-game', 'continue-game']);
-
-const hasSavedGame = ref(false);
-
-onMounted(async () => {
-  hasSavedGame.value = await checkSavedGame();
-});
+defineEmits(['start-game']);
 </script>

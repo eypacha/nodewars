@@ -4,7 +4,6 @@
     <GameStartPopup 
       v-if="gameStore.showStartPopup" 
       @start-game="handleStartGame"
-      @continue-game="handleContinueGame"
     />
     <BaseLocationPopup 
       v-if="gameStore.showBaseLocationPopup" 
@@ -25,71 +24,17 @@ import { useGameStore } from '@/stores/gameStore';
 import { useMapStore } from '@/stores/mapStore';
 import { usePoiStore } from '@/stores/poiStore';
 import { useGeolocation } from '@/composables/useGeolocation';
-import { useGamePersistence } from '@/composables/useGamePersistence';
-import { deleteSavedGame } from '@/services/gameDatabase';
 
 const gameStore = useGameStore();
 const mapStore = useMapStore();
 const poiStore = usePoiStore();
 const { requestLocation } = useGeolocation();
-const { loadGame, setupAutoSave } = useGamePersistence();
-
-// Configurar guardado automático al montar el componente
-onMounted(() => {
-  setupAutoSave();
-});
 
 const handleStartGame = async () => {
   // Resetear el estado del juego, mapa y POIs
   gameStore.resetGame();
   mapStore.resetMap();
   poiStore.resetPOIs();
-  
-  // Eliminar partida guardada anterior
-  await deleteSavedGame();
-};
-
-const handleContinueGame = async () => {
-  console.log('🎮 Continue game clicked');
-  const result = await loadGame();
-  console.log('📥 Game loaded:', result);
-  
-  if (result?.success) {
-    // Guardar los POIs temporalmente antes de limpiarlos
-    const savedPois = [...poiStore.pois];
-    console.log('💾 Saved POIs temporarily:', savedPois.length);
-    
-    // Limpiar POIs del store para que no se vean durante el vuelo
-    poiStore.pois = [];
-    
-    // Usar un pequeño delay para asegurar que los stores están completamente actualizados
-    await new Promise(resolve => setTimeout(resolve, 100));
-    
-    if (result.baseConfirmed) {
-      // Guardar la posición del marcador
-      const savedMarker = mapStore.marker;
-      // Guardar el centro y zoom restaurados
-      const savedCenter = mapStore.center;
-      const savedZoom = mapStore.zoom;
-      // Ocultar marcador temporalmente (para que no aparezca el radar)
-      mapStore.marker = null;
-      // Centrar el mapa en el último centro guardado, no en el marcador
-      if (savedCenter) {
-        mapStore.centerOnLocation(savedCenter, savedZoom ?? 16);
-        // Mostrar la base y POIs después del vuelo (mismo timing que handleLocationSelected)
-        setTimeout(() => {
-          mapStore.marker = savedMarker;
-          // Confirmar la base para que aparezca el radar
-          mapStore.baseConfirmed = true;
-          // Restaurar POIs después de que la base aparezca
-          setTimeout(() => {
-            poiStore.pois = savedPois;
-            console.log('🎯 Base confirmed and POIs restored:', poiStore.pois.length);
-          }, 100);
-        }, 1700);
-      }
-    }
-  }
 };
 
 const handleLocationSelected = (location) => {
