@@ -2,6 +2,7 @@ import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { fetchPointsOfInterest, getPOIColor } from '@/services/overpassService';
 import { calculateDistance } from '@/utils/mapHelpers';
+import { db } from '@/services/dbService';
 
 export const usePoiStore = defineStore('poi', () => {
   // Estado
@@ -32,6 +33,35 @@ export const usePoiStore = defineStore('poi', () => {
       return acc;
     }, {});
   });
+
+  // DB functions
+  const loadPOIs = async () => {
+    try {
+      const loadedPOIs = await db.pois.toArray();
+      pois.value = loadedPOIs;
+      console.log('POIs loaded from DB:', loadedPOIs.length);
+    } catch (error) {
+      console.error('Error loading POIs from DB:', error);
+    }
+  };
+
+  const savePOI = async (poi) => {
+    try {
+      await db.pois.put(poi);
+      console.log('POI saved:', poi.id);
+    } catch (error) {
+      console.error('Error saving POI:', error);
+    }
+  };
+
+  const updatePOI = async (poiId, updates) => {
+    try {
+      await db.pois.update(poiId, updates);
+      console.log('POI updated:', poiId, updates);
+    } catch (error) {
+      console.error('Error updating POI:', error);
+    }
+  };
 
   // Acciones
   const fetchPOIs = async (center, radius, isRetry = false) => {
@@ -108,6 +138,9 @@ export const usePoiStore = defineStore('poi', () => {
       // Sumar los nuevos POIs a los existentes
       pois.value = [...pois.value, ...poisToAdd];
       
+      // Guardar los nuevos POIs en DB
+      poisToAdd.forEach(poi => savePOI(poi));
+      
       lastFetchCenter.value = center;
       lastFetchRadius.value = radius;
     } catch (err) {
@@ -174,6 +207,7 @@ export const usePoiStore = defineStore('poi', () => {
     if (!poi.owned) return false;
     if (poi.type === 'barrack') return false;
     poi.type = 'barrack';
+    updatePOI(poiId, { type: 'barrack' });
     return true;
   };
 
@@ -184,10 +218,11 @@ export const usePoiStore = defineStore('poi', () => {
     if (!poi.owned) return false;
     if (poi.type !== 'barrack') return false;
     poi.radarActive = !poi.radarActive;
+    updatePOI(poiId, { radarActive: poi.radarActive });
     return poi.radarActive;
   };
 
-  const resetPOIs = () => {
+  const resetPOIs = async () => {
     pois.value = [];
     lastFetchCenter.value = null;
     lastFetchRadius.value = null;
@@ -199,6 +234,13 @@ export const usePoiStore = defineStore('poi', () => {
     if (retryTimeout.value) {
       clearTimeout(retryTimeout.value);
       retryTimeout.value = null;
+    }
+    // Limpiar DB
+    try {
+      await db.pois.clear();
+      console.log('POIs DB cleared');
+    } catch (error) {
+      console.error('Error clearing POIs DB:', error);
     }
   };
 
@@ -225,6 +267,7 @@ export const usePoiStore = defineStore('poi', () => {
     if (!poi) return false;
     if (poi.resourceAmount <= 0) return false;
     poi.resourceAmount -= 1;
+    updatePOI(poiId, { resourceAmount: poi.resourceAmount });
     return true;
   };
 
@@ -242,6 +285,7 @@ export const usePoiStore = defineStore('poi', () => {
           poi.conqueredFrom = attackOriginId;
         }
       }
+      updatePOI(poiId, { health: poi.health, owned: poi.owned, conqueredFrom: poi.conqueredFrom });
     }
   };
 
@@ -272,5 +316,6 @@ export const usePoiStore = defineStore('poi', () => {
     convertToBarracks,
     toggleBarracksRadar,
     resetPOIs,
+    loadPOIs,
   };
 });

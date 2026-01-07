@@ -46,13 +46,16 @@ const handleContinueGame = async () => {
     // Si hay base confirmada, saltar directamente al mapa
     if (savedState.baseConfirmed) {
       gameStore.continueGame();
-      poiStore.resetPOIs(); // Resetear POIs pero mantener mapa y base
-      // Mostrar el marker y confirmar base después del flyTo
-      setTimeout(() => {
+      // Mostrar el marker, confirmar base y cargar POIs después del flyTo
+      setTimeout(async () => {
         if (savedState.marker) {
           mapStore.setMarker(savedState.marker);
         }
         mapStore.confirmBase(); // Esto setea baseConfirmed y guarda
+        // Pequeño delay adicional para asegurar que el mapa esté listo
+        setTimeout(async () => {
+          await poiStore.loadPOIs(); // Cargar POIs desde DB después del flyTo
+        }, 100);
       }, 1700);
     } else {
       // Si no hay base, mostrar el popup de base location
