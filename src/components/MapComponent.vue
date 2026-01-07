@@ -357,7 +357,10 @@ const handleClosePOIDialog = () => {
 // Manejar scan desde el diálogo del marcador
 const handleScan = async () => {
   if (!markerRef.value) return;
-  
+
+  // Cerrar el diálogo de la base al INICIAR el escaneo
+  mapStore.closeBaseMarkerDialog();
+
   const position = markerRef.value.getLatLng();
   const radarConfig = getRadarConfig(gameStore.radarLevel);
   
@@ -366,8 +369,6 @@ const handleScan = async () => {
     { lat: position.lat, lng: position.lng },
     radarConfig.radius
   );
-  
-  mapStore.closeBaseMarkerDialog();
 };
 
 // Manejar detención de scan
@@ -568,6 +569,13 @@ watch(currentAttackOrigin, () => {
 // Observar cambios en el POI seleccionado
 watch(selectedPOI, (poi) => {
   if (poi) {
+    // Si hay un scan activo (base o barracks), detenerlo antes de cambiar de POI
+    if (isLoading.value) {
+      handleStopScan();
+    }
+    if (isScanningFromBarracks.value) {
+      handleStopScanFromBarracks();
+    }
     updatePOIScreenPosition(poi);
     // Limpiar línea anterior
     removeConnectionLine();
