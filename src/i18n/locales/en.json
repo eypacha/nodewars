@@ -30,7 +30,8 @@
     "scanning": "Scanning...",
     "stopScan": "Stop Scan",
     "upgrades": "Upgrades",
-    "health": "Base Health"
+    "health": "Base Health",
+    "heal": "Heal"
   },
   "poi": {
     "outOfRange": "(Out of range)",

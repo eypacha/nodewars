@@ -15,9 +15,13 @@
       :is-scanning="isBaseScanActive"
       :base-health="baseHealth"
       :base-max-health="baseMaxHealth"
+      :is-heal-on-cooldown="isBaseHealOnCooldown"
+      :heal-progress="baseHealProgress"
+      :can-heal="resources.pharmacy > 0 && baseHealth < baseMaxHealth"
       @scan="handleScan"
       @stopScan="handleStopScan"
       @upgrades="handleOpenUpgrades"
+      @heal="handleBaseHeal"
     />
     <POIDialog
       v-if="showPOIDialog && selectedPOI && poiScreenPosition"
@@ -121,6 +125,7 @@ import ResourceHUD from './ResourceHUD.vue';
 import UpgradesPanel from './UpgradesPanel.vue';
 import { useEnemySpawn } from '@/composables/useEnemySpawn';
 import { useEnemyMovement } from '@/composables/useEnemyMovement';
+import { useProgressTimer } from '@/composables/useProgressTimer';
 
 const mapStore = useMapStore();
 const enemyStore = useEnemyStore();
@@ -200,6 +205,17 @@ const enemyMover = useEnemyMovement({
     poiStore.damagePOI(poiId, 1);
   },
 });
+const baseHealCooldown = useProgressTimer(2000, { key: 'base-heal' });
+const isBaseHealOnCooldown = baseHealCooldown.isRunning;
+const baseHealProgress = baseHealCooldown.progress;
+
+const handleBaseHeal = () => {
+  if (isBaseHealOnCooldown.value) return;
+  const healed = gameStore.consumeResource('pharmacy', 1);
+  if (!healed) return;
+  gameStore.setBaseHealth(baseHealth.value + 1);
+  baseHealCooldown.start();
+};
 
 // Radio actual del radar según el tipo de centro de ataque
 const radarRadius = computed(() => {

@@ -30,7 +30,8 @@
     "scanning": "Escaneando...",
     "stopScan": "Detener Scan",
     "upgrades": "Mejoras",
-    "health": "Salud de la base"
+    "health": "Salud de la base",
+    "heal": "Curar"
   },
   "poi": {
     "outOfRange": "(Fuera de alcance)",
