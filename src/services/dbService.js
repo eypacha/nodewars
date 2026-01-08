@@ -15,3 +15,11 @@ export class NodeWarsDB extends Dexie {
 }
 
 export const db = new NodeWarsDB();
+
+export const wipeDatabase = async () => {
+  try {
+    await db.delete();
+  } catch (error) {
+    console.error('Error wiping database:', error);
+  }
+};

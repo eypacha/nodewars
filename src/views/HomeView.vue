@@ -29,6 +29,7 @@ import { useGameStore } from '@/stores/gameStore';
 import { useMapStore } from '@/stores/mapStore';
 import { usePoiStore } from '@/stores/poiStore';
 import { useGeolocation } from '@/composables/useGeolocation';
+import { wipeDatabase } from '@/services/dbService';
 
 const gameStore = useGameStore();
 const mapStore = useMapStore();
@@ -45,12 +46,8 @@ const handleStartGame = async () => {
 
 const handleGameOverRestart = async () => {
   mapStore.clearSavedGame();
-  mapStore.resetMap();
-  poiStore.resetPOIs();
-  gameStore.resetGame();
-  gameStore.showStartPopup = true;
-  gameStore.showBaseLocationPopup = false;
-  gameStore.showGameOverPopup = false;
+  await wipeDatabase();
+  window.location.reload();
 };
 
 const handleContinueGame = async () => {
