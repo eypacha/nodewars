@@ -60,15 +60,17 @@ export const useEnemySpawn = ({ baseMarkerPosition, pois, radarLevel }) => {
     const radar = pickNonOverlappingRadar(radars);
     if (!radar) return;
 
-    const angle = findAngleOutsideOtherRadars(radar, radars);
-
-    enemyStore.spawnEnemy({
-      center: radar.center,
-      radius: radar.radius,
-      angle: angle ?? undefined,
-      targetType: radar.targetType,
-      targetId: radar.targetId,
-    });
+    const count = Math.max(1, Math.floor(Math.random() * 5) + 1);
+    for (let i = 0; i < count; i += 1) {
+      const angle = findAngleOutsideOtherRadars(radar, radars) ?? (Math.random() * Math.PI * 2);
+      enemyStore.spawnEnemy({
+        center: radar.center,
+        radius: radar.radius,
+        angle,
+        targetType: radar.targetType,
+        targetId: radar.targetId,
+      });
+    }
   };
 
   const startEnemySpawnLoop = () => {
