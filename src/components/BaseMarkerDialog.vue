@@ -1,29 +1,27 @@
 <template>
-  <div class="pointer-events-auto mb-2 w-120">
-    <div class="bg-black border-2 border-white px-4 py-3 shadow-2xl relative">
-      <div class="flex gap-2">
-        <button 
-          @click="$emit(isScanning ? 'stopScan' : 'scan')"
-          :class="[
-            'font-bold py-2 px-4 border-1 text-sm flex-1 cursor-pointer'
-          ]"
-        >
-          {{ isScanning ? $t('baseMarker.stopScan') : $t('baseMarker.scan') }}
-        </button>
-        <button 
-          @click="$emit('upgrades')"
-          class="font-bold py-2 px-4 border-1 text-sm flex-1 cursor-pointer"
-        >
-          {{ $t('baseMarker.upgrades') }}
-        </button>
-      </div>
-      <div class="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-8 border-l-transparent border-r-8 border-r-transparent border-t-8 border-t-white"></div>
-      <div class="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[6px] border-t-black mt-[-2px]"></div>
+  <DialogShell border-color="white" background-color="black" container-class="bg-black" wrapper-class="mb-2 w-120">
+    <div class="flex gap-2">
+      <button 
+        @click="$emit(isScanning ? 'stopScan' : 'scan')"
+        :class="[
+          'font-bold py-2 px-4 border-1 text-sm flex-1 cursor-pointer'
+        ]"
+      >
+        {{ isScanning ? $t('baseMarker.stopScan') : $t('baseMarker.scan') }}
+      </button>
+      <button 
+        @click="$emit('upgrades')"
+        class="font-bold py-2 px-4 border-1 text-sm flex-1 cursor-pointer"
+      >
+        {{ $t('baseMarker.upgrades') }}
+      </button>
     </div>
-  </div>
+  </DialogShell>
 </template>
 
 <script setup>
+import DialogShell from '@/components/UI/DialogShell.vue';
+
 defineProps({
   isScanning: {
     type: Boolean,

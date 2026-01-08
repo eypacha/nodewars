@@ -1,9 +1,6 @@
 <template>
-  <div class="pointer-events-auto mb-2 w-60">
-    <div 
-      class="bg-black border-2 px-4 py-3 shadow-2xl relative"
-      :style="{ borderColor: dialogPOIColor }"
-    >
+  <DialogShell :border-color="dialogPOIColor" background-color="black" container-class="bg-black" wrapper-class="mb-2 w-60">
+    <template #badge>
       <span 
           class="absolute -top-6 -right-[2px] inline-block px-2 py-1 text-xs"
           :style="{ backgroundColor: dialogPOIColor, color: 'white' }"
@@ -11,6 +8,7 @@
           <span class="emoji">{{ getPOIEmoji(poi.type) }}</span>  
         {{ getPOIDisplayName(poi.type) }}
         </span>
+    </template>
       <div>
         <h3 class="text-white text-sm font-bold mb-2">{{ poi.name }}</h3>
         <p v-if="formattedDistance" class="text-white text-xs mb-2 opacity-75">
@@ -91,13 +89,7 @@
           {{ isScanning ? $t('poi.stopScan') : $t('poi.scan') }}
         </button>
       </div>
-      <div 
-        class="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-8 border-l-transparent border-r-8 border-r-transparent border-t-8"
-        :style="{ borderTopColor: dialogPOIColor }"
-      ></div>
-      <div class="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[6px] border-t-black mt-[-2px]"></div>
-    </div>
-  </div>
+  </DialogShell>
 </template>
 
 <script setup>
@@ -108,6 +100,7 @@ import { getRadarConfig } from '@/services/mapService';
 import { usePoiStore } from '@/stores/poiStore';
 import LabeledProgressBar from '@/components/UI/LabeledProgressBar.vue';
 import ProgressButton from '@/components/UI/ProgressButton.vue';
+import DialogShell from '@/components/UI/DialogShell.vue';
 
 const props = defineProps({
   poi: {
