@@ -1,5 +1,5 @@
 <template>
-  <DialogShell :border-color="dialogPOIColor" background-color="black" container-class="bg-black" wrapper-class="mb-2 w-60">
+  <DialogShell :border-color="dialogPOIColor" class="mb-2 w-60">
     <template #badge>
       <span 
           class="absolute -top-6 -right-[2px] inline-block px-2 py-1 text-xs"

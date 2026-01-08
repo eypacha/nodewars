@@ -73,6 +73,14 @@ export const useGameStore = defineStore('game', () => {
     }
   };
 
+  const persistRadarLevel = async () => {
+    try {
+      await db.game.put({ key: 'radarLevel', data: radarLevel.value });
+    } catch (error) {
+      console.error('Error saving radar level to DB:', error);
+    }
+  };
+
   const loadResources = async () => {
     try {
       const saved = await db.game.get('resources');
@@ -81,6 +89,17 @@ export const useGameStore = defineStore('game', () => {
       }
     } catch (error) {
       console.error('Error loading resources from DB:', error);
+    }
+  };
+
+  const loadRadarLevel = async () => {
+    try {
+      const saved = await db.game.get('radarLevel');
+      if (saved?.data) {
+        radarLevel.value = saved.data;
+      }
+    } catch (error) {
+      console.error('Error loading radar level from DB:', error);
     }
   };
 
@@ -132,6 +151,7 @@ export const useGameStore = defineStore('game', () => {
     resources.value.bank -= cost;
     radarLevel.value = nextLevel;
     persistResources();
+    persistRadarLevel();
     return true;
   };
 
@@ -161,11 +181,13 @@ export const useGameStore = defineStore('game', () => {
     showLocationPopup.value = false;
     persistResources();
     persistBaseHealth();
+    persistRadarLevel();
   };
 
   // Cargar recursos al inicializar el store
   loadResources();
   loadBaseHealth();
+  loadRadarLevel();
 
   return {
     // State
@@ -189,6 +211,8 @@ export const useGameStore = defineStore('game', () => {
     continueGame,
     consumeResource,
     loadResources,
+    persistRadarLevel,
+    loadRadarLevel,
     persistBaseHealth,
     loadBaseHealth,
     setBaseHealth,

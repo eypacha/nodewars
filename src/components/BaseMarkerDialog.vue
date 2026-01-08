@@ -1,5 +1,5 @@
 <template>
-  <DialogShell border-color="white" background-color="black" container-class="bg-black" wrapper-class="mb-2 w-60">
+  <DialogShell border-color="white" class="mb-2 w-60">
     <div class="mb-3">
       <LabeledProgressBar
         :left-label="$t('baseMarker.health')"
