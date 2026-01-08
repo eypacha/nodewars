@@ -17,7 +17,9 @@ export const useLeafletMap = (elementId, initialCenter, initialZoom) => {
   const initMap = () => {
     if (mapRef.value) return; // Ya está inicializado
 
-    mapRef.value = L.map(elementId).setView(initialCenter, initialZoom);
+    mapRef.value = L.map(elementId, {
+      doubleClickZoom: false,
+    }).setView(initialCenter, initialZoom);
 
     const tileConfig = getTileLayerConfig();
     L.tileLayer(tileConfig.url, tileConfig.options).addTo(mapRef.value);

@@ -444,16 +444,26 @@ const getBaseAttackOrigin = () => {
   };
 };
 
+const getOwnedBarracks = () => (pois.value || []).filter((p) => p.type === 'barrack' && p.owned);
+
 const setActiveAttackOrigin = (origin) => {
   if (!origin) return;
+
+  const ownedBarracks = getOwnedBarracks();
+  const baseCenter = baseMarkerPosition.value
+    ? { lat: baseMarkerPosition.value.lat, lng: baseMarkerPosition.value.lng, type: 'base', level: radarLevel.value }
+    : null;
+
   if (origin.type === 'barrack') {
     isBaseAttackOrigin.value = false;
     selectedBarracksForAttack.value = origin;
     createRadar({ lat: origin.lat, lng: origin.lng, type: 'barrack' });
+    renderAllBarracksRadars(ownedBarracks, origin.id, baseCenter);
   } else if (origin.type === 'base') {
     selectedBarracksForAttack.value = null;
     isBaseAttackOrigin.value = true;
     createRadar(origin);
+    renderAllBarracksRadars(ownedBarracks, 'base', baseCenter);
   }
 };
 
@@ -546,14 +556,21 @@ const handleMarkerClick = (e) => {
   if (e) {
     L.DomEvent.stopPropagation(e);
   }
-  if (baseConfirmed.value) {
-    // Cerrar diálogo de POI si está abierto
-    if (showPOIDialog.value) {
-      poiStore.closePOIDialog();
-    }
+  if (!baseConfirmed.value) return;
+
+  const baseAlreadySelected = isBaseAttackOrigin.value && !selectedBarracksForAttack.value;
+
+  // Cerrar diálogo de POI si está abierto
+  if (showPOIDialog.value) {
+    poiStore.closePOIDialog();
+  }
+
+  if (baseAlreadySelected) {
     mapStore.openBaseMarkerDialog();
     updateMarkerScreenPosition();
-    // Activar automáticamente la base al hacer clic
+  } else {
+    mapStore.closeBaseMarkerDialog();
+    // Activar la base como origen de ataque en el primer clic
     handleSelectBaseAsAttackOrigin();
   }
 };

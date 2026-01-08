@@ -370,14 +370,25 @@ export const usePoiStore = defineStore('poi', () => {
 
   const selectPOI = async (poiId) => {
     const poi = applyProductionForPOI(poiId) || getPOIById(poiId);
+    const wasSelected = selectedPOI.value && selectedPOI.value.id === poiId;
+
     selectedPOI.value = poi;
+
     if (poi) {
-      showPOIDialog.value = true;
-      // Cerrar otros diálogos cuando se abre un POI
       const { useMapStore } = await import('./mapStore');
       const mapStore = useMapStore();
+
+      // Primer clic: seleccionar y resaltar; segundo clic: abrir diálogo
+      if (wasSelected && !showPOIDialog.value) {
+        showPOIDialog.value = true;
+      } else if (!wasSelected) {
+        showPOIDialog.value = false;
+      }
+
+      // Cerrar otros diálogos cuando se interactúa con un POI
       mapStore.closeAllDialogs();
     }
+
     return poi; // Devolver el POI para que se pueda usar en MapComponent
   };
 

@@ -11,9 +11,23 @@ import BarracksMarker from '@/components/BarracksMarker.vue';
 
 export const usePointsOfInterest = (mapRef) => {
   const poiStore = usePoiStore();
-  const { pois } = storeToRefs(poiStore);
+  const { pois, selectedPOI, showPOIDialog } = storeToRefs(poiStore);
   
   const poiMarkers = ref([]);
+
+  const applySelectionStyle = (marker, poi, isSelected) => {
+    if (!marker || !poi) return;
+
+    if (poi.type === 'barrack') return;
+
+    if (marker.setStyle) {
+      const config = getPOIConfig();
+      marker.setStyle({
+        weight: isSelected ? config.weight + 2 : config.weight,
+        color: isSelected ? '#ffffff' : poi.color,
+      });
+    }
+  };
 
   /**
    * Crea marcadores visuales para todos los POIs
@@ -92,6 +106,12 @@ export const usePointsOfInterest = (mapRef) => {
         marker,
       });
     });
+
+    // Reaplicar estilo de selección al recrear marcadores
+    if (selectedPOI.value) {
+      const marker = getMarkerById(selectedPOI.value.id);
+      applySelectionStyle(marker, selectedPOI.value, true);
+    }
     
     console.log('✅ Created', poiMarkers.value.length, 'POI markers on map');
   };
@@ -113,6 +133,24 @@ export const usePointsOfInterest = (mapRef) => {
     console.log('👀 POIs watcher triggered, count:', newPois.length);
     createPOIMarkers();
   }, { deep: true });
+
+  watch(selectedPOI, (poi, prevPoi) => {
+    if (prevPoi) {
+      const prevMarker = getMarkerById(prevPoi.id);
+      applySelectionStyle(prevMarker, prevPoi, false);
+    }
+    if (poi) {
+      const marker = getMarkerById(poi.id);
+      applySelectionStyle(marker, poi, true);
+    }
+  });
+
+  watch(showPOIDialog, (visible) => {
+    if (!visible && selectedPOI.value) {
+      const marker = getMarkerById(selectedPOI.value.id);
+      applySelectionStyle(marker, selectedPOI.value, true);
+    }
+  });
 
   /**
    * Obtiene un marcador por ID de POI
