@@ -14,21 +14,39 @@ export const usePoiStore = defineStore('poi', () => {
 
   // Estado
   const pois = ref([]);
-  const isLoading = ref(false);
   const error = ref(null);
-  const lastFetchCenter = ref(null);
-  const lastFetchRadius = ref(null);
+  const maxRetries = 10;
+  const defaultScanKey = 'base';
+  const scanStates = ref(new Map()); // key -> { isLoading, retryCount, shouldStopRetrying, error }
+  const lastFetchCenter = ref(new Map()); // key -> center
+  const lastFetchRadius = ref(new Map()); // key -> radius
   const selectedPOI = ref(null);
   const showPOIDialog = ref(false);
   
-  // Estado de reintentos automáticos
-  const retryCount = ref(0);
-  const maxRetries = 10;
-  const retryTimeout = ref(null);
-  const shouldStopRetrying = ref(false);
+  const getScanState = (key = defaultScanKey) => {
+    const mapCopy = new Map(scanStates.value);
+    if (!mapCopy.has(key)) {
+      mapCopy.set(key, {
+        isLoading: false,
+        retryCount: 0,
+        shouldStopRetrying: false,
+        retryTimeout: null,
+        error: null,
+      });
+      scanStates.value = mapCopy;
+    }
+    return mapCopy.get(key);
+  };
+
+  const setScanState = (key, newState) => {
+    const mapCopy = new Map(scanStates.value);
+    mapCopy.set(key, newState);
+    scanStates.value = mapCopy;
+  };
 
   // Getters
   const poisCount = computed(() => pois.value.length);
+  const isLoading = computed(() => Array.from(scanStates.value.values()).some((s) => s.isLoading));
   
   const poisByType = computed(() => {
     return pois.value.reduce((acc, poi) => {
@@ -122,143 +140,177 @@ export const usePoiStore = defineStore('poi', () => {
 
   // Acciones
   const fetchPOIs = async (center, radius, options = {}) => {
-    const { isRetry = false, stagger = false, staggerDelay = 200 } = options;
+    const { stagger = false, staggerDelay = 200, originKey = defaultScanKey } = options;
 
-    if (!isRetry) {
-      // Si no es un reintento, resetear el contador
-      retryCount.value = 0;
-      shouldStopRetrying.value = false;
-    }
-    
-    console.log('🔍 Scanning...');
-    
-    isLoading.value = true;
+    const key = originKey || defaultScanKey;
+    let state = { ...getScanState(key) };
+
+    // Inicializar estado para este scan
+    state.retryCount = 0;
+    state.shouldStopRetrying = false;
+    state.isLoading = true;
+    state.error = null;
+    setScanState(key, state);
     error.value = null;
-    
-    try {
-      const fetchedPOIs = await fetchPointsOfInterest(center.lat, center.lng, radius);
-      const now = Date.now();
-      
-      // Si no hay error, resetear contador de reintentos
-      retryCount.value = 0;
-      shouldStopRetrying.value = false;
-      
-      // Filtrar POIs dentro del radio y añadir color
-      const newPOIs = fetchedPOIs
-        .filter(poi => {
-          const distance = calculateDistance([center.lat, center.lng], [poi.lat, poi.lng]);
-          return distance <= radius;
-        })
-        .map(poi => withProductionDefaults({
-          ...poi,
-          // Usar la categoría si existe, sino usar el tipo
-          color: getPOIColor(poi.category || poi.type),
-          health: 50,
-          maxHealth: 50,
-          owned: false,
-          resourceAmount: DEFAULT_RESOURCE_CAPACITY,
-          resourceCapacity: DEFAULT_RESOURCE_CAPACITY,
-          productionRate: DEFAULT_PRODUCTION_RATE,
-          lastProducedAt: now,
-          radarActive: false,
-          conqueredFrom: null, // null = base, o ID del cuartel desde donde fue conquistado
-        }));
-      
-      // Crear un Set con los IDs existentes para verificar duplicados
-      const existingIds = new Set(pois.value.map(poi => poi.id));
-      
-      // Filtrar POIs que no estén ya en la lista
-      const uniqueNewPOIs = newPOIs.filter(poi => !existingIds.has(poi.id));
-      
-      // Contar cuántos POIs de cada categoría ya existen
-      const categoryCounts = {};
-      pois.value.forEach(poi => {
-        const category = poi.category || poi.type;
-        categoryCounts[category] = (categoryCounts[category] || 0) + 1;
-      });
-      
-      // Agrupar los nuevos POIs por categoría
-      const poisByCategory = {};
-      uniqueNewPOIs.forEach(poi => {
-        const category = poi.category || poi.type;
-        if (!poisByCategory[category]) {
-          poisByCategory[category] = [];
+
+    console.log(`🔍 Scanning (${key})...`);
+
+    while (true) {
+      // Si otro proceso pidió detener
+      state = { ...getScanState(key) };
+      if (state.shouldStopRetrying) {
+        state.isLoading = false;
+        setScanState(key, state);
+        return { status: 'stopped', error: state.error };
+      }
+
+      try {
+        const fetchedPOIs = await fetchPointsOfInterest(center.lat, center.lng, radius);
+        const now = Date.now();
+
+        // Si durante el fetch se pidió detener, salir sin procesar
+        state = { ...getScanState(key) };
+        if (state.shouldStopRetrying) {
+          state.isLoading = false;
+          setScanState(key, state);
+          return { status: 'stopped', error: 'stopped' };
         }
-        poisByCategory[category].push(poi);
-      });
-      
-      // Agregar máximo 2 POIs por categoría en este scan
-      const poisToAdd = [];
-      Object.keys(poisByCategory).forEach(category => {
-        const existingCount = categoryCounts[category] || 0;
-        const availablePOIs = poisByCategory[category];
-        // Agregar hasta 2 POIs nuevos de esta categoría
-        const toAdd = availablePOIs.slice(0, 2);
-        poisToAdd.push(...toAdd);
-      });
-      
-      if (stagger && poisToAdd.length) {
-        for (let i = 0; i < poisToAdd.length; i++) {
-          const poi = poisToAdd[i];
-          pois.value = [...pois.value, poi];
-          await savePOI(poi);
-          if (i < poisToAdd.length - 1 && staggerDelay > 0) {
-            await sleep(staggerDelay);
+
+        // Resetear contadores de reintento
+        state.retryCount = 0;
+        state.shouldStopRetrying = false;
+        state.error = null;
+        state.isLoading = false;
+        setScanState(key, state);
+
+        // Filtrar POIs dentro del radio y añadir color
+        const newPOIs = fetchedPOIs
+          .filter(poi => {
+            const distance = calculateDistance([center.lat, center.lng], [poi.lat, poi.lng]);
+            return distance <= radius;
+          })
+          .map(poi => withProductionDefaults({
+            ...poi,
+            // Usar la categoría si existe, sino usar el tipo
+            color: getPOIColor(poi.category || poi.type),
+            health: 50,
+            maxHealth: 50,
+            owned: false,
+            resourceAmount: DEFAULT_RESOURCE_CAPACITY,
+            resourceCapacity: DEFAULT_RESOURCE_CAPACITY,
+            productionRate: DEFAULT_PRODUCTION_RATE,
+            lastProducedAt: now,
+            radarActive: false,
+            conqueredFrom: null, // null = base, o ID del cuartel desde donde fue conquistado
+          }));
+
+        // Crear un Set con los IDs existentes para verificar duplicados
+        const existingIds = new Set(pois.value.map(poi => poi.id));
+
+        // Filtrar POIs que no estén ya en la lista
+        const uniqueNewPOIs = newPOIs.filter(poi => !existingIds.has(poi.id));
+
+        // Contar cuántos POIs de cada categoría ya existen
+        const categoryCounts = {};
+        pois.value.forEach(poi => {
+          const category = poi.category || poi.type;
+          categoryCounts[category] = (categoryCounts[category] || 0) + 1;
+        });
+
+        // Agrupar los nuevos POIs por categoría
+        const poisByCategory = {};
+        uniqueNewPOIs.forEach(poi => {
+          const category = poi.category || poi.type;
+          if (!poisByCategory[category]) {
+            poisByCategory[category] = [];
           }
+          poisByCategory[category].push(poi);
+        });
+
+        // Agregar máximo 2 POIs por categoría en este scan
+        const poisToAdd = [];
+        Object.keys(poisByCategory).forEach(category => {
+          const existingCount = categoryCounts[category] || 0;
+          const availablePOIs = poisByCategory[category];
+          // Agregar hasta 2 POIs nuevos de esta categoría
+          const toAdd = availablePOIs.slice(0, 2);
+          poisToAdd.push(...toAdd);
+        });
+
+        if (stagger && poisToAdd.length) {
+          for (let i = 0; i < poisToAdd.length; i++) {
+            const poi = poisToAdd[i];
+            pois.value = [...pois.value, poi];
+            await savePOI(poi);
+            if (i < poisToAdd.length - 1 && staggerDelay > 0) {
+              await sleep(staggerDelay);
+            }
+          }
+        } else {
+          // Sumar los nuevos POIs a los existentes
+          pois.value = [...pois.value, ...poisToAdd];
+          // Guardar los nuevos POIs en DB
+          await Promise.all(poisToAdd.map(poi => savePOI(poi)));
         }
-      } else {
-        // Sumar los nuevos POIs a los existentes
-        pois.value = [...pois.value, ...poisToAdd];
-        // Guardar los nuevos POIs en DB
-        await Promise.all(poisToAdd.map(poi => savePOI(poi)));
-      }
-      
-      lastFetchCenter.value = center;
-      lastFetchRadius.value = radius;
-    } catch (err) {
-      error.value = err.message;
-      console.error('Error fetching POIs:', err);
-      
-      // Si no se debe detener y no se alcanzó el máximo de reintentos
-      if (!shouldStopRetrying.value && retryCount.value < maxRetries) {
-        retryCount.value++;
-        console.log(`Reintentando... (${retryCount.value}/${maxRetries})`);
-        
-        // Esperar 3 segundos antes de reintentar
-      retryTimeout.value = setTimeout(() => {
-        fetchPOIs(center, radius, { ...options, isRetry: true });
-      }, 3000);
-      } else {
+
+        lastFetchCenter.value.set(key, center);
+        lastFetchRadius.value.set(key, radius);
+
+        return { status: 'ok' };
+      } catch (err) {
+        state = { ...getScanState(key) };
+        state.error = err.message;
+        error.value = err.message;
+        console.error(`Error fetching POIs (${key}):`, err);
+
+        // Si no se debe detener y no se alcanzó el máximo de reintentos
+        if (!state.shouldStopRetrying && state.retryCount < maxRetries) {
+          state.retryCount++;
+          setScanState(key, state);
+          console.log(`Reintentando (${key})... (${state.retryCount}/${maxRetries})`);
+          await sleep(3000);
+          continue;
+        }
+
         // Detener después de 10 intentos o si el usuario lo detuvo
-        isLoading.value = false;
-        if (retryCount.value >= maxRetries) {
-          console.log('Máximo de reintentos alcanzado');
+        state.isLoading = false;
+        setScanState(key, state);
+        if (state.retryCount >= maxRetries) {
+          console.log(`Máximo de reintentos alcanzado (${key})`);
         }
-      }
-      return; // No ejecutar finally si estamos reintentando
-    } finally {
-      // Solo detener isLoading si no estamos en proceso de reintento
-      if (shouldStopRetrying.value || retryCount.value >= maxRetries || !error.value) {
-        isLoading.value = false;
+        return { status: 'stopped', error: err.message };
       }
     }
   };
 
   const clearPOIs = () => {
     pois.value = [];
-    lastFetchCenter.value = null;
-    lastFetchRadius.value = null;
+    lastFetchCenter.value = new Map();
+    lastFetchRadius.value = new Map();
     error.value = null;
+    scanStates.value.forEach((state) => {
+      if (state.retryTimeout) {
+        clearTimeout(state.retryTimeout);
+      }
+    });
+    scanStates.value = new Map();
   };
   
-  const stopScan = () => {
-    shouldStopRetrying.value = true;
-    isLoading.value = false;
-    if (retryTimeout.value) {
-      clearTimeout(retryTimeout.value);
-      retryTimeout.value = null;
-    }
-    retryCount.value = 0;
+  const stopScan = (originKey = null) => {
+    const keysToStop = originKey ? [originKey] : Array.from(scanStates.value.keys());
+
+    keysToStop.forEach((key) => {
+      const state = { ...getScanState(key) };
+      state.shouldStopRetrying = true;
+      state.isLoading = false;
+      if (state.retryTimeout) {
+        clearTimeout(state.retryTimeout);
+        state.retryTimeout = null;
+      }
+      state.retryCount = 0;
+      setScanState(key, state);
+      console.log(`⏹️ Scan stopped (${key})`);
+    });
   };
 
   const filterPOIsInRadius = (center, radius) => {
@@ -293,17 +345,20 @@ export const usePoiStore = defineStore('poi', () => {
 
   const resetPOIs = async () => {
     pois.value = [];
-    lastFetchCenter.value = null;
-    lastFetchRadius.value = null;
+    lastFetchCenter.value = new Map();
+    lastFetchRadius.value = new Map();
     error.value = null;
     selectedPOI.value = null;
     showPOIDialog.value = false;
-    retryCount.value = 0;
-    shouldStopRetrying.value = false;
-    if (retryTimeout.value) {
-      clearTimeout(retryTimeout.value);
-      retryTimeout.value = null;
-    }
+
+    // Limpiar timers y estados de scan
+    scanStates.value.forEach((state) => {
+      if (state.retryTimeout) {
+        clearTimeout(state.retryTimeout);
+      }
+    });
+    scanStates.value = new Map();
+
     // Limpiar DB
     try {
       await db.pois.clear();
