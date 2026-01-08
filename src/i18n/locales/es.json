@@ -29,7 +29,8 @@
     "scan": "Escanear",
     "scanning": "Escaneando...",
     "stopScan": "Detener Scan",
-    "upgrades": "Mejoras"
+    "upgrades": "Mejoras",
+    "health": "Salud de la base"
   },
   "poi": {
     "outOfRange": "(Fuera de alcance)",

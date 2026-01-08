@@ -29,7 +29,8 @@
     "scan": "Scan",
     "scanning": "Scanning...",
     "stopScan": "Stop Scan",
-    "upgrades": "Upgrades"
+    "upgrades": "Upgrades",
+    "health": "Base Health"
   },
   "poi": {
     "outOfRange": "(Out of range)",

@@ -15,6 +15,9 @@ export const useGameStore = defineStore('game', () => {
     police: 0,
   });
 
+  const baseHealth = ref(10);
+  const baseMaxHealth = ref(10);
+
   // Upgrades
   const radarLevel = ref(1);
   const radarUpgradeCosts = {
@@ -81,6 +84,31 @@ export const useGameStore = defineStore('game', () => {
     }
   };
 
+  const persistBaseHealth = async () => {
+    try {
+      await db.game.put({ key: 'baseHealth', data: { health: baseHealth.value, maxHealth: baseMaxHealth.value } });
+    } catch (error) {
+      console.error('Error saving base health to DB:', error);
+    }
+  };
+
+  const loadBaseHealth = async () => {
+    try {
+      const saved = await db.game.get('baseHealth');
+      if (saved?.data) {
+        baseHealth.value = saved.data.health ?? 10;
+        baseMaxHealth.value = saved.data.maxHealth ?? 10;
+      }
+    } catch (error) {
+      console.error('Error loading base health from DB:', error);
+    }
+  };
+
+  const setBaseHealth = (value) => {
+    baseHealth.value = Math.max(0, Math.min(baseMaxHealth.value, value));
+    persistBaseHealth();
+  };
+
   const addResource = (resourceType) => {
     if (resources.value.hasOwnProperty(resourceType)) {
       resources.value[resourceType] += 1;
@@ -120,7 +148,10 @@ export const useGameStore = defineStore('game', () => {
       bank: 0,
       police: 0,
     };
-    
+    // Resetear salud base
+    baseHealth.value = 10;
+    baseMaxHealth.value = 10;
+
     // Resetear nivel del radar
     radarLevel.value = 1;
     
@@ -129,10 +160,12 @@ export const useGameStore = defineStore('game', () => {
     showBaseLocationPopup.value = true;
     showLocationPopup.value = false;
     persistResources();
+    persistBaseHealth();
   };
 
   // Cargar recursos al inicializar el store
   loadResources();
+  loadBaseHealth();
 
   return {
     // State
@@ -141,6 +174,8 @@ export const useGameStore = defineStore('game', () => {
     showLocationPopup,
     resources,
     radarLevel,
+    baseHealth,
+    baseMaxHealth,
 
     // Actions
     startGame,
@@ -154,5 +189,8 @@ export const useGameStore = defineStore('game', () => {
     continueGame,
     consumeResource,
     loadResources,
+    persistBaseHealth,
+    loadBaseHealth,
+    setBaseHealth,
   };
 });

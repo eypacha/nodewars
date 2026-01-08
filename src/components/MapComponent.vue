@@ -13,6 +13,8 @@
       v-if="activeDialog === 'baseMarker' && markerScreenPosition && baseConfirmed"
       :style="dialogStyle"
       :is-scanning="isBaseScanActive"
+      :base-health="baseHealth"
+      :base-max-health="baseMaxHealth"
       @scan="handleScan"
       @stopScan="handleStopScan"
       @upgrades="handleOpenUpgrades"
@@ -127,7 +129,7 @@ let isProgrammaticMapMove = false;
 const poiStore = usePoiStore();
 const gameStore = useGameStore();
 const { center, zoom, marker, activeDialog, baseConfirmed, showUpgradesPanel } = storeToRefs(mapStore);
-const { radarLevel, resources } = storeToRefs(gameStore);
+const { radarLevel, resources, baseHealth, baseMaxHealth } = storeToRefs(gameStore);
 const { selectedPOI, showPOIDialog, isLoading, pois } = storeToRefs(poiStore);
 const { enemies } = storeToRefs(enemyStore);
 const selectedBarracksForAttack = ref(null); // Cuartel seleccionado para lanzar ataques
