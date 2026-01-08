@@ -6,21 +6,24 @@
       </h1>
       
       <!-- Botón Continue si hay juego guardado -->
-      <button 
+      <BaseButton 
         v-if="hasSavedGame"
+        class="mb-4"
+        full-width
+        block
+        base-class="cursor-pointer font-bold py-4 px-6 border-1 text-xl mx-auto block w-full"
+        :label="$t('gameStart.continueButton')"
         @click="$emit('continue-game')"
-        class="cursor-pointer font-bold py-4 px-6 border-1 text-xl mx-auto block w-full mb-4"
-      >
-        {{ $t('gameStart.continueButton') }}
-      </button>
+      />
       
       <!-- Botón Start -->
-      <button 
+      <BaseButton 
+        full-width
+        block
+        base-class="cursor-pointer font-bold py-4 px-6 border-1 text-xl mx-auto block w-full"
+        :label="$t('gameStart.startButton')"
         @click="$emit('start-game')"
-        class="cursor-pointer font-bold py-4 px-6 border-1 text-xl mx-auto block w-full"
-      >
-        {{ $t('gameStart.startButton') }}
-      </button>
+      />
     </div>
   </div>
 </template>
@@ -28,6 +31,7 @@
 <script setup>
 import { computed } from 'vue';
 import { useMapStore } from '@/stores/mapStore';
+import BaseButton from '@/components/UI/BaseButton.vue';
 
 defineEmits(['start-game', 'continue-game']);
 

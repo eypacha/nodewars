@@ -3,17 +3,19 @@
     <p class="text-center text-white text-sm mb-3">
       {{ $t('markerConfirm.instruction') }}
     </p>
-    <button 
+    <BaseButton 
+      block
+      full-width
+      class="mx-auto"
+      :label="$t('markerConfirm.confirm')"
       @click="$emit('confirm')"
-      class="cursor-pointer font-bold py-2 px-4 border-1 text-sm mx-auto block w-full"
-    >
-      {{ $t('markerConfirm.confirm') }}
-    </button>
+    />
   </DialogShell>
 </template>
 
 <script setup>
 import DialogShell from '@/components/UI/DialogShell.vue';
+import BaseButton from '@/components/UI/BaseButton.vue';
 
 defineEmits(['confirm']);
 </script>

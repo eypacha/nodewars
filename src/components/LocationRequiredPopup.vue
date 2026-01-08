@@ -4,16 +4,17 @@
       <h2 class="text-xl font-bold text-center mb-8">
         {{ $t('locationRequired.title') }}
       </h2>
-      <button 
+      <BaseButton 
+        base-class="cursor-pointer font-bold py-4 px-6 border-1 text-xl mx-auto block"
+        :label="$t('locationRequired.backButton')"
         @click="$emit('back')"
-        class="cursor-pointer font-bold py-4 px-6 border-1 text-xl mx-auto block"
-      >
-        {{ $t('locationRequired.backButton') }}
-      </button>
+      />
     </div>
   </div>
 </template>
 
 <script setup>
+import BaseButton from '@/components/UI/BaseButton.vue';
+
 defineEmits(['back']);
 </script>

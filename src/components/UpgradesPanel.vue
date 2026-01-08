@@ -29,17 +29,14 @@
             <p class="text-gray-500">{{ $t('upgrades.currentRadius') }} <span class="text-white font-bold">{{ currentRadarRadius }}m</span></p>
           </div>
 
-          <button
+          <BaseButton
             @click="handleUpgrade"
             :disabled="!canAffordUpgrade || maxLevelReached"
-            class="w-full font-bold py-3 px-4 border-2 text-sm relative overflow-hidden transition-all"
-            :class="{
-              'cursor-pointer border-white': canAffordUpgrade && !maxLevelReached,
-              'opacity-50': !canAffordUpgrade || maxLevelReached
-            }"
-          >
-            {{ maxLevelReached ? $t('upgrades.maxLevel') : canAffordUpgrade ? $t('upgrades.upgradeButton') : $t('upgrades.insufficientFunds') }}
-          </button>
+            :label="maxLevelReached ? $t('upgrades.maxLevel') : canAffordUpgrade ? $t('upgrades.upgradeButton') : $t('upgrades.insufficientFunds')"
+            block
+            full-width
+            base-class="font-bold py-3 px-4 border-2 border-white text-sm relative overflow-hidden transition-all"
+          />
         </div>
       </div>
     </div>
@@ -51,7 +48,7 @@ import { computed } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useGameStore } from '@/stores/gameStore';
 import { getRadarConfig } from '@/services/mapService';
-
+import BaseButton from '@/components/UI/BaseButton.vue';
 const emit = defineEmits(['close']);
 
 const gameStore = useGameStore();

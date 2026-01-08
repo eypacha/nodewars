@@ -81,13 +81,14 @@
           :progress="convertingProgress"
           @click="handleConvertToBarracks"
         />
-        <button
+        <BaseButton
           v-if="poi.type === 'barrack' && isActive"
+          class="mx-auto mt-3"
+          block
+          full-width
+          :label="isScanning ? $t('poi.stopScan') : $t('poi.scan')"
           @click="isScanning ? $emit('stopScan') : handleScan()"
-          class="font-bold py-2 px-4 border-1 text-sm mx-auto block w-full mt-3 relative overflow-hidden cursor-pointer"
-        >
-          {{ isScanning ? $t('poi.stopScan') : $t('poi.scan') }}
-        </button>
+        />
       </div>
   </DialogShell>
 </template>
@@ -101,6 +102,8 @@ import { usePoiStore } from '@/stores/poiStore';
 import LabeledProgressBar from '@/components/UI/LabeledProgressBar.vue';
 import ProgressButton from '@/components/UI/ProgressButton.vue';
 import DialogShell from '@/components/UI/DialogShell.vue';
+import BaseButton from '@/components/UI/BaseButton.vue';
+import { useProgressTimer } from '@/composables/useProgressTimer';
 
 const props = defineProps({
   poi: {
@@ -148,32 +151,16 @@ const dialogPOIColor = computed(() => {
   if (!props.poi) return baseRadarColor;
   return props.poi.type === 'barrack' ? baseRadarColor : props.poi.color;
 });
-// Emitir evento para convertir en barrack con barra de progreso
-const isConverting = ref(false);
-const convertingProgress = ref(0);
 const CONVERT_DURATION = 2000;
+const convertCooldown = useProgressTimer(CONVERT_DURATION, {
+  onComplete: () => emit('convertToBarracks'),
+});
+const isConverting = convertCooldown.isRunning;
+const convertingProgress = convertCooldown.progress;
 
 const handleConvertToBarracks = () => {
-  if (isConverting.value) return;
-  isConverting.value = true;
-  convertingProgress.value = 0;
-  const startTime = performance.now();
-
-  const updateConvertProgress = (currentTime) => {
-    const elapsed = currentTime - startTime;
-    const progress = Math.min((elapsed / CONVERT_DURATION) * 100, 100);
-    convertingProgress.value = progress;
-
-    if (progress < 100) {
-      requestAnimationFrame(updateConvertProgress);
-    } else {
-      emit('convertToBarracks');
-      isConverting.value = false;
-      convertingProgress.value = 0;
-    }
-  };
-
-  requestAnimationFrame(updateConvertProgress);
+  if (convertCooldown.isRunning.value) return;
+  convertCooldown.start();
 };
 // Emitir evento para escanear desde cuartel
 const handleScan = () => {
@@ -189,93 +176,37 @@ const handleSelectAsAttackOrigin = () => {
   emit('selectAsAttackOrigin', props.poi);
 };
 // Estado del cooldown
-const isOnCooldown = ref(false);
-const cooldownProgress = ref(0);
 const COOLDOWN_DURATION = 2000; // 2 segundos en milisegundos
-const isExtractOnCooldown = ref(false);
-const extractCooldownProgress = ref(0);
 const EXTRACT_COOLDOWN_DURATION = 2000;
-const isHealOnCooldown = ref(false);
-const healCooldownProgress = ref(0);
 const HEAL_COOLDOWN_DURATION = 2000;
+
+const attackCooldown = useProgressTimer(COOLDOWN_DURATION);
+const extractCooldown = useProgressTimer(EXTRACT_COOLDOWN_DURATION);
+const healCooldown = useProgressTimer(HEAL_COOLDOWN_DURATION);
+const isOnCooldown = attackCooldown.isRunning;
+const cooldownProgress = attackCooldown.progress;
+const isExtractOnCooldown = extractCooldown.isRunning;
+const extractCooldownProgress = extractCooldown.progress;
+const isHealOnCooldown = healCooldown.isRunning;
+const healCooldownProgress = healCooldown.progress;
 
 // Manejar click en Attack con cooldown
 const handleAttack = () => {
-  if (isOnCooldown.value) return;
-  
-  // Emitir evento de ataque
+  if (attackCooldown.isRunning.value) return;
   emit('attack');
-  
-  // Iniciar cooldown
-  isOnCooldown.value = true;
-  cooldownProgress.value = 0;
-  
-  const startTime = performance.now();
-  
-  const updateCooldown = (currentTime) => {
-    const elapsed = currentTime - startTime;
-    const progress = Math.min((elapsed / COOLDOWN_DURATION) * 100, 100);
-    
-    cooldownProgress.value = progress;
-    
-    if (progress < 100) {
-      requestAnimationFrame(updateCooldown);
-    } else {
-      // Cooldown completado
-      isOnCooldown.value = false;
-      cooldownProgress.value = 0;
-    }
-  };
-  
-  requestAnimationFrame(updateCooldown);
+  attackCooldown.start();
 };
 
 const handleExtract = () => {
-  if (isExtractOnCooldown.value) return;
+  if (extractCooldown.isRunning.value) return;
   emit('extract');
-
-  isExtractOnCooldown.value = true;
-  extractCooldownProgress.value = 0;
-  const startTime = performance.now();
-
-  const updateExtractCooldown = (currentTime) => {
-    const elapsed = currentTime - startTime;
-    const progress = Math.min((elapsed / EXTRACT_COOLDOWN_DURATION) * 100, 100);
-    extractCooldownProgress.value = progress;
-
-    if (progress < 100) {
-      requestAnimationFrame(updateExtractCooldown);
-    } else {
-      isExtractOnCooldown.value = false;
-      extractCooldownProgress.value = 0;
-    }
-  };
-
-  requestAnimationFrame(updateExtractCooldown);
+  extractCooldown.start();
 };
 
 const handleHeal = () => {
-  if (isHealOnCooldown.value) return;
+  if (healCooldown.isRunning.value) return;
   emit('heal');
-
-  isHealOnCooldown.value = true;
-  healCooldownProgress.value = 0;
-  const startTime = performance.now();
-
-  const updateHealCooldown = (currentTime) => {
-    const elapsed = currentTime - startTime;
-    const progress = Math.min((elapsed / HEAL_COOLDOWN_DURATION) * 100, 100);
-    healCooldownProgress.value = progress;
-
-    if (progress < 100) {
-      requestAnimationFrame(updateHealCooldown);
-    } else {
-      isHealOnCooldown.value = false;
-      healCooldownProgress.value = 0;
-    }
-  };
-
-  requestAnimationFrame(updateHealCooldown);
+  healCooldown.start();
 };
 
 const updateProductionProgress = () => {

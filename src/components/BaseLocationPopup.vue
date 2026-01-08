@@ -22,23 +22,22 @@
         </div>
         
         <div class="flex gap-4">
-          <button 
+          <BaseButton 
             type="button"
-            @click="useCurrentLocation"
-            class="flex-1 cursor-pointer font-bold py-3 px-4 border border-white/50 hover:bg-white/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            class="flex-1"
+            base-class="flex-1 cursor-pointer font-bold py-3 px-4 border border-white/50 hover:bg-white/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            :label="$t('baseLocation.useGPS')"
             :disabled="isLoading"
-          >
-            {{ $t('baseLocation.useGPS') }}
-          </button>
+            @click="useCurrentLocation"
+          />
           
-          <button 
+          <BaseButton 
             type="submit"
-            class="flex-1 cursor-pointer font-bold py-3 px-4 border border-white hover:bg-white hover:text-black transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            class="flex-1"
+            base-class="flex-1 cursor-pointer font-bold py-3 px-4 border border-white hover:bg-white hover:text-black transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            :label="!isLoading ? $t('baseLocation.confirm') : $t('baseLocation.loading')"
             :disabled="isLoading || !locationInput.trim()"
-          >
-            <span v-if="!isLoading">{{ $t('baseLocation.confirm') }}</span>
-            <span v-else>{{ $t('baseLocation.loading') }}</span>
-          </button>
+          />
         </div>
       </form>
     </div>
@@ -48,6 +47,7 @@
 <script setup>
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import BaseButton from '@/components/UI/BaseButton.vue';
 
 const { t } = useI18n();
 
