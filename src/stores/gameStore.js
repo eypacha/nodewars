@@ -7,6 +7,7 @@ export const useGameStore = defineStore('game', () => {
   const showStartPopup = ref(true);
   const showBaseLocationPopup = ref(false);
   const showLocationPopup = ref(false);
+  const showGameOverPopup = ref(false);
   const resources = ref({
     food: 0,
     pharmacy: 0,
@@ -45,11 +46,13 @@ export const useGameStore = defineStore('game', () => {
   const startGame = () => {
     showStartPopup.value = false;
     showBaseLocationPopup.value = true;
+    showGameOverPopup.value = false;
   };
 
   const continueGame = () => {
     showStartPopup.value = false;
     showBaseLocationPopup.value = false;
+    showGameOverPopup.value = false;
   };
 
   const confirmBaseLocation = () => {
@@ -117,6 +120,9 @@ export const useGameStore = defineStore('game', () => {
       if (saved?.data) {
         baseHealth.value = saved.data.health ?? 10;
         baseMaxHealth.value = saved.data.maxHealth ?? 10;
+        if (baseHealth.value <= 0) {
+          showGameOverPopup.value = true;
+        }
       }
     } catch (error) {
       console.error('Error loading base health from DB:', error);
@@ -125,6 +131,9 @@ export const useGameStore = defineStore('game', () => {
 
   const setBaseHealth = (value) => {
     baseHealth.value = Math.max(0, Math.min(baseMaxHealth.value, value));
+    if (baseHealth.value <= 0) {
+      showGameOverPopup.value = true;
+    }
     persistBaseHealth();
   };
 
@@ -171,6 +180,7 @@ export const useGameStore = defineStore('game', () => {
     // Resetear salud base
     baseHealth.value = 10;
     baseMaxHealth.value = 10;
+    showGameOverPopup.value = false;
 
     // Resetear nivel del radar
     radarLevel.value = 1;
@@ -194,6 +204,7 @@ export const useGameStore = defineStore('game', () => {
     showStartPopup,
     showBaseLocationPopup,
     showLocationPopup,
+    showGameOverPopup,
     resources,
     radarLevel,
     baseHealth,
@@ -204,11 +215,11 @@ export const useGameStore = defineStore('game', () => {
     confirmBaseLocation,
     showLocationError,
     goBackToLocationSelect,
+    continueGame,
     addResource,
     upgradeRadar,
     getRadarUpgradeCost,
     resetGame,
-    continueGame,
     consumeResource,
     loadResources,
     persistRadarLevel,

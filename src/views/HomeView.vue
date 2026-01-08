@@ -6,6 +6,10 @@
       @start-game="handleStartGame"
       @continue-game="handleContinueGame"
     />
+    <GameOverPopup
+      v-if="gameStore.showGameOverPopup"
+      @restart="handleGameOverRestart"
+    />
     <BaseLocationPopup 
       v-if="gameStore.showBaseLocationPopup" 
       @location-selected="handleLocationSelected" 
@@ -16,9 +20,9 @@
 </template>
 
 <script setup>
-import { onMounted } from 'vue';
 import MapComponent from '../components/MapComponent.vue';
 import GameStartPopup from '../components/GameStartPopup.vue';
+import GameOverPopup from '../components/GameOverPopup.vue';
 import BaseLocationPopup from '../components/BaseLocationPopup.vue';
 import LocationRequiredPopup from '../components/LocationRequiredPopup.vue';
 import { useGameStore } from '@/stores/gameStore';
@@ -37,6 +41,16 @@ const handleStartGame = async () => {
   mapStore.resetMap();
   poiStore.resetPOIs();
   mapStore.clearSavedGame();
+};
+
+const handleGameOverRestart = async () => {
+  mapStore.clearSavedGame();
+  mapStore.resetMap();
+  poiStore.resetPOIs();
+  gameStore.resetGame();
+  gameStore.showStartPopup = true;
+  gameStore.showBaseLocationPopup = false;
+  gameStore.showGameOverPopup = false;
 };
 
 const handleContinueGame = async () => {
