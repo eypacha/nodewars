@@ -17,15 +17,16 @@
 import { storeToRefs } from 'pinia';
 import { computed } from 'vue';
 import { useGameStore } from '@/stores/gameStore';
+import { RESOURCE_POI_TYPES, getPOIColor, getPOIDisplayName } from '@/constants/poiTypes';
 
 const gameStore = useGameStore();
 const { resources } = storeToRefs(gameStore);
 
-const resourceList = computed(() => [
-  { key: 'food', label: 'Food', bg: '#FF8C42' },
-  { key: 'pharmacy', label: 'Pharma', bg: '#4CAF50' },
-  { key: 'fuel', label: 'Fuel', bg: '#E74C3C' },
-  { key: 'bank', label: 'Bank', bg: '#FFD700' },
-  { key: 'police', label: 'Police', bg: '#1E90FF' },
-]);
+const resourceList = computed(() =>
+  RESOURCE_POI_TYPES.map((type) => ({
+    key: type,
+    label: getPOIDisplayName(type),
+    bg: getPOIColor(type),
+  }))
+);
 </script>

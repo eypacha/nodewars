@@ -1,14 +1,15 @@
 <template>
   <div class="pointer-events-auto mb-2 w-60">
     <div class="bg-black border-2 border-white px-4 py-3 shadow-2xl relative">
-      <div>
-        <h3 class="text-white text-sm font-bold mb-2">{{ poi.name }}</h3>
-                <span 
-          class="inline-block px-2 py-1 text-xs rounded"
+      <span 
+          class="absolute top-2 -right-3 inline-block px-2 py-1 text-xs rounded"
           :style="{ backgroundColor: poi.color, color: 'white' }"
         >
-          {{ getEmojiForType(poi.type) }} {{ getCustomNameForType(poi.type) }}
+          <span class="emoji">{{ getPOIEmoji(poi.type) }}</span>  
+        {{ getPOIDisplayName(poi.type) }}
         </span>
+      <div>
+        <h3 class="text-white text-sm font-bold mb-2">{{ poi.name }}</h3>
         <p v-if="formattedDistance" class="text-white text-xs mb-2 opacity-75">
           {{ formattedDistance }}<span v-if="!poi.owned && !isInRange" class="text-red-400"> {{ $t('poi.outOfRange') }}</span>
         </p>
@@ -108,8 +109,9 @@
 
 <script setup>
 import { computed, ref, onMounted, onBeforeUnmount, watch } from 'vue';
-import { usePoiStore } from '@/stores/poiStore';
 import { calculateDistance } from '@/utils/mapHelpers';
+import { getPOIEmoji, getPOIDisplayName } from '@/constants/poiTypes';
+import { usePoiStore } from '@/stores/poiStore';
 
 const props = defineProps({
   poi: {
@@ -141,30 +143,6 @@ const props = defineProps({
     default: false,
   },
 });
-
-const getEmojiForType = (type) => {
-  const emojis = {
-    food: '🍽️',
-    pharmacy: '💊',
-    fuel: '⛽',
-    bank: '🏦',
-    police: '👮',
-    barrack: '🏰',
-  };
-  return emojis[type] || '📍';
-};
-
-const getCustomNameForType = (type) => {
-  const names = {
-    food: 'Supply Node',
-    pharmacy: 'Med Unit',
-    fuel: 'Energy Depot',
-    bank: 'Credit Core',
-    police: 'Security Node',
-    barrack: 'Ops Barracks',
-  };
-  return names[type] || type;
-};
 
 const emit = defineEmits(['close', 'attack', 'extract', 'convertToBarracks', 'scan', 'stopScan', 'selectAsAttackOrigin']);
 const poiStore = usePoiStore();

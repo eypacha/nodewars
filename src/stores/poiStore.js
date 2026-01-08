@@ -1,13 +1,14 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
-import { fetchPointsOfInterest, getPOIColor } from '@/services/overpassService';
+import { fetchPointsOfInterest } from '@/services/overpassService';
+import { getPOIColor } from '@/constants/poiTypes';
 import { calculateDistance } from '@/utils/mapHelpers';
 import { db } from '@/services/dbService';
 
 export const usePoiStore = defineStore('poi', () => {
   const DEFAULT_RESOURCE_CAPACITY = 5;
   const DEFAULT_PRODUCTION_RATE = 60000; // 1 minuto en ms
-  const BARRACK_COLOR = '#38bdf8';
+  const BARRACK_COLOR = getPOIColor('barrack');
 
   const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 

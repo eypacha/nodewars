@@ -1,3 +1,5 @@
+import { normalizePOICategory } from '@/constants/poiTypes';
+
 /**
  * Servicio para consultar puntos de interés usando Overpass API
  * Overpass API permite consultar datos de OpenStreetMap
@@ -107,32 +109,4 @@ const calculateDistance = (coord1, coord2) => {
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
   return R * c;
-};
-
-/**
- * Normaliza el tipo de POI a una categoría
- * @param {string} type - Tipo de POI
- * @returns {string} Categoría normalizada
- */
-const normalizePOICategory = (type) => {
-  // Agrupar fastfood, restaurant, supermarket en la categoría "food"
-  const foodTypes = ['restaurant', 'fast_food', 'supermarket'];
-  if (foodTypes.includes(type)) {
-    return 'food';
-  }
-  // Otros tipos mantienen su nombre
-  return type;
-};
-
-export const getPOIColor = (type) => {
-  const colorMap = {
-    food: '#FF8C42',      // Naranja para comida
-    pharmacy: '#4CAF50',  // Verde para farmacia/medicina
-    fuel: '#E74C3C',      // Rojo para combustible
-    bank: '#FFD700',      // Amarillo/oro para banco/dinero
-    police: '#1E90FF',    // Celeste para comisarías
-    barrack: '#38bdf8',   // Azul para barrack
-  };
-
-  return colorMap[type] || '#95a5a6'; // Gris por defecto para tipos desconocidos
 };

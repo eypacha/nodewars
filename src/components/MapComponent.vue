@@ -92,7 +92,7 @@ import { useConnectionLines } from '@/composables/useConnectionLines';
 import { useScreenPositions } from '@/composables/useScreenPositions';
 import { useMapDialogs } from '@/composables/useMapDialogs';
 import { getRadarConfig } from '@/services/mapService';
-import { getPOIColor } from '@/services/overpassService';
+import { getPOIColor } from '@/constants/poiTypes';
 import BaseMarker from './BaseMarker.vue';
 import MarkerConfirmDialog from './MarkerConfirmDialog.vue';
 import BaseMarkerDialog from './BaseMarkerDialog.vue';
