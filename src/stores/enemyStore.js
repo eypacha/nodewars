@@ -58,6 +58,9 @@ export const useEnemyStore = defineStore('enemy', {
         return true;
       });
     },
+    removeEnemy(id) {
+      this.enemies = this.enemies.filter((e) => e.id !== id);
+    },
     clearEnemies() {
       this.enemies = [];
     },

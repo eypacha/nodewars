@@ -71,7 +71,7 @@
     <div 
       v-for="enemy in enemyMarkers" 
       :key="enemy.id"
-      class="enemy-triangle"
+      class="enemy-triangle cursor-pointer"
       :style="{
         position: 'absolute',
         left: `${enemy.x}px`,
@@ -79,6 +79,7 @@
         transform: `translate(-50%, -50%) rotate(${enemy.rotation}deg)`,
         zIndex: 800,
       }"
+      @click.stop="handleEnemyClick(enemy.id)"
     >
       ▲
     </div>
@@ -215,6 +216,21 @@ const handleBaseHeal = () => {
   if (!healed) return;
   gameStore.setBaseHealth(baseHealth.value + 1);
   baseHealCooldown.start();
+};
+
+const handleEnemyClick = (enemyId) => {
+  const enemy = enemies.value.find((e) => e.id === enemyId);
+  if (!enemy) return;
+  const origin = currentAttackOrigin.value || null;
+  startAttack({ lat: enemy.lat, lng: enemy.lng }, origin, {
+    onHit: () => enemyStore.removeEnemy(enemyId),
+    trackTarget: () => {
+      const liveEnemy = enemies.value.find((e) => e.id === enemyId);
+      if (!liveEnemy) return null;
+      return { lat: liveEnemy.lat, lng: liveEnemy.lng };
+    },
+    interceptDistanceMeters: 5,
+  });
 };
 
 // Radio actual del radar según el tipo de centro de ataque
@@ -866,7 +882,8 @@ watch(selectedBarracksForAttack, (newBarrack) => {
 }
 
 .enemy-triangle {
-  pointer-events: none;
+  pointer-events: auto;
+  cursor: pointer;
   color: #f87171;
   font-size: 24px;
   text-shadow: 0 0 10px rgba(248, 113, 113, 0.8);

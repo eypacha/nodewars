@@ -16,16 +16,18 @@ export const useAttackAnimation = (mapRef, markerRef) => {
    * @param {Object} targetPOI - POI objetivo con lat y lng
    * @param {Object} attackOrigin - Cuartel desde el que atacar (opcional, usa base si no se proporciona)
    */
-  const startAttack = (targetPOI, attackOrigin = null) => {
-    if (!markerRef.value || !targetPOI || !mapRef.value) return;
-    
+  const startAttack = (target, attackOrigin = null, options = {}) => {
+    if (!markerRef.value || !target || !mapRef.value) return;
+
+    const { onHit, trackTarget, interceptDistanceMeters = 30 } = options;
+
     const attackId = nextAttackId++;
-    
+
     // Usar cuartel como origen si se proporciona, sino usar la base
     const startLatLng = attackOrigin 
       ? L.latLng([attackOrigin.lat, attackOrigin.lng])
       : markerRef.value.getLatLng();
-    const endLatLng = [targetPOI.lat, targetPOI.lng];
+    let endLatLng = [target.lat, target.lng];
     
     // Calcular distancia real en metros
     const distanceInMeters = L.latLng(startLatLng).distanceTo(L.latLng(endLatLng));
@@ -36,7 +38,7 @@ export const useAttackAnimation = (mapRef, markerRef) => {
     
     // Calcular ángulo de rotación
     const startPoint = mapRef.value.latLngToContainerPoint(startLatLng);
-    const endPoint = mapRef.value.latLngToContainerPoint(endLatLng);
+    let endPoint = mapRef.value.latLngToContainerPoint(endLatLng);
     const dx = endPoint.x - startPoint.x;
     const dy = endPoint.y - startPoint.y;
     const rotation = (Math.atan2(dy, dx) * 180 / Math.PI) + 90; // +90 para que apunte hacia arriba por defecto
@@ -62,6 +64,15 @@ export const useAttackAnimation = (mapRef, markerRef) => {
       const elapsed = currentTime - startTime;
       const progress = Math.min(elapsed / duration, 1);
       
+      // Actualizar objetivo dinámico si se proporciona
+      if (trackTarget) {
+        const dynamicTarget = trackTarget();
+        if (dynamicTarget && dynamicTarget.lat != null && dynamicTarget.lng != null) {
+          endLatLng = [dynamicTarget.lat, dynamicTarget.lng];
+          endPoint = mapRef.value.latLngToContainerPoint(endLatLng);
+        }
+      }
+
       // Interpolación lineal de las coordenadas geográficas
       const currentLat = startLatLng.lat + (endLatLng[0] - startLatLng.lat) * progress;
       const currentLng = startLatLng.lng + (endLatLng[1] - startLatLng.lng) * progress;
@@ -74,15 +85,21 @@ export const useAttackAnimation = (mapRef, markerRef) => {
       if (attackIndex !== -1) {
         attackTriangles.value[attackIndex].x = currentPoint.x;
         attackTriangles.value[attackIndex].y = currentPoint.y;
+        attackTriangles.value[attackIndex].rotation = ((Math.atan2(endPoint.y - currentPoint.y, endPoint.x - currentPoint.x) * 180) / Math.PI) + 90;
       }
-      
-      if (progress < 1) {
+
+      const distanceToTarget = L.latLng([currentLat, currentLng]).distanceTo(L.latLng(endLatLng));
+
+      if (progress < 1 && distanceToTarget > interceptDistanceMeters) {
         attack.animationFrame = requestAnimationFrame(animate);
       } else {
-        // Animación completada - reducir health del POI
-        // Pasar el ID del origen de ataque (cuartel o null para base)
-        const attackOriginId = attackOrigin ? attackOrigin.id : null;
-        poiStore.damagePOI(targetPOI.id, 1, attackOriginId);
+        // Animación completada o interceptada - ejecutar callback o dañar POI
+        if (onHit) {
+          onHit();
+        } else if (target.id != null) {
+          const attackOriginId = attackOrigin ? attackOrigin.id : null;
+          poiStore.damagePOI(target.id, 1, attackOriginId);
+        }
         
         // Eliminar el ataque después de un breve delay
         setTimeout(() => {
