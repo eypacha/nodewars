@@ -18,105 +18,71 @@
         </p>
 
         <!-- Resources bar -->
-        <div v-if="poi.type !== 'barrack' && poi.owned" class="mb-2">
-          <div class="flex justify-between text-white text-xs mb-1">
-            <span>{{ $t('poi.resources') }}</span>
-            <span>{{ poi.resourceAmount }} / {{ poi.resourceCapacity }}</span>
-          </div>
-          <div class="w-full bg-gray-700 h-3 overflow-hidden">
-            <div 
-              class="h-full transition-all duration-300"
-              :style="{ width: resourcePercentage + '%', backgroundColor: dialogPOIColor }"
-            ></div>
-          </div>
-        </div>
+        <LabeledProgressBar
+          v-if="poi.type !== 'barrack' && poi.owned"
+          class="mb-2"
+          :left-label="$t('poi.resources')"
+          :right-label="`${poi.resourceAmount} / ${poi.resourceCapacity}`"
+          :progress="resourcePercentage"
+          :bar-color="dialogPOIColor"
+          size="large"
+        />
         
         <!-- Health bar -->
-        <div class="mb-2">
-          <div class="flex justify-between text-white text-xs mb-1">
-            <span>{{ $t('poi.health') }}</span>
-            <span>{{ poi.health }} / {{ poi.maxHealth }}</span>
-          </div>
-          <div class="w-full bg-gray-700 h-1 overflow-hidden">
-            <div 
-              class="h-full transition-all duration-300"
-              :class="healthBarColor"
-              :style="{ width: healthPercentage + '%' }"
-            ></div>
-          </div>
-        </div>
+        <LabeledProgressBar
+          class="mb-2"
+          :left-label="$t('poi.health')"
+          :right-label="`${poi.health} / ${poi.maxHealth}`"
+          :progress="healthPercentage"
+          :bar-color="healthBarColor"
+        />
 
         <div v-if="poi.type !== 'barrack' && poi.owned" class="mb-2">
-          <div class="flex justify-between text-white text-xs mb-1">
-            <span>{{ $t('poi.production') }}</span>
-            <span>{{ productionLabel }}</span>
-          </div>
-          <div class="w-full bg-gray-700 h-1 overflow-hidden">
-            <div 
-              class="h-full bg-white transition-all duration-300"
-              :style="{ width: productionProgress + '%' }"
-            ></div>
-          </div>
+          <LabeledProgressBar
+            :left-label="$t('poi.production')"
+            :right-label="productionLabel"
+            :progress="productionProgress"
+            bar-color="white"
+          />
         </div>
       </div>
-      <button 
+      <ProgressButton
         v-if="!poi.owned"
-        @click="handleAttack"
+        class="mt-3 transition-opacity"
+        :label="$t('poi.attack')"
         :disabled="isOnCooldown || !isInRange"
-        class="font-bold py-2 px-4 border-1 text-sm mx-auto block w-full mt-3 relative overflow-hidden transition-opacity"
-        :class="(isOnCooldown || !isInRange) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'"
-      >
-        <!-- Barra de progreso del cooldown -->
-        <div 
-          v-if="isOnCooldown"
-          class="absolute top-0 left-0 h-1 bg-white"
-          :style="{ width: cooldownProgress + '%' }"
-        ></div>
-        {{ $t('poi.attack') }}
-      </button>
+        :show-progress="isOnCooldown"
+        :progress="cooldownProgress"
+        @click="handleAttack"
+      />
       <div v-else>
-        <button
+        <ProgressButton
           v-if="poi.type !== 'barrack'"
-          @click="handleExtract"
+          class="mt-3"
+          :label="poi.resourceAmount ? $t('poi.extract') : $t('poi.noResources')"
           :disabled="isExtractOnCooldown || !poi.resourceAmount"
-          class="font-bold py-2 px-4 border-1 text-sm mx-auto block w-full mt-3 relative overflow-hidden"
-          :class="(isExtractOnCooldown || !poi.resourceAmount) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'"
-        >
-          <div
-            v-if="isExtractOnCooldown"
-            class="absolute top-0 left-0 h-1 bg-white"
-            :style="{ width: extractCooldownProgress + '%' }"
-          ></div>
-          {{ poi.resourceAmount ? $t('poi.extract') : $t('poi.noResources') }}
-        </button>
-        <button
+          :show-progress="isExtractOnCooldown"
+          :progress="extractCooldownProgress"
+          @click="handleExtract"
+        />
+        <ProgressButton
           v-if="poi.owned"
-          @click="handleHeal"
+          class="mt-2"
+          :label="$t('poi.heal')"
           :disabled="isHealOnCooldown || poi.health >= poi.maxHealth || !canHeal"
-          class="font-bold py-2 px-4 border-1 text-sm mx-auto block w-full mt-2 relative overflow-hidden"
-          :class="(isHealOnCooldown || poi.health >= poi.maxHealth || !canHeal) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'"
-        >
-          <div
-            v-if="isHealOnCooldown"
-            class="absolute top-0 left-0 h-1 bg-white"
-            :style="{ width: healCooldownProgress + '%' }"
-          ></div>
-          {{ $t('poi.heal') }}
-        </button>
-        <button
+          :show-progress="isHealOnCooldown"
+          :progress="healCooldownProgress"
+          @click="handleHeal"
+        />
+        <ProgressButton
           v-if="poi.type !== 'barrack'"
-          @click="handleConvertToBarracks"
-          class="font-bold py-2 px-4 border-1 text-sm mx-auto block w-full mt-2 relative overflow-hidden"
+          class="mt-2"
+          :label="isConverting ? $t('poi.converting') : $t('poi.convertToBarracks')"
           :disabled="isConverting"
-          :class="isConverting ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'"
-        >
-          <div
-            v-if="isConverting"
-            class="absolute top-0 left-0 h-1 bg-white"
-            :style="{ width: convertingProgress + '%' }"
-          ></div>
-          {{ isConverting ? $t('poi.converting') : $t('poi.convertToBarracks') }}
-        </button>
+          :show-progress="isConverting"
+          :progress="convertingProgress"
+          @click="handleConvertToBarracks"
+        />
         <button
           v-if="poi.type === 'barrack' && isActive"
           @click="isScanning ? $emit('stopScan') : handleScan()"
@@ -140,6 +106,8 @@ import { calculateDistance } from '@/utils/mapHelpers';
 import { getPOIEmoji, getPOIDisplayName } from '@/constants/poiTypes';
 import { getRadarConfig } from '@/services/mapService';
 import { usePoiStore } from '@/stores/poiStore';
+import LabeledProgressBar from '@/components/UI/LabeledProgressBar.vue';
+import ProgressButton from '@/components/UI/ProgressButton.vue';
 
 const props = defineProps({
   poi: {
@@ -378,7 +346,7 @@ const productionLabel = computed(() => {
 
 // Color de la barra de health según el porcentaje
 const healthBarColor = computed(() => {
-  return 'bg-green-500';
+  return '#22c55e';
 });
 
 // Calcular y formatear la distancia
