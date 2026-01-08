@@ -59,7 +59,7 @@
         left: `${triangle.x}px`,
         top: `${triangle.y}px`,
         transform: `translate(-50%, -50%) rotate(${triangle.rotation}deg)`,
-        zIndex: 999,
+        zIndex: 800,
       }"
     >
       ▲
@@ -72,8 +72,8 @@
         position: 'absolute',
         left: `${enemy.x}px`,
         top: `${enemy.y}px`,
-        transform: 'translate(-50%, -50%) rotate(0deg)',
-        zIndex: 1000,
+        transform: `translate(-50%, -50%) rotate(${enemy.rotation}deg)`,
+        zIndex: 800,
       }"
     >
       ▲
@@ -120,6 +120,7 @@ import POIDialog from './POIDialog.vue';
 import ResourceHUD from './ResourceHUD.vue';
 import UpgradesPanel from './UpgradesPanel.vue';
 import { useEnemySpawn } from '@/composables/useEnemySpawn';
+import { useEnemyMovement } from '@/composables/useEnemyMovement';
 
 const mapStore = useMapStore();
 const enemyStore = useEnemyStore();
@@ -181,6 +182,24 @@ const baseMarkerPosition = computed(() => {
 });
 
 const enemySpawner = useEnemySpawn({ baseMarkerPosition, pois, radarLevel });
+const enemyMover = useEnemyMovement({
+  getTargetPosition: (type, id) => {
+    if (type === 'base') {
+      return baseMarkerPosition.value;
+    }
+    if (type === 'barrack') {
+      const target = (pois.value || []).find((p) => String(p.id) === String(id));
+      if (target) return { lat: target.lat, lng: target.lng };
+    }
+    return null;
+  },
+  onBaseHit: () => {
+    gameStore.setBaseHealth(baseHealth.value - 1);
+  },
+  onBarrackHit: (poiId) => {
+    poiStore.damagePOI(poiId, 1);
+  },
+});
 
 // Radio actual del radar según el tipo de centro de ataque
 const radarRadius = computed(() => {
@@ -260,6 +279,7 @@ const enemyMarkers = computed(() => {
       id: enemy.id,
       x: point.x,
       y: point.y,
+      rotation: enemy.heading ?? 0,
     };
   });
 });
@@ -550,8 +570,10 @@ watch(isBaseAttackOrigin, (isBase) => {
 watch(baseConfirmed, (confirmed) => {
   if (confirmed) {
     enemySpawner.startEnemySpawnLoop();
+    enemyMover.start();
   } else {
     enemySpawner.stopEnemySpawnLoop();
+    enemyMover.stop();
   }
 }, { immediate: true });
 
@@ -591,6 +613,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   enemySpawner.stopEnemySpawnLoop();
+  enemyMover.stop();
 });
 
 // Observar cambios de centro y zoom

@@ -62,6 +62,8 @@ export const useEnemySpawn = ({ baseMarkerPosition, pois, radarLevel }) => {
       center: radar.center,
       radius: radar.radius,
       angle: angle ?? undefined,
+      targetType: radar.id === 'base' ? 'base' : 'barrack',
+      targetId: radar.id === 'base' ? 'base' : radar.id.replace('barrack-', ''),
     });
   };
 

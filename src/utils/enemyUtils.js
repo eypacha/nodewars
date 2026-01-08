@@ -27,3 +27,34 @@ export const findAngleOutsideOtherRadars = (radar, radars, attempts = 24) => {
   }
   return null;
 };
+
+export const computeBearingRadians = (from, to) => {
+  const lat1 = toRadians(from.lat);
+  const lat2 = toRadians(to.lat);
+  const dLon = toRadians(to.lng - from.lng);
+
+  const y = Math.sin(dLon) * Math.cos(lat2);
+  const x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLon);
+  return Math.atan2(y, x);
+};
+
+export const moveTowards = (from, bearingRad, distanceMeters) => {
+  const lat1 = toRadians(from.lat);
+  const lon1 = toRadians(from.lng);
+  const angularDistance = distanceMeters / EARTH_RADIUS_METERS;
+
+  const lat2 = Math.asin(
+    Math.sin(lat1) * Math.cos(angularDistance) +
+    Math.cos(lat1) * Math.sin(angularDistance) * Math.cos(bearingRad)
+  );
+
+  const lon2 = lon1 + Math.atan2(
+    Math.sin(bearingRad) * Math.sin(angularDistance) * Math.cos(lat1),
+    Math.cos(angularDistance) - Math.sin(lat1) * Math.sin(lat2)
+  );
+
+  return {
+    lat: toDegrees(lat2),
+    lng: toDegrees(lon2),
+  };
+};

@@ -404,16 +404,13 @@ export const usePoiStore = defineStore('poi', () => {
   const damagePOI = (poiId, damage = 1, attackOriginId = null) => {
     const poi = getPOIById(poiId);
     if (poi) {
-      // Solo reducir health si no está owned
-      if (!poi.owned) {
-        poi.health = Math.max(0, poi.health - damage);
-        
-        // Si el health llega a 0, marcar como owned
-        if (poi.health <= 0) {
-          poi.owned = true;
-          // Registrar desde dónde fue conquistado (base = null, o ID del cuartel)
-          poi.conqueredFrom = attackOriginId;
-        }
+      // Reducir health de cualquier POI (owned o no)
+      poi.health = Math.max(0, poi.health - damage);
+      
+      // Si el health llega a 0 y no estaba owned, marcar como conquistado
+      if (poi.health <= 0 && !poi.owned) {
+        poi.owned = true;
+        poi.conqueredFrom = attackOriginId;
       }
       updatePOI(poiId, { health: poi.health, owned: poi.owned, conqueredFrom: poi.conqueredFrom });
     }
