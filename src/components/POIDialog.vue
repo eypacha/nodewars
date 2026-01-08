@@ -185,7 +185,6 @@ let productionInterval = null;
 const baseRadarColor = getRadarConfig().color;
 const dialogPOIColor = computed(() => {
   if (!props.poi) return baseRadarColor;
-  if (props.poi.enemy) return props.poi.color;
   return props.poi.type === 'barrack' ? baseRadarColor : props.poi.color;
 });
 // Emitir evento para convertir en barrack con barra de progreso

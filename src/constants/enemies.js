@@ -1,7 +1,7 @@
 export const ENEMY_CONFIG = {
   spawnOnScan: {
     enabled: true,
-    probability: 0.5, // Probabilidad por scan completado (cambiado a 50% para debug)
+    probability: 0.5, // Probabilidad por scan completado
     radarRadius: 500,
     color: '#ef4444',
     minDistanceFromOwned: 150,
