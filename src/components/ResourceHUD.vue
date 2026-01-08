@@ -4,10 +4,10 @@
       <div
         v-for="item in resourceList"
         :key="item.key"
-        class="flex items-center gap-2 text-xs text-white px-2 py-1"
+        class="flex items-center gap-2 font-bold text-white px-2 py-1 w-7 justify-center text-sm"
         :style="{ backgroundColor: item.bg, color: '#0b0b0b' }"
       >
-        <span class="font-mono text-sm">{{ resources[item.key] }}</span>
+        {{ resources[item.key] }}
       </div>
     </div>
   </div>
