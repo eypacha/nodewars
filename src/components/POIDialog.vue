@@ -154,6 +154,7 @@ const dialogPOIColor = computed(() => {
 const CONVERT_DURATION = 2000;
 const convertCooldown = useProgressTimer(CONVERT_DURATION, {
   onComplete: () => emit('convertToBarracks'),
+  key: `poi-${props.poi.id}-convert`,
 });
 const isConverting = convertCooldown.isRunning;
 const convertingProgress = convertCooldown.progress;
@@ -180,9 +181,9 @@ const COOLDOWN_DURATION = 2000; // 2 segundos en milisegundos
 const EXTRACT_COOLDOWN_DURATION = 2000;
 const HEAL_COOLDOWN_DURATION = 2000;
 
-const attackCooldown = useProgressTimer(COOLDOWN_DURATION);
-const extractCooldown = useProgressTimer(EXTRACT_COOLDOWN_DURATION);
-const healCooldown = useProgressTimer(HEAL_COOLDOWN_DURATION);
+const attackCooldown = useProgressTimer(COOLDOWN_DURATION, { key: `poi-${props.poi.id}-attack` });
+const extractCooldown = useProgressTimer(EXTRACT_COOLDOWN_DURATION, { key: `poi-${props.poi.id}-extract` });
+const healCooldown = useProgressTimer(HEAL_COOLDOWN_DURATION, { key: `poi-${props.poi.id}-heal` });
 const isOnCooldown = attackCooldown.isRunning;
 const cooldownProgress = attackCooldown.progress;
 const isExtractOnCooldown = extractCooldown.isRunning;

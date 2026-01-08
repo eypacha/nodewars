@@ -1,49 +1,76 @@
 import { onBeforeUnmount, ref } from 'vue';
 
-export function useProgressTimer(durationMs, { onComplete } = {}) {
-  const progress = ref(0);
-  const isRunning = ref(false);
-  let rafId = null;
+const timers = new Map();
+
+export function useProgressTimer(durationMs, { onComplete, key } = {}) {
+  if (!durationMs || durationMs <= 0) {
+    throw new Error('useProgressTimer requires a positive duration');
+  }
+
+  const getState = () => {
+    if (key && timers.has(key)) {
+      return timers.get(key);
+    }
+
+    const state = {
+      progress: ref(0),
+      isRunning: ref(false),
+      rafId: null,
+      startTime: 0,
+    };
+
+    if (key) timers.set(key, state);
+    return state;
+  };
+
+  const state = getState();
 
   const stop = () => {
-    if (rafId) {
-      cancelAnimationFrame(rafId);
-      rafId = null;
+    if (state.rafId) {
+      cancelAnimationFrame(state.rafId);
+      state.rafId = null;
     }
-    isRunning.value = false;
-    progress.value = 0;
+    state.isRunning.value = false;
+    state.progress.value = 0;
   };
 
   const start = (completeCallback) => {
-    if (isRunning.value) return;
+    if (state.isRunning.value) return;
 
-    isRunning.value = true;
-    progress.value = 0;
-    const startTime = performance.now();
+    state.isRunning.value = true;
+    state.progress.value = 0;
+    state.startTime = performance.now();
 
     const tick = (now) => {
-      const elapsed = now - startTime;
+      const elapsed = now - state.startTime;
       const value = Math.min((elapsed / durationMs) * 100, 100);
-      progress.value = value;
+      state.progress.value = value;
 
       if (value < 100) {
-        rafId = requestAnimationFrame(tick);
+        state.rafId = requestAnimationFrame(tick);
       } else {
-        isRunning.value = false;
-        progress.value = 0;
+        state.isRunning.value = false;
+        state.progress.value = 0;
+        state.rafId = null;
         if (onComplete) onComplete();
         if (completeCallback) completeCallback();
+        if (key) timers.delete(key);
       }
     };
 
-    rafId = requestAnimationFrame(tick);
+    state.rafId = requestAnimationFrame(tick);
   };
 
-  onBeforeUnmount(stop);
+  onBeforeUnmount(() => {
+    // No detenemos si hay clave compartida para permitir persistencia.
+    if (!key) {
+      stop();
+    }
+  });
 
   return {
-    progress,
-    isRunning,
+    progress: state.progress,
+    isRunning: state.isRunning,
     start,
     stop,
   };
