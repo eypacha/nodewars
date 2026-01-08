@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
+import { db } from '@/services/dbService';
 
 export const useGameStore = defineStore('game', () => {
   // Estado de los popups
@@ -61,9 +62,29 @@ export const useGameStore = defineStore('game', () => {
     showBaseLocationPopup.value = true;
   };
 
+  const persistResources = async () => {
+    try {
+      await db.game.put({ key: 'resources', data: { ...resources.value } });
+    } catch (error) {
+      console.error('Error saving resources to DB:', error);
+    }
+  };
+
+  const loadResources = async () => {
+    try {
+      const saved = await db.game.get('resources');
+      if (saved?.data) {
+        resources.value = saved.data;
+      }
+    } catch (error) {
+      console.error('Error loading resources from DB:', error);
+    }
+  };
+
   const addResource = (resourceType) => {
     if (resources.value.hasOwnProperty(resourceType)) {
       resources.value[resourceType] += 1;
+      persistResources();
     }
   };
 
@@ -71,6 +92,7 @@ export const useGameStore = defineStore('game', () => {
     if (!resources.value.hasOwnProperty(resourceType)) return false;
     if (resources.value[resourceType] < amount) return false;
     resources.value[resourceType] -= amount;
+    persistResources();
     return true;
   };
 
@@ -81,6 +103,7 @@ export const useGameStore = defineStore('game', () => {
     
     resources.value.bank -= cost;
     radarLevel.value = nextLevel;
+    persistResources();
     return true;
   };
 
@@ -105,7 +128,11 @@ export const useGameStore = defineStore('game', () => {
     showStartPopup.value = false;
     showBaseLocationPopup.value = true;
     showLocationPopup.value = false;
+    persistResources();
   };
+
+  // Cargar recursos al inicializar el store
+  loadResources();
 
   return {
     // State
@@ -126,5 +153,6 @@ export const useGameStore = defineStore('game', () => {
     resetGame,
     continueGame,
     consumeResource,
+    loadResources,
   };
 });

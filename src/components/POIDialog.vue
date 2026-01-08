@@ -48,7 +48,7 @@
 
         <div v-if="poi.type !== 'barrack' && poi.owned" class="mb-2">
           <div class="flex justify-between text-white text-xs mb-1">
-            <span>Producción</span>
+            <span>{{ $t('poi.production') }}</span>
             <span>{{ productionLabel }}</span>
           </div>
           <div class="w-full bg-gray-700 h-1 overflow-hidden">
@@ -106,9 +106,16 @@
         <button
           v-if="poi.type !== 'barrack'"
           @click="handleConvertToBarracks"
-          class="font-bold py-2 px-4 border-1 text-sm mx-auto block w-full mt-2 relative overflow-hidden cursor-pointer"
+          class="font-bold py-2 px-4 border-1 text-sm mx-auto block w-full mt-2 relative overflow-hidden"
+          :disabled="isConverting"
+          :class="isConverting ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'"
         >
-          {{ $t('poi.convertToBarracks') }}
+          <div
+            v-if="isConverting"
+            class="absolute top-0 left-0 h-1 bg-white"
+            :style="{ width: convertingProgress + '%' }"
+          ></div>
+          {{ isConverting ? $t('poi.converting') : $t('poi.convertToBarracks') }}
         </button>
         <button
           v-if="poi.type === 'barrack' && isActive"
@@ -180,9 +187,32 @@ const dialogPOIColor = computed(() => {
   if (!props.poi) return baseRadarColor;
   return props.poi.type === 'barrack' ? baseRadarColor : props.poi.color;
 });
-// Emitir evento para convertir en barrack
+// Emitir evento para convertir en barrack con barra de progreso
+const isConverting = ref(false);
+const convertingProgress = ref(0);
+const CONVERT_DURATION = 2000;
+
 const handleConvertToBarracks = () => {
-  emit('convertToBarracks');
+  if (isConverting.value) return;
+  isConverting.value = true;
+  convertingProgress.value = 0;
+  const startTime = performance.now();
+
+  const updateConvertProgress = (currentTime) => {
+    const elapsed = currentTime - startTime;
+    const progress = Math.min((elapsed / CONVERT_DURATION) * 100, 100);
+    convertingProgress.value = progress;
+
+    if (progress < 100) {
+      requestAnimationFrame(updateConvertProgress);
+    } else {
+      emit('convertToBarracks');
+      isConverting.value = false;
+      convertingProgress.value = 0;
+    }
+  };
+
+  requestAnimationFrame(updateConvertProgress);
 };
 // Emitir evento para escanear desde cuartel
 const handleScan = () => {
