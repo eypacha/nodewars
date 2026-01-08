@@ -21,6 +21,8 @@ export const useEnemySpawn = ({ baseMarkerPosition, pois, radarLevel }) => {
         id: 'base',
         center: baseMarkerPosition.value,
         radius: baseConfig.radius,
+        targetType: 'base',
+        targetId: 'base',
       });
     }
 
@@ -30,6 +32,8 @@ export const useEnemySpawn = ({ baseMarkerPosition, pois, radarLevel }) => {
         id: `barrack-${poi.id}`,
         center: { lat: poi.lat, lng: poi.lng },
         radius: BARRACKS_RADAR_RADIUS,
+        targetType: 'barrack',
+        targetId: poi.id,
       });
     });
 
@@ -62,8 +66,8 @@ export const useEnemySpawn = ({ baseMarkerPosition, pois, radarLevel }) => {
       center: radar.center,
       radius: radar.radius,
       angle: angle ?? undefined,
-      targetType: radar.id === 'base' ? 'base' : 'barrack',
-      targetId: radar.id === 'base' ? 'base' : radar.id.replace('barrack-', ''),
+      targetType: radar.targetType,
+      targetId: radar.targetId,
     });
   };
 
