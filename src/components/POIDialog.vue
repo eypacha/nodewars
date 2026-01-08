@@ -90,6 +90,20 @@
           {{ poi.resourceAmount ? $t('poi.extract') : $t('poi.noResources') }}
         </button>
         <button
+          v-if="poi.owned"
+          @click="handleHeal"
+          :disabled="isHealOnCooldown || poi.health >= poi.maxHealth || !canHeal"
+          class="font-bold py-2 px-4 border-1 text-sm mx-auto block w-full mt-2 relative overflow-hidden"
+          :class="(isHealOnCooldown || poi.health >= poi.maxHealth || !canHeal) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'"
+        >
+          <div
+            v-if="isHealOnCooldown"
+            class="absolute top-0 left-0 h-1 bg-white"
+            :style="{ width: healCooldownProgress + '%' }"
+          ></div>
+          {{ $t('poi.heal') }}
+        </button>
+        <button
           v-if="poi.type !== 'barrack'"
           @click="handleConvertToBarracks"
           class="font-bold py-2 px-4 border-1 text-sm mx-auto block w-full mt-2 relative overflow-hidden cursor-pointer"
@@ -149,9 +163,13 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  canHeal: {
+    type: Boolean,
+    default: false,
+  },
 });
 
-const emit = defineEmits(['close', 'attack', 'extract', 'convertToBarracks', 'scan', 'stopScan', 'selectAsAttackOrigin']);
+const emit = defineEmits(['close', 'attack', 'extract', 'convertToBarracks', 'scan', 'stopScan', 'selectAsAttackOrigin', 'heal']);
 const poiStore = usePoiStore();
 const productionProgress = ref(0);
 const timeToNextProduction = ref(0);
@@ -186,6 +204,9 @@ const COOLDOWN_DURATION = 2000; // 2 segundos en milisegundos
 const isExtractOnCooldown = ref(false);
 const extractCooldownProgress = ref(0);
 const EXTRACT_COOLDOWN_DURATION = 2000;
+const isHealOnCooldown = ref(false);
+const healCooldownProgress = ref(0);
+const HEAL_COOLDOWN_DURATION = 2000;
 
 // Manejar click en Attack con cooldown
 const handleAttack = () => {
@@ -240,6 +261,30 @@ const handleExtract = () => {
   };
 
   requestAnimationFrame(updateExtractCooldown);
+};
+
+const handleHeal = () => {
+  if (isHealOnCooldown.value) return;
+  emit('heal');
+
+  isHealOnCooldown.value = true;
+  healCooldownProgress.value = 0;
+  const startTime = performance.now();
+
+  const updateHealCooldown = (currentTime) => {
+    const elapsed = currentTime - startTime;
+    const progress = Math.min((elapsed / HEAL_COOLDOWN_DURATION) * 100, 100);
+    healCooldownProgress.value = progress;
+
+    if (progress < 100) {
+      requestAnimationFrame(updateHealCooldown);
+    } else {
+      isHealOnCooldown.value = false;
+      healCooldownProgress.value = 0;
+    }
+  };
+
+  requestAnimationFrame(updateHealCooldown);
 };
 
 const updateProductionProgress = () => {

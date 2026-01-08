@@ -47,7 +47,7 @@ export const useResourceCollection = (mapRef, markerRef) => {
    * @param {string} resourceColor - Color del recurso
    * @param {boolean} isLastLeg - Si es el último tramo hacia la base
    */
-  const createResourceParticle = (startLatLng, endLatLng, resourceType, resourceColor, isLastLeg = false) => {
+  const createResourceParticle = (startLatLng, endLatLng, resourceType, resourceColor, isLastLeg = false, onArrive = null) => {
     const particleId = nextParticleId++;
     
     // Calcular distancia real en metros
@@ -97,9 +97,13 @@ export const useResourceCollection = (mapRef, markerRef) => {
       if (progress < 1) {
         particle.animationFrame = requestAnimationFrame(animate);
       } else {
-        // Si es el último tramo, agregar recurso al gameStore
+        // Si es el último tramo, ejecutar callback o agregar recurso al gameStore
         if (isLastLeg) {
-          gameStore.addResource(resourceType);
+          if (typeof onArrive === 'function') {
+            onArrive();
+          } else {
+            gameStore.addResource(resourceType);
+          }
         }
         
         // Eliminar la partícula después de un breve delay
@@ -150,7 +154,8 @@ export const useResourceCollection = (mapRef, markerRef) => {
           L.latLng(endPoint),
           resourceType,
           resourceColor,
-          isLastLeg
+          isLastLeg,
+          () => gameStore.addResource(resourceType)
         );
       }, delay);
       
@@ -174,9 +179,53 @@ export const useResourceCollection = (mapRef, markerRef) => {
     resourceParticles.value = [];
   };
 
+  /**
+   * Envía un recurso desde la base hacia un POI conquistado (para curar/reabastecer)
+   * @param {Object} targetPOI - POI objetivo
+   * @param {string} resourceColor - Color del recurso
+   * @param {Array} allPois - Array de todos los POIs
+   * @param {Function} onArrive - Callback al llegar al último tramo
+   */
+  const startHealingDelivery = (targetPOI, resourceColor, allPois = [], onArrive = null) => {
+    if (!markerRef.value || !targetPOI || !mapRef.value) return;
+    const basePosition = markerRef.value.getLatLng();
+
+    // Cadena desde el objetivo a la base y luego invertida (base -> objetivo)
+    let chain = buildSupplyChain(targetPOI, allPois);
+    const lastPoint = chain[chain.length - 1];
+    if (lastPoint[0] !== basePosition.lat || lastPoint[1] !== basePosition.lng) {
+      chain.push([basePosition.lat, basePosition.lng]);
+    }
+    chain = chain.reverse();
+
+    let delay = 0;
+    for (let i = 0; i < chain.length - 1; i++) {
+      const startPoint = chain[i];
+      const endPoint = chain[i + 1];
+      const isLastLeg = (i === chain.length - 2);
+
+      setTimeout(() => {
+        createResourceParticle(
+          L.latLng(startPoint),
+          L.latLng(endPoint),
+          'pharmacy',
+          resourceColor,
+          isLastLeg,
+          isLastLeg ? onArrive : null
+        );
+      }, delay);
+
+      const distanceInMeters = L.latLng(startPoint).distanceTo(L.latLng(endPoint));
+      const speed = 150; // m/s
+      const duration = (distanceInMeters / speed) * 1000;
+      delay += duration + 100;
+    }
+  };
+
   return {
     resourceParticles,
     startResourceCollection,
+    startHealingDelivery,
     cancelResourceCollection,
   };
 };

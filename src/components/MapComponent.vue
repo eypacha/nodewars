@@ -27,9 +27,11 @@
       :radar-radius="radarRadius"
       :all-pois="pois"
       :is-scanning="isSelectedBarrackScanActive"
+      :can-heal="resources.pharmacy > 0"
       @close="handleClosePOIDialog"
       @attack="handleAttack"
       @extract="handleExtract"
+      @heal="handleHeal"
       @convertToBarracks="handleConvertToBarracks"
       @scan="handleScanFromBarracks"
       @stopScan="handleStopScan"
@@ -108,7 +110,7 @@ let isProgrammaticMapMove = false;
 const poiStore = usePoiStore();
 const gameStore = useGameStore();
 const { center, zoom, marker, activeDialog, baseConfirmed, showUpgradesPanel } = storeToRefs(mapStore);
-const { radarLevel } = storeToRefs(gameStore);
+const { radarLevel, resources } = storeToRefs(gameStore);
 const { selectedPOI, showPOIDialog, isLoading, pois } = storeToRefs(poiStore);
 const selectedBarracksForAttack = ref(null); // Cuartel seleccionado para lanzar ataques
 const isBaseAttackOrigin = ref(false); // Si la base está seleccionada como punto de ataque
@@ -131,7 +133,7 @@ const { radarRef, createRadar, renderAllBarracksRadars, updatePosition: updateRa
 const { clearPOIMarkers } = usePointsOfInterest(mapRef);
 
 // Composables para funcionalidades específicas
-const { resourceParticles, startResourceCollection } = useResourceCollection(mapRef, markerRef);
+const { resourceParticles, startResourceCollection, startHealingDelivery } = useResourceCollection(mapRef, markerRef);
 const { attackTriangles, startAttack, cancelAttack } = useAttackAnimation(mapRef, markerRef);
 const { 
   createConnectionLine, 
@@ -314,6 +316,25 @@ const handleExtract = () => {
   const resourceType = selectedPOI.value.category || selectedPOI.value.type;
   const resourceColor = getPOIColor(resourceType);
   startResourceCollection(selectedPOI.value, resourceType, resourceColor, pois.value);
+};
+
+const handleHeal = () => {
+  if (!selectedPOI.value || !selectedPOI.value.owned) return;
+  const target = selectedPOI.value;
+  if (target.health >= target.maxHealth) return;
+
+  const resourceType = 'pharmacy';
+  const hasMed = gameStore.consumeResource(resourceType);
+  if (!hasMed) {
+    console.log('⚠️ No hay recursos médicos disponibles en la base');
+    return;
+  }
+
+  const healAmount = 1;
+  const resourceColor = getPOIColor(resourceType);
+  startHealingDelivery(target, resourceColor, pois.value, () => {
+    poiStore.healPOI(target.id, healAmount);
+  });
 };
 
 // Manejar conversión a barrack

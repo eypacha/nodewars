@@ -67,6 +67,13 @@ export const useGameStore = defineStore('game', () => {
     }
   };
 
+  const consumeResource = (resourceType, amount = 1) => {
+    if (!resources.value.hasOwnProperty(resourceType)) return false;
+    if (resources.value[resourceType] < amount) return false;
+    resources.value[resourceType] -= amount;
+    return true;
+  };
+
   const upgradeRadar = () => {
     const nextLevel = radarLevel.value + 1;
     const cost = calculateUpgradeCost(nextLevel);
@@ -118,5 +125,6 @@ export const useGameStore = defineStore('game', () => {
     getRadarUpgradeCost,
     resetGame,
     continueGame,
+    consumeResource,
   };
 });

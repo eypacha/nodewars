@@ -38,6 +38,7 @@
     "attack": "Attack",
     "extract": "Extract",
     "noResources": "No resources",
+    "heal": "Heal",
     "convertToBarracks": "Convert to barrack",
     "scan": "Scan",
     "stopScan": "Stop Scan"

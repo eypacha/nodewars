@@ -38,6 +38,7 @@
     "attack": "Atacar",
     "extract": "Extraer",
     "noResources": "Sin recursos",
+    "heal": "Curar",
     "convertToBarracks": "Convertir en cuartel",
     "scan": "Escanear",
     "stopScan": "Detener Scan"

@@ -193,8 +193,8 @@ export const usePoiStore = defineStore('poi', () => {
             ...poi,
             // Usar la categoría si existe, sino usar el tipo
             color: getPOIColor(poi.category || poi.type),
-            health: 50,
-            maxHealth: 50,
+          health: 5,
+          maxHealth: 5,
             owned: false,
             resourceAmount: DEFAULT_RESOURCE_CAPACITY,
             resourceCapacity: DEFAULT_RESOURCE_CAPACITY,
@@ -401,7 +401,7 @@ export const usePoiStore = defineStore('poi', () => {
     return true;
   };
 
-  const damagePOI = (poiId, damage = 10, attackOriginId = null) => {
+  const damagePOI = (poiId, damage = 1, attackOriginId = null) => {
     const poi = getPOIById(poiId);
     if (poi) {
       // Solo reducir health si no está owned
@@ -417,6 +417,16 @@ export const usePoiStore = defineStore('poi', () => {
       }
       updatePOI(poiId, { health: poi.health, owned: poi.owned, conqueredFrom: poi.conqueredFrom });
     }
+  };
+
+  const healPOI = (poiId, amount = 1) => {
+    const poi = getPOIById(poiId);
+    if (!poi || !poi.owned) return false;
+    const maxHealth = poi.maxHealth || poi.health || 0;
+    const newHealth = Math.min(maxHealth, (poi.health || 0) + amount);
+    poi.health = newHealth;
+    updatePOI(poiId, { health: newHealth });
+    return true;
   };
 
   return {
@@ -442,6 +452,7 @@ export const usePoiStore = defineStore('poi', () => {
     selectPOI,
     closePOIDialog,
     damagePOI,
+    healPOI,
     consumeResource,
     applyProductionForPOI,
     convertToBarracks,

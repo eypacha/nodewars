@@ -82,7 +82,7 @@ export const useAttackAnimation = (mapRef, markerRef) => {
         // Animación completada - reducir health del POI
         // Pasar el ID del origen de ataque (cuartel o null para base)
         const attackOriginId = attackOrigin ? attackOrigin.id : null;
-        poiStore.damagePOI(targetPOI.id, 10, attackOriginId);
+        poiStore.damagePOI(targetPOI.id, 1, attackOriginId);
         
         // Eliminar el ataque después de un breve delay
         setTimeout(() => {

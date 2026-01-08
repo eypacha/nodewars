@@ -30,13 +30,14 @@ export const useConnectionLines = (mapRef, markerRef) => {
     
     // Determinar color: azul cian para cuarteles, color del POI para normales
     const lineColor = poi.type === 'barrack' ? BARRACK_LINE_COLOR : poi.color;
+    const lineWeight = poi.type === 'barrack' ? 4 : 2;
     
     // Crear línea punteada con el color de la categoría del POI
     connectionLineRef.value = L.polyline(
       [[markerPosition.lat, markerPosition.lng], poiPosition],
       {
         color: lineColor,
-        weight: 2,
+        weight: lineWeight,
         opacity: 0.6,
         dashArray: '10, 5',
         className: 'poi-connection-line'
@@ -97,12 +98,13 @@ export const useConnectionLines = (mapRef, markerRef) => {
       
       // Determinar color: azul cian para cuarteles, color del POI para normales
       const lineColor = poi.type === 'barrack' ? BARRACK_LINE_COLOR : poi.color;
+      const lineWeight = poi.type === 'barrack' ? 4 : 2;
       
       const line = L.polyline(
         [[originPosition.lat, originPosition.lng], poiPosition],
         {
           color: lineColor,
-          weight: 2,
+          weight: lineWeight,
           opacity: 0.8,
           // Línea sólida (sin dashArray)
           className: 'poi-owned-connection-line'
