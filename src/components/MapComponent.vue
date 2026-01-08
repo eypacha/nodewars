@@ -901,10 +901,9 @@ watch(selectedBarracksForAttack, (newBarrack) => {
 .enemy-triangle {
   pointer-events: auto;
   cursor: pointer;
-  color: #f87171;
+  color: #ff0000;
   font-size: 24px;
-  text-shadow: 0 0 10px rgba(248, 113, 113, 0.8);
-  filter: drop-shadow(0 0 5px rgba(248, 113, 113, 0.9));
+  filter: drop-shadow(0 0 10px rgba(255, 0, 0, 0.9));
 }
 
 .resource-particle {
