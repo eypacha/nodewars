@@ -14,7 +14,7 @@ export const POI_TYPES = {
   fuel: {
     displayName: 'Energy Depot',
     emoji: '⛽',
-    color: '#E74C3C',
+    color: '#cd23e8ff',
     normalizeKeys: ['fuel'],
   },
   bank: {
