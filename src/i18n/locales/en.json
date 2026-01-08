@@ -56,5 +56,10 @@
     "upgradeButton": "Upgrade",
     "maxLevel": "Max Level",
     "insufficientFunds": "Insufficient Funds"
+  },
+  "gameOver": {
+    "title": "Game Over",
+    "description": "The base has been destroyed.",
+    "restart": "Restart"
   }
 }
