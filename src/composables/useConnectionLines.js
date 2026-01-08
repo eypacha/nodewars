@@ -4,10 +4,12 @@
  */
 import { ref } from 'vue';
 import L from 'leaflet';
+import { getPOIColor } from '@/constants/poiTypes';
 
 export const useConnectionLines = (mapRef, markerRef) => {
   const connectionLineRef = ref(null);
   const ownedConnectionLines = ref([]);
+  const BARRACK_LINE_COLOR = getPOIColor('barrack');
 
   /**
    * Crea línea de conexión entre el marcador base y un POI
@@ -27,7 +29,7 @@ export const useConnectionLines = (mapRef, markerRef) => {
     const poiPosition = [poi.lat, poi.lng];
     
     // Determinar color: azul cian para cuarteles, color del POI para normales
-    const lineColor = poi.type === 'barrack' ? '#00bcff' : poi.color;
+    const lineColor = poi.type === 'barrack' ? BARRACK_LINE_COLOR : poi.color;
     
     // Crear línea punteada con el color de la categoría del POI
     connectionLineRef.value = L.polyline(
@@ -94,7 +96,7 @@ export const useConnectionLines = (mapRef, markerRef) => {
       }
       
       // Determinar color: azul cian para cuarteles, color del POI para normales
-      const lineColor = poi.type === 'barrack' ? '#00bcff' : poi.color;
+      const lineColor = poi.type === 'barrack' ? BARRACK_LINE_COLOR : poi.color;
       
       const line = L.polyline(
         [[originPosition.lat, originPosition.lng], poiPosition],

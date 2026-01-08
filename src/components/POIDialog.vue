@@ -1,9 +1,12 @@
 <template>
   <div class="pointer-events-auto mb-2 w-60">
-    <div class="bg-black border-2 border-white px-4 py-3 shadow-2xl relative">
+    <div 
+      class="bg-black border-2 px-4 py-3 shadow-2xl relative"
+      :style="{ borderColor: dialogPOIColor }"
+    >
       <span 
-          class="absolute top-2 -right-3 inline-block px-2 py-1 text-xs rounded"
-          :style="{ backgroundColor: poi.color, color: 'white' }"
+          class="absolute -top-6 -right-[2px] inline-block px-2 py-1 text-xs"
+          :style="{ backgroundColor: dialogPOIColor, color: 'white' }"
         >
           <span class="emoji">{{ getPOIEmoji(poi.type) }}</span>  
         {{ getPOIDisplayName(poi.type) }}
@@ -23,7 +26,7 @@
           <div class="w-full bg-gray-700 h-3 overflow-hidden">
             <div 
               class="h-full transition-all duration-300"
-              :style="{ width: resourcePercentage + '%', backgroundColor: poi.color }"
+              :style="{ width: resourcePercentage + '%', backgroundColor: dialogPOIColor }"
             ></div>
           </div>
         </div>
@@ -101,7 +104,10 @@
           {{ isScanning ? $t('poi.stopScan') : $t('poi.scan') }}
         </button>
       </div>
-      <div class="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-8 border-l-transparent border-r-8 border-r-transparent border-t-8 border-t-white"></div>
+      <div 
+        class="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-8 border-l-transparent border-r-8 border-r-transparent border-t-8"
+        :style="{ borderTopColor: dialogPOIColor }"
+      ></div>
       <div class="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[6px] border-t-black mt-[-2px]"></div>
     </div>
   </div>
@@ -111,6 +117,7 @@
 import { computed, ref, onMounted, onBeforeUnmount, watch } from 'vue';
 import { calculateDistance } from '@/utils/mapHelpers';
 import { getPOIEmoji, getPOIDisplayName } from '@/constants/poiTypes';
+import { getRadarConfig } from '@/services/mapService';
 import { usePoiStore } from '@/stores/poiStore';
 
 const props = defineProps({
@@ -150,6 +157,11 @@ const productionProgress = ref(0);
 const timeToNextProduction = ref(0);
 const atCapacity = ref(false);
 let productionInterval = null;
+const baseRadarColor = getRadarConfig().color;
+const dialogPOIColor = computed(() => {
+  if (!props.poi) return baseRadarColor;
+  return props.poi.type === 'barrack' ? baseRadarColor : props.poi.color;
+});
 // Emitir evento para convertir en barrack
 const handleConvertToBarracks = () => {
   emit('convertToBarracks');

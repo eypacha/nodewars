@@ -4,9 +4,11 @@
  */
 import { ref } from 'vue';
 import L from 'leaflet';
+import { getRadarConfig } from '@/services/mapService';
 
 export const useBarracksRadar = (mapRef) => {
   const barracksRadars = ref(new Map());
+  const BASE_RADAR_COLOR = getRadarConfig().color;
 
   // Radio del radar de cuartel (más pequeño que el principal)
   const BARRACKS_RADAR_RADIUS = 500; // metros
@@ -42,8 +44,8 @@ export const useBarracksRadar = (mapRef) => {
       } else {
         // Crear nuevo radar con el color del radar principal
         const radar = L.circle([barrack.lat, barrack.lng], {
-          color: '#00bcff', // Color del radar principal
-          fillColor: '#00bcff',
+          color: BASE_RADAR_COLOR, // Color del radar principal
+          fillColor: BASE_RADAR_COLOR,
           fillOpacity: 0.08,
           radius: BARRACKS_RADAR_RADIUS,
           weight: 2,

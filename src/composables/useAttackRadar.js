@@ -11,6 +11,7 @@ import { getRadarConfig } from '@/services/mapService';
 export const useAttackRadar = (mapRef) => {
   const radarRef = ref(null);
   const attackCenterRef = ref(null); // Centro de ataque actual (base o cuartel)
+  const BASE_RADAR_COLOR = getRadarConfig().color;
 
   // Múltiples radares de barraca (inactivos)
   const barracksRadarRefs = ref([]); // [{circle, poiId}]
@@ -28,31 +29,33 @@ export const useAttackRadar = (mapRef) => {
 
     if (center.type === 'barrack') {
       if (isActive) {
-        // Radar de cuartel ACTIVO
+        // Radar de cuartel ACTIVO (más sólido)
         return {
-          color: '#00bcff',
-          fillColor: '#00bcff',
-          fillOpacity: 0.08,
+          color: BASE_RADAR_COLOR,
+          fillColor: BASE_RADAR_COLOR,
+          fillOpacity: 0.2,
           radius: BARRACKS_RADAR_RADIUS,
           weight: 2,
         };
       } else {
-        // Radar de cuartel INACTIVO (más visible y línea más oscura)
+        // Radar de cuartel INACTIVO (más tenue)
         return {
-          color: '#0a4a6a',
-          fillColor: '#0a4a6a',
-          fillOpacity: 0.18,
+          color: BASE_RADAR_COLOR,
+          fillColor: BASE_RADAR_COLOR,
+          fillOpacity: 0.08,
           radius: BARRACKS_RADAR_RADIUS,
           weight: 1,
         };
       }
     } else if (center.type === 'base') {
-      // Radar de base: usa el nivel del radar
+      // Radar de base: usa el nivel del radar pero mantiene opacidad consistente con barracas
       const radarConfig = getRadarConfig(center.level);
+      const ACTIVE_OPACITY = 0.2;
+      const INACTIVE_OPACITY = 0.08;
       return {
         color: radarConfig.color,
         fillColor: radarConfig.color,
-        fillOpacity: isActive ? radarConfig.fillOpacity : (radarConfig.fillOpacity ?? 0.15) * 0.35,
+        fillOpacity: isActive ? ACTIVE_OPACITY : INACTIVE_OPACITY,
         radius: radarConfig.radius,
         weight: isActive ? radarConfig.weight : 1,
       };

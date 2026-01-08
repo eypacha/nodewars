@@ -307,59 +307,55 @@ const handleConvertToBarracks = () => {
   handleSelectAsAttackOrigin(selectedPOI.value);
 };
 
-  // Manejar selección de cuartel como punto de ataque
-  const handleSelectAsAttackOrigin = (barracks) => {
-    if (barracks && barracks.type === 'barrack' && barracks.owned) {
-      // Toggle: si ya está seleccionado, volver a la base; si no, seleccionar cuartel
-      if (selectedBarracksForAttack.value && selectedBarracksForAttack.value.id === barracks.id) {
-        // Deseleccionar cuartel y volver a la base como punto de ataque
-        selectedBarracksForAttack.value = null;
-        isBaseAttackOrigin.value = true;
-        
-        // Crear radar para la base
-        if (markerRef.value) {
-          const position = markerRef.value.getLatLng();
-          createRadar({
-            lat: position.lat,
-            lng: position.lng,
-            type: 'base',
-            level: gameStore.radarLevel,
-          });
-        }
-      } else {
-        // Seleccionar cuartel (y deseleccionar base)
-        isBaseAttackOrigin.value = false;
-        selectedBarracksForAttack.value = barracks;
-        
-        // Crear radar para el cuartel seleccionado
-        createRadar({
-          lat: barracks.lat,
-          lng: barracks.lng,
-          type: 'barrack',
-        });
-      }
-    }
+const getBaseAttackOrigin = () => {
+  if (!markerRef.value) return null;
+  const latLng = markerRef.value.getLatLng();
+  return {
+    lat: latLng.lat,
+    lng: latLng.lng,
+    type: 'base',
+    level: gameStore.radarLevel,
   };
+};
 
-  // Manejar selección de base como punto de ataque
-  const handleSelectBaseAsAttackOrigin = () => {
-    // La base siempre puede establecerse como punto de ataque (deseleccionando cuartel si hay uno)
-    if (selectedBarracksForAttack.value) {
-      selectedBarracksForAttack.value = null;
-    }
+const setActiveAttackOrigin = (origin) => {
+  if (!origin) return;
+  if (origin.type === 'barrack') {
+    isBaseAttackOrigin.value = false;
+    selectedBarracksForAttack.value = origin;
+    createRadar({ lat: origin.lat, lng: origin.lng, type: 'barrack' });
+  } else if (origin.type === 'base') {
+    selectedBarracksForAttack.value = null;
     isBaseAttackOrigin.value = true;
-    
-    // Crear radar
-    if (markerRef.value) {
-      const position = markerRef.value.getLatLng();
-      createRadar({
-        lat: position.lat,
-        lng: position.lng,
-        type: 'base',
-        level: gameStore.radarLevel,
-      });
+    createRadar(origin);
+  }
+};
+
+// Manejar selección de cuartel como punto de ataque
+const handleSelectAsAttackOrigin = (barracks) => {
+  if (barracks && barracks.type === 'barrack' && barracks.owned) {
+    // Toggle: si ya está seleccionado, volver a la base; si no, seleccionar cuartel
+    if (selectedBarracksForAttack.value && selectedBarracksForAttack.value.id === barracks.id) {
+      // Deseleccionar cuartel y volver a la base como punto de ataque
+      const baseOrigin = getBaseAttackOrigin();
+      if (baseOrigin) {
+        setActiveAttackOrigin(baseOrigin);
+      }
+    } else {
+      // Seleccionar cuartel (y deseleccionar base)
+      setActiveAttackOrigin(barracks);
     }
-  };
+  }
+};
+
+// Manejar selección de base como punto de ataque
+const handleSelectBaseAsAttackOrigin = () => {
+  // La base siempre puede establecerse como punto de ataque (deseleccionando cuartel si hay uno)
+  const baseOrigin = getBaseAttackOrigin();
+  if (baseOrigin) {
+    setActiveAttackOrigin(baseOrigin);
+  }
+};
   
 // Manejar cierre del diálogo de POI
 const handleClosePOIDialog = () => {
@@ -570,14 +566,10 @@ watch(baseConfirmed, async (confirmed) => {
   if (confirmed && markerRef.value) {
     const position = markerRef.value.getLatLng();
     // Establecer la base como punto de ataque por defecto
-    isBaseAttackOrigin.value = true;
-    // Crear radar para la base
-    createRadar({
-      lat: position.lat,
-      lng: position.lng,
-      type: 'base',
-      level: gameStore.radarLevel,
-    });
+    const baseOrigin = getBaseAttackOrigin();
+    if (baseOrigin) {
+      setActiveAttackOrigin(baseOrigin);
+    }
     // Añadir listener de click al marcador cuando está confirmado
     onMarker('click', handleMarkerClick);
     // Actualizar radares de barracas inactivos

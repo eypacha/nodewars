@@ -32,7 +32,7 @@ export const POI_TYPES = {
   barrack: {
     displayName: 'Barracks',
     emoji: '🏰',
-    color: '#38bdf8',
+    color: '#9ca3af',
     normalizeKeys: ['barrack'],
   },
 };
