@@ -67,7 +67,7 @@ export const usePoiStore = defineStore('poi', () => {
     const capacity = poi.resourceCapacity ?? DEFAULT_RESOURCE_CAPACITY;
     const productionRate = poi.productionRate ?? DEFAULT_PRODUCTION_RATE;
     const lastProducedAt = poi.lastProducedAt ?? Date.now();
-    const color = poi.type === 'barrack' ? (poi.color || BARRACK_COLOR) : poi.color;
+    const color = poi.type === 'barrack' ? BARRACK_COLOR : poi.color;
 
     return {
       ...poi,
@@ -419,42 +419,6 @@ export const usePoiStore = defineStore('poi', () => {
     }
   };
 
-  const markAsEnemyBarrack = (poiId) => {
-    const poi = getPOIById(poiId);
-    if (!poi) return false;
-    poi.type = 'barrack';
-    poi.owned = false;
-    poi.enemy = true;
-    poi.color = '#ef4444';
-    updatePOI(poiId, { type: 'barrack', owned: false, enemy: true, color: poi.color });
-    return true;
-  };
-
-  const spawnEnemyBarrack = async (data) => {
-    const now = Date.now();
-    const poi = withProductionDefaults({
-      id: data.id,
-      name: data.name || 'Enemy Outpost',
-      lat: data.lat,
-      lng: data.lng,
-      type: 'barrack',
-      enemy: true,
-      owned: false,
-      color: data.color || '#ef4444',
-      health: data.health ?? 5,
-      maxHealth: data.maxHealth ?? 5,
-      resourceAmount: data.resourceAmount ?? 0,
-      resourceCapacity: data.resourceCapacity ?? 0,
-      productionRate: data.productionRate ?? 0,
-      lastProducedAt: data.lastProducedAt ?? now,
-      radarActive: false,
-      conqueredFrom: null,
-    });
-    pois.value = [...pois.value, poi];
-    await savePOI(poi);
-    return poi;
-  };
-
   const healPOI = (poiId, amount = 1) => {
     const poi = getPOIById(poiId);
     if (!poi || !poi.owned) return false;
@@ -488,8 +452,6 @@ export const usePoiStore = defineStore('poi', () => {
     selectPOI,
     closePOIDialog,
     damagePOI,
-    markAsEnemyBarrack,
-    spawnEnemyBarrack,
     healPOI,
     consumeResource,
     applyProductionForPOI,

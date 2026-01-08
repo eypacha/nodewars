@@ -79,7 +79,7 @@
 </template>
 
 <script setup>
-import { onMounted, onBeforeUnmount, watch, nextTick, computed, ref } from 'vue';
+import { onMounted, watch, nextTick, computed, ref } from 'vue';
 import { storeToRefs } from 'pinia';
 import L from 'leaflet';
 import { useMapStore } from '@/stores/mapStore';
@@ -96,7 +96,6 @@ import { useScreenPositions } from '@/composables/useScreenPositions';
 import { useMapDialogs } from '@/composables/useMapDialogs';
 import { getRadarConfig } from '@/services/mapService';
 import { getPOIColor } from '@/constants/poiTypes';
-import { getEnemySpawnConfig } from '@/constants/enemies';
 import BaseMarker from './BaseMarker.vue';
 import MarkerConfirmDialog from './MarkerConfirmDialog.vue';
 import BaseMarkerDialog from './BaseMarkerDialog.vue';
@@ -125,9 +124,6 @@ const isSelectedBarrackScanActive = computed(() => {
   if (!selectedPOI.value || selectedPOI.value.type !== 'barrack') return false;
   return scanContexts.value.has(`barrack-${selectedPOI.value.id}`);
 });
-const enemyBarrackRadars = ref(new Map());
-const ENEMY_BARRACK_COLOR = '#ef4444';
-const ENEMY_BARRACK_RADIUS = 500;
 
 // Inicializar composables principales
 // Usar refs reactivos para que el mapa se inicialice con los valores restaurados
@@ -268,81 +264,6 @@ const removeScanContext = (key) => {
   scanContexts.value = mapCopy;
 };
 
-const renderEnemyBarrackRadars = (barracks = []) => {
-  // Limpiar anteriores
-  enemyBarrackRadars.value.forEach(circle => circle.remove());
-  enemyBarrackRadars.value = new Map();
-  if (!mapRef.value) return;
-
-  barracks.forEach((barrack) => {
-    const circle = L.circle([barrack.lat, barrack.lng], {
-      color: ENEMY_BARRACK_COLOR,
-      fillColor: ENEMY_BARRACK_COLOR,
-      fillOpacity: 0.1,
-      radius: ENEMY_BARRACK_RADIUS,
-      weight: 2,
-      interactive: false,
-      bubblingMouseEvents: false,
-    }).addTo(mapRef.value);
-    enemyBarrackRadars.value.set(barrack.id, circle);
-  });
-};
-
-const clearEnemyBarrackRadars = () => {
-  enemyBarrackRadars.value.forEach(circle => circle.remove());
-  enemyBarrackRadars.value = new Map();
-};
-
-const maybeSpawnEnemyBarrack = (center, radius) => {
-  const config = getEnemySpawnConfig();
-  if (!config?.enabled) return;
-  if (Math.random() > (config.probability ?? 0)) return;
-  const minDist = config.minDistanceFromOwned ?? 150;
-  const edgeMargin = config.edgeMargin ?? 30;
-  const maxAttempts = config.maxAttempts ?? 20;
-  const enemyColor = config.color || ENEMY_BARRACK_COLOR;
-
-  if (radius <= minDist + edgeMargin) return;
-
-  const earthRadius = 6371000;
-  const ownedPois = (pois.value || []).filter(p => p.owned);
-
-  const isFarFromOwned = (lat, lng) => {
-    return ownedPois.every(p => {
-      const dist = L.latLng([lat, lng]).distanceTo(L.latLng([p.lat, p.lng]));
-      return dist >= minDist;
-    });
-  };
-
-  let candidate = null;
-  for (let i = 0; i < maxAttempts; i++) {
-    const angle = Math.random() * Math.PI * 2;
-    const dist = minDist + Math.random() * (radius - minDist - edgeMargin);
-    const deltaLat = (dist / earthRadius) * (180 / Math.PI);
-    const deltaLng = (dist / earthRadius) * (180 / Math.PI) / Math.cos(center.lat * Math.PI / 180);
-    const lat = center.lat + deltaLat * Math.cos(angle);
-    const lng = center.lng + deltaLng * Math.sin(angle);
-
-    if (isFarFromOwned(lat, lng)) {
-      candidate = { lat, lng };
-      break;
-    }
-  }
-
-  if (!candidate) return;
-
-  const newPOI = {
-    id: `enemy-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-    name: 'Enemy Outpost',
-    lat: candidate.lat,
-    lng: candidate.lng,
-    color: enemyColor,
-  };
-
-  poiStore.spawnEnemyBarrack(newPOI);
-  console.log('⚠️ Barraca enemiga creada', newPOI);
-};
-
 const stopScanForKey = (key) => {
   poiStore.stopScan(key);
   const timeout = scanAnimationTimeouts.value.get(key);
@@ -372,9 +293,6 @@ const runScan = async ({ type, position, radius, closeDialogs = true, originId =
     const result = await poiStore.fetchPOIs(position, radius, { stagger: true, staggerDelay: 250, originKey: key });
 
     if (result?.status === 'ok' || result?.status === 'stopped') {
-      if (result?.status === 'ok') {
-        maybeSpawnEnemyBarrack(position, radius);
-      }
       const timeoutId = setTimeout(() => {
         removeScanContext(key);
         const newTimeouts = new Map(scanAnimationTimeouts.value);
@@ -796,7 +714,6 @@ watch(pois, (newPois) => {
   }
   // Mostrar todos los radares de barracas (menos el activo)
   const barracks = Array.isArray(newPois) ? newPois.filter(p => p.type === 'barrack' && p.owned) : [];
-  const enemyBarracks = Array.isArray(newPois) ? newPois.filter(p => p.type === 'barrack' && !p.owned && p.enemy) : [];
   let activeId = null;
   const baseCenter = baseConfirmed.value && markerRef.value ? {
     lat: markerRef.value.getLatLng().lat,
@@ -810,7 +727,6 @@ watch(pois, (newPois) => {
     activeId = 'base';
   }
   renderAllBarracksRadars(barracks, activeId, baseCenter);
-  renderEnemyBarrackRadars(enemyBarracks);
 }, { deep: true });
 
 // Observar cambios en la barraca activa para actualizar los radares inactivos
@@ -829,10 +745,6 @@ watch(selectedBarracksForAttack, (newBarrack) => {
     activeId = 'base';
   }
   renderAllBarracksRadars(barracks, activeId, baseCenter);
-});
-
-onBeforeUnmount(() => {
-  clearEnemyBarrackRadars();
 });
 </script>
 

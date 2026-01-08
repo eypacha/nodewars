@@ -8,7 +8,7 @@ export class NodeWarsDB extends Dexie {
     super('NodeWarsDB');
     // Versión única (dev/pre-alpha): definir todas las tablas aquí
     this.version(1).stores({
-      pois: 'id, lat, lng, type, category, name, health, maxHealth, owned, resourceAmount, resourceCapacity, productionRate, lastProducedAt, radarActive, conqueredFrom, color, enemy',
+      pois: 'id, lat, lng, type, category, name, health, maxHealth, owned, resourceAmount, resourceCapacity, productionRate, lastProducedAt, radarActive, conqueredFrom, color',
       game: 'key'
     });
   }
