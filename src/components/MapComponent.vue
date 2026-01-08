@@ -63,6 +63,20 @@
       ▲
     </div>
     <div 
+      v-for="enemy in enemyMarkers" 
+      :key="enemy.id"
+      class="enemy-triangle"
+      :style="{
+        position: 'absolute',
+        left: `${enemy.x}px`,
+        top: `${enemy.y}px`,
+        transform: 'translate(-50%, -50%) rotate(0deg)',
+        zIndex: 1000,
+      }"
+    >
+      ▲
+    </div>
+    <div 
       v-for="particle in resourceParticles" 
       :key="particle.id"
       class="resource-particle"
@@ -79,7 +93,7 @@
 </template>
 
 <script setup>
-import { onMounted, watch, nextTick, computed, ref } from 'vue';
+import { onMounted, onBeforeUnmount, watch, nextTick, computed, ref } from 'vue';
 import { storeToRefs } from 'pinia';
 import L from 'leaflet';
 import { useMapStore } from '@/stores/mapStore';
@@ -96,14 +110,17 @@ import { useScreenPositions } from '@/composables/useScreenPositions';
 import { useMapDialogs } from '@/composables/useMapDialogs';
 import { getRadarConfig } from '@/services/mapService';
 import { getPOIColor } from '@/constants/poiTypes';
+import { useEnemyStore } from '@/stores/enemyStore';
 import BaseMarker from './BaseMarker.vue';
 import MarkerConfirmDialog from './MarkerConfirmDialog.vue';
 import BaseMarkerDialog from './BaseMarkerDialog.vue';
 import POIDialog from './POIDialog.vue';
 import ResourceHUD from './ResourceHUD.vue';
 import UpgradesPanel from './UpgradesPanel.vue';
+import { useEnemySpawn } from '@/composables/useEnemySpawn';
 
 const mapStore = useMapStore();
+const enemyStore = useEnemyStore();
 
 // Bandera global para evitar bucles watcher <-> eventos Leaflet
 let isProgrammaticMapMove = false;
@@ -112,6 +129,7 @@ const gameStore = useGameStore();
 const { center, zoom, marker, activeDialog, baseConfirmed, showUpgradesPanel } = storeToRefs(mapStore);
 const { radarLevel, resources } = storeToRefs(gameStore);
 const { selectedPOI, showPOIDialog, isLoading, pois } = storeToRefs(poiStore);
+const { enemies } = storeToRefs(enemyStore);
 const selectedBarracksForAttack = ref(null); // Cuartel seleccionado para lanzar ataques
 const isBaseAttackOrigin = ref(false); // Si la base está seleccionada como punto de ataque
 const currentAttackOrigin = ref(null); // Punto de ataque activo (se actualiza cuando cambia)
@@ -159,6 +177,8 @@ const baseMarkerPosition = computed(() => {
   const latLng = markerRef.value.getLatLng();
   return { lat: latLng.lat, lng: latLng.lng };
 });
+
+const enemySpawner = useEnemySpawn({ baseMarkerPosition, pois, radarLevel });
 
 // Radio actual del radar según el tipo de centro de ataque
 const radarRadius = computed(() => {
@@ -226,6 +246,20 @@ const radarSweepStyles = computed(() => {
       }
     };
   }).filter(Boolean);
+});
+
+const enemyMarkers = computed(() => {
+  mapViewVersion.value;
+  if (!mapRef.value) return [];
+
+  return enemies.value.map((enemy) => {
+    const point = mapRef.value.latLngToContainerPoint([enemy.lat, enemy.lng]);
+    return {
+      id: enemy.id,
+      x: point.x,
+      y: point.y,
+    };
+  });
 });
 
 // Manejar confirmación del marcador
@@ -511,6 +545,14 @@ watch(isBaseAttackOrigin, (isBase) => {
   }
 });
 
+watch(baseConfirmed, (confirmed) => {
+  if (confirmed) {
+    enemySpawner.startEnemySpawnLoop();
+  } else {
+    enemySpawner.stopEnemySpawnLoop();
+  }
+}, { immediate: true });
+
 // Inicializar mapa
 onMounted(() => {
   initMap();
@@ -543,6 +585,10 @@ onMounted(() => {
     });
     mapRef.value.on('click', handleMapClick);
   }
+});
+
+onBeforeUnmount(() => {
+  enemySpawner.stopEnemySpawnLoop();
 });
 
 // Observar cambios de centro y zoom
@@ -776,6 +822,14 @@ watch(selectedBarracksForAttack, (newBarrack) => {
   font-size: 24px;
   text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
   filter: drop-shadow(0 0 5px white);
+}
+
+.enemy-triangle {
+  pointer-events: none;
+  color: #f87171;
+  font-size: 24px;
+  text-shadow: 0 0 10px rgba(248, 113, 113, 0.8);
+  filter: drop-shadow(0 0 5px rgba(248, 113, 113, 0.9));
 }
 
 .resource-particle {
