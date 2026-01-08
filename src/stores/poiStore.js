@@ -378,14 +378,16 @@ export const usePoiStore = defineStore('poi', () => {
       const { useMapStore } = await import('./mapStore');
       const mapStore = useMapStore();
 
-      // Primer clic: seleccionar y resaltar; segundo clic: abrir diálogo
-      if (wasSelected && !showPOIDialog.value) {
+      if (poi.type === 'barrack') {
+        if (wasSelected && !showPOIDialog.value) {
+          showPOIDialog.value = true;
+        } else if (!wasSelected) {
+          showPOIDialog.value = false;
+        }
+      } else {
         showPOIDialog.value = true;
-      } else if (!wasSelected) {
-        showPOIDialog.value = false;
       }
 
-      // Cerrar otros diálogos cuando se interactúa con un POI
       mapStore.closeAllDialogs();
     }
 

@@ -234,7 +234,7 @@ const updateProductionProgress = () => {
   const isFull = updatedPOI.resourceAmount >= updatedPOI.resourceCapacity;
 
   atCapacity.value = isFull;
-  productionProgress.value = isFull ? 100 : Math.min((elapsed / rate) * 100, 100);
+  productionProgress.value = isFull ? 0 : Math.min((elapsed / rate) * 100, 100);
   timeToNextProduction.value = isFull ? 0 : Math.max(rate - (elapsed % rate), 0);
 };
 
