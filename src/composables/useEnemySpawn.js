@@ -2,8 +2,7 @@ import { ref, onBeforeUnmount } from 'vue';
 import { ENEMY_SPAWN_INTERVAL_MS } from '@/constants/enemies';
 import { useEnemyStore } from '@/stores/enemyStore';
 import { getRadarConfig } from '@/services/mapService';
-import { calculateDistance } from '@/utils/mapHelpers';
-import { computePointOnEdge, findAngleOutsideOtherRadars } from '@/utils/enemyUtils';
+import { getUniformSpawnOnUnionBoundary } from '@/utils/enemyUtils';
 
 const BARRACKS_RADAR_RADIUS = 500;
 
@@ -40,31 +39,16 @@ export const useEnemySpawn = ({ baseMarkerPosition, pois, radarLevel }) => {
     return list;
   };
 
-  const pickNonOverlappingRadar = (radars) => {
-    if (!radars.length) return null;
-
-    const nonOverlapping = radars.filter((radar, idx) => radars.every((other, otherIdx) => {
-      if (idx === otherIdx) return true;
-      const dist = calculateDistance([radar.center.lat, radar.center.lng], [other.center.lat, other.center.lng]);
-      return dist >= (radar.radius + other.radius);
-    }));
-
-    const sourceList = nonOverlapping.length ? nonOverlapping : radars;
-    return sourceList[Math.floor(Math.random() * sourceList.length)] || null;
-  };
-
   const spawnEnemyAtRadarEdge = () => {
     const radars = getRadarsForSpawn();
     if (!radars.length) return;
 
     const waveSize = Math.max(1, Math.floor(Math.random() * 5) + 1);
-    const selectedCount = Math.min(waveSize, radars.length);
 
-    const shuffled = [...radars].sort(() => Math.random() - 0.5);
-    const targets = shuffled.slice(0, selectedCount);
-
-    targets.forEach((radar) => {
-      const angle = findAngleOutsideOtherRadars(radar, radars) ?? (Math.random() * Math.PI * 2);
+    for (let i = 0; i < waveSize; i += 1) {
+      const selection = getUniformSpawnOnUnionBoundary(radars);
+      if (!selection) return;
+      const { radar, angle } = selection;
       enemyStore.spawnEnemy({
         center: radar.center,
         radius: radar.radius,
@@ -72,7 +56,7 @@ export const useEnemySpawn = ({ baseMarkerPosition, pois, radarLevel }) => {
         targetType: radar.targetType,
         targetId: radar.targetId,
       });
-    });
+    }
   };
 
   const startEnemySpawnLoop = () => {
