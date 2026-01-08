@@ -37,7 +37,7 @@ export const usePointsOfInterest = (mapRef) => {
       // Si el POI es un barrack, usar BarracksMarker
       if (poi.type === 'barrack') {
         const container = document.createElement('div');
-        const app = createApp(BarracksMarker);
+        const app = createApp(BarracksMarker, { color: poi.color });
         app.mount(container);
 
         const customIcon = L.divIcon({
