@@ -35,11 +35,13 @@
     "outOfRange": "(Fuera de alcance)",
     "health": "Salud",
     "resources": "Recursos",
+    "production": "Producción",
     "attack": "Atacar",
     "extract": "Extraer",
     "noResources": "Sin recursos",
     "heal": "Curar",
     "convertToBarracks": "Convertir en cuartel",
+    "converting": "Convirtiendo...",
     "scan": "Escanear",
     "stopScan": "Detener Scan"
   },

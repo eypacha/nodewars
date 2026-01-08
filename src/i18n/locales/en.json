@@ -35,11 +35,13 @@
     "outOfRange": "(Out of range)",
     "health": "Health",
     "resources": "Resources",
+    "production": "Production",
     "attack": "Attack",
     "extract": "Extract",
     "noResources": "No resources",
     "heal": "Heal",
     "convertToBarracks": "Convert to barrack",
+    "converting": "Converting...",
     "scan": "Scan",
     "stopScan": "Stop Scan"
   },
