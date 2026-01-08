@@ -1,5 +1,5 @@
 <template>
-  <div class="pointer-events-none fixed top-3 left-1/2 -translate-x-1/2 z-[1000]">
+  <div class="pointer-events-none fixed top-3 left-1/2 -translate-x-1/2 z-[2000]">
     <div class="bg-black/70 border border-white shadow-lg px-3 py-2 flex gap-2 backdrop-blur-sm">
       <div
         v-for="item in resourceList"
