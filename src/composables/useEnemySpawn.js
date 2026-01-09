@@ -65,30 +65,41 @@ export const useEnemySpawn = ({ baseMarkerPosition, pois, radarLevel }) => {
 
     const growth = Math.pow(1 + ENEMY_WAVE_GROWTH_RATE, Math.max(0, enemyStore.waveNumber - 1));
     const waveSize = Math.max(1, Math.ceil(ENEMY_WAVE_BASE_SIZE * growth));
+    const staggerMs = 400;
 
     for (let i = 0; i < waveSize; i += 1) {
       const selection = spawnSelector.value();
       if (!selection) return;
       const { radar, angle } = selection;
-      enemyStore.spawnEnemy({
-        center: radar.center,
-        radius: radar.radius,
-        angle,
-        targetType: radar.targetType,
-        targetId: radar.targetId,
-      });
+      setTimeout(() => {
+        enemyStore.spawnEnemy({
+          center: radar.center,
+          radius: radar.radius,
+          angle,
+          targetType: radar.targetType,
+          targetId: radar.targetId,
+        });
+      }, i * staggerMs);
     }
+
     enemyStore.incrementWaveNumber();
     enemyStore.setNextWaveTimestamp(Date.now() + ENEMY_SPAWN_INTERVAL_MS);
   };
 
   const startEnemySpawnLoop = () => {
     stopEnemySpawnLoop();
-    enemyStore.setNextWaveTimestamp(Date.now() + ENEMY_SPAWN_INTERVAL_MS);
+    const now = Date.now();
+    const target = enemyStore.nextWaveTimestamp || 0;
+    const initialDelay = target > now ? target - now : ENEMY_SPAWN_INTERVAL_MS;
+
+    if (!target || target <= now) {
+      enemyStore.setNextWaveTimestamp(now + ENEMY_SPAWN_INTERVAL_MS);
+    }
+
     timeoutId.value = setTimeout(() => {
       spawnEnemyAtRadarEdge();
       intervalId.value = setInterval(spawnEnemyAtRadarEdge, ENEMY_SPAWN_INTERVAL_MS);
-    }, ENEMY_SPAWN_INTERVAL_MS);
+    }, initialDelay);
   };
 
   const stopEnemySpawnLoop = () => {

@@ -30,7 +30,7 @@ export const useEnemyStore = defineStore('enemy', () => {
   let persistTimeout = null;
 
   const initialize = async () => {
-    await Promise.all([loadEnemies(), loadWaveNumber()]);
+    await Promise.all([loadEnemies(), loadWaveNumber(), loadNextWaveTimestamp()]);
   };
 
   const loadEnemies = async () => {
@@ -53,6 +53,17 @@ export const useEnemyStore = defineStore('enemy', () => {
     }
   };
 
+  const loadNextWaveTimestamp = async () => {
+    try {
+      const stored = await db.game.get('nextWaveTimestamp');
+      if (stored?.data) {
+        nextWaveTimestamp.value = stored.data;
+      }
+    } catch (err) {
+      console.error('Error loading next wave timestamp from DB', err);
+    }
+  };
+
   const persistEnemies = async () => {
     try {
       await db.enemies.clear();
@@ -69,6 +80,14 @@ export const useEnemyStore = defineStore('enemy', () => {
       await db.game.put({ key: 'waveNumber', data: waveNumber.value });
     } catch (err) {
       console.error('Error persisting wave number to DB', err);
+    }
+  };
+
+  const persistNextWaveTimestamp = async () => {
+    try {
+      await db.game.put({ key: 'nextWaveTimestamp', data: nextWaveTimestamp.value });
+    } catch (err) {
+      console.error('Error persisting next wave timestamp to DB', err);
     }
   };
 
@@ -125,6 +144,7 @@ export const useEnemyStore = defineStore('enemy', () => {
 
   const setNextWaveTimestamp = (timestamp) => {
     nextWaveTimestamp.value = timestamp || 0;
+    persistNextWaveTimestamp();
   };
 
   const setWaveNumber = (value) => {
@@ -167,6 +187,7 @@ export const useEnemyStore = defineStore('enemy', () => {
     clearEnemies,
     persistEnemies,
     persistWaveNumber,
+    persistNextWaveTimestamp,
     schedulePersist,
     setNextWaveTimestamp,
     setWaveNumber,
