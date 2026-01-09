@@ -10,7 +10,6 @@
   "baseLocation": {
     "title": "Choose Your Base Location",
     "description": "Enter a city, address or location to establish your main base",
-    "placeholder": "e.g., Madrid, Spain",
     "useGPS": "My location",
     "confirm": "Confirm",
     "loading": "Searching...",

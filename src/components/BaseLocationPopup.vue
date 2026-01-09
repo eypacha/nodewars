@@ -12,7 +12,7 @@
         <input 
           v-model="locationInput"
           type="text"
-          :placeholder="$t('baseLocation.placeholder')"
+          :placeholder="rotatingPlaceholder"
           class="w-full bg-gray-900 border border-white/30 px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-white"
           :disabled="isLoading"
         />
@@ -36,7 +36,7 @@
             class="flex-1"
             base-class="flex-1 cursor-pointer font-bold py-3 px-4 border border-white hover:bg-white hover:text-black transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             :label="!isLoading ? $t('baseLocation.confirm') : $t('baseLocation.loading')"
-            :disabled="isLoading || !locationInput.trim()"
+            :disabled="isLoading"
           />
         </div>
       </form>
@@ -45,11 +45,11 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import BaseButton from '@/components/UI/BaseButton.vue';
-
-const { t } = useI18n();
+import { BASE_LOCATION_PLACEHOLDERS_ES, BASE_LOCATION_PLACEHOLDERS_EN } from '@/constants/baseLocationPlaceholders';
+const { t, locale } = useI18n();
 
 const emit = defineEmits(['location-selected', 'use-gps']);
 
@@ -57,21 +57,36 @@ const locationInput = ref('');
 const error = ref('');
 const isLoading = ref(false);
 
+const placeholderIndex = ref(Math.floor(Math.random() * (locale.value === 'es' ? BASE_LOCATION_PLACEHOLDERS_ES.length : BASE_LOCATION_PLACEHOLDERS_EN.length)));
+let intervalId = null;
+
+const placeholders = computed(() => {
+  return locale.value === 'es' ? BASE_LOCATION_PLACEHOLDERS_ES : BASE_LOCATION_PLACEHOLDERS_EN;
+});
+
+const getPrefix = computed(() => locale.value === 'es' ? 'ej. ' : 'e.g. ');
+const rotatingPlaceholder = computed(() => getPrefix.value + placeholders.value[placeholderIndex.value % placeholders.value.length]);
+
+onMounted(() => {
+  intervalId = setInterval(() => {
+    placeholderIndex.value = (placeholderIndex.value + 1) % placeholders.value.length;
+  }, 2000);
+});
+
+onUnmounted(() => {
+  if (intervalId) clearInterval(intervalId);
+});
+
 const handleSubmit = async () => {
-  if (!locationInput.value.trim()) return;
-  
+  const queryText = locationInput.value.trim() || placeholders.value[placeholderIndex.value % placeholders.value.length];
   error.value = '';
   isLoading.value = true;
-  
   try {
-    // Usar Nominatim de OpenStreetMap para geocoding
-    const query = encodeURIComponent(locationInput.value);
+    const query = encodeURIComponent(queryText);
     const response = await fetch(
       `https://nominatim.openstreetmap.org/search?format=json&q=${query}&limit=1`
     );
-    
     const data = await response.json();
-    
     if (data && data.length > 0) {
       const { lat, lon, display_name } = data[0];
       emit('location-selected', {
