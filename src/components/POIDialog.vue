@@ -26,8 +26,9 @@
           size="large"
         />
         
-        <!-- Health bar -->
+        <!-- Health bar (solo cuarteles) -->
         <LabeledProgressBar
+          v-if="poi.type === 'barrack'"
           class="mb-2"
           :left-label="$t('poi.health')"
           :right-label="`${poi.health} / ${poi.maxHealth}`"
@@ -64,7 +65,7 @@
           @click="handleExtract"
         />
         <ProgressButton
-          v-if="poi.owned && !isBlockedByEnemyBarrack"
+          v-if="poi.type === 'barrack' && poi.owned && !isBlockedByEnemyBarrack"
           class="mt-2"
           :label="$t('poi.heal')"
           :disabled="isHealOnCooldown || poi.health >= poi.maxHealth || !canHeal"
