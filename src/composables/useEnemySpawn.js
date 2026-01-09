@@ -2,7 +2,7 @@ import { ref, onBeforeUnmount, watch } from 'vue';
 import { ENEMY_SPAWN_INTERVAL_MS, ENEMY_WAVE_BASE_SIZE, ENEMY_WAVE_GROWTH_RATE } from '@/constants/enemies';
 import { useEnemyStore } from '@/stores/enemyStore';
 import { getRadarConfig } from '@/services/mapService';
-import { createUniformSpawnOnUnionBoundarySelector } from '@/utils/mathUtils';
+import { computeBearingRadians, createUniformSpawnOnUnionBoundarySelector } from '@/utils/mathUtils';
 
 const BARRACKS_RADAR_RADIUS = 500;
 
@@ -58,6 +58,45 @@ export const useEnemySpawn = ({ baseMarkerPosition, pois, radarLevel }) => {
     spawnSelector.value = createUniformSpawnOnUnionBoundarySelector(radars, { blockers });
   };
 
+  const getTargetForEnemyBarrack = (barrack) => {
+    if (!barrack?.conqueredFrom) return null;
+
+    if (barrack.conqueredFrom === 'base' && baseMarkerPosition.value) {
+      return { type: 'base', id: 'base', position: baseMarkerPosition.value };
+    }
+
+    const target = (pois.value || []).find(
+      (p) => p.type === 'barrack' && p.owned && String(p.id) === String(barrack.conqueredFrom)
+    );
+
+    if (target) {
+      return { type: 'barrack', id: target.id, position: { lat: target.lat, lng: target.lng } };
+    }
+
+    return null;
+  };
+
+  const spawnExtraProjectilesFromEnemyBarracks = () => {
+    if (!Array.isArray(pois.value)) return;
+
+    pois.value
+      .filter((poi) => poi.type === 'barrack' && !poi.owned)
+      .forEach((barrack) => {
+        const target = getTargetForEnemyBarrack(barrack);
+        if (!target) return;
+
+        const angle = computeBearingRadians({ lat: barrack.lat, lng: barrack.lng }, target.position);
+
+        enemyStore.spawnEnemy({
+          center: { lat: barrack.lat, lng: barrack.lng },
+          radius: 0,
+          angle,
+          targetType: target.type,
+          targetId: target.id,
+        });
+      });
+  };
+
   const getBarracksSignature = () => {
     if (!Array.isArray(pois.value)) return [];
     return pois.value
@@ -73,26 +112,28 @@ export const useEnemySpawn = ({ baseMarkerPosition, pois, radarLevel }) => {
   );
 
   const spawnEnemyAtRadarEdge = () => {
-    if (!spawnSelector.value) return;
-
     const growth = Math.pow(1 + ENEMY_WAVE_GROWTH_RATE, Math.max(0, enemyStore.waveNumber - 1));
     const waveSize = Math.max(1, Math.ceil(ENEMY_WAVE_BASE_SIZE * growth));
     const staggerMs = 400;
 
-    for (let i = 0; i < waveSize; i += 1) {
-      const selection = spawnSelector.value();
-      if (!selection) return;
-      const { radar, angle } = selection;
-      setTimeout(() => {
-        enemyStore.spawnEnemy({
-          center: radar.center,
-          radius: radar.radius,
-          angle,
-          targetType: radar.targetType,
-          targetId: radar.targetId,
-        });
-      }, i * staggerMs);
+    if (spawnSelector.value) {
+      for (let i = 0; i < waveSize; i += 1) {
+        const selection = spawnSelector.value();
+        if (!selection) break;
+        const { radar, angle } = selection;
+        setTimeout(() => {
+          enemyStore.spawnEnemy({
+            center: radar.center,
+            radius: radar.radius,
+            angle,
+            targetType: radar.targetType,
+            targetId: radar.targetId,
+          });
+        }, i * staggerMs);
+      }
     }
+
+    spawnExtraProjectilesFromEnemyBarracks();
 
     enemyStore.incrementWaveNumber();
     enemyStore.setNextWaveTimestamp(Date.now() + ENEMY_SPAWN_INTERVAL_MS);

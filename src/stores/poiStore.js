@@ -429,7 +429,6 @@ export const usePoiStore = defineStore('poi', () => {
           const resetHealth = poi.maxHealth || 5;
           poi.owned = false;
           poi.health = resetHealth;
-          poi.conqueredFrom = null;
           poi.radarActive = false;
         }
       }
