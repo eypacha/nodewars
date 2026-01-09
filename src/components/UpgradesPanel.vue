@@ -1,5 +1,5 @@
 <template>
-  <div class="fixed inset-0 flex items-center justify-center z-[1100] bg-black/50">
+  <div class="fixed inset-0 flex items-center justify-center z-[3000] bg-black/50">
     <div class="bg-black border-2 border-white p-8 shadow-2xl w-[calc(100vw-4rem)] mx-4 h-[calc(100vh-4rem)] overflow-y-auto">
       <div class="flex justify-between items-center mb-6">
         <h2 class="text-2xl font-bold text-white">{{ $t('upgrades.title') }}</h2>
