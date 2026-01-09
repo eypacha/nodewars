@@ -61,5 +61,9 @@
     "title": "Game Over",
     "description": "The base has been destroyed.",
     "restart": "Restart"
+  },
+  "coverage": {
+    "contour": "Contour",
+    "field": "Field"
   }
 }

@@ -61,5 +61,9 @@
     "title": "Game Over",
     "description": "La base ha sido destruida.",
     "restart": "Reiniciar"
+  },
+  "coverage": {
+    "contour": "Contorno",
+    "field": "Campo"
   }
 }
