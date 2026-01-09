@@ -172,7 +172,7 @@ const { clearPOIMarkers } = usePointsOfInterest(mapRef);
 
 // Composables para funcionalidades específicas
 const { resourceParticles, startResourceCollection, startHealingDelivery } = useResourceCollection(mapRef, markerRef);
-const { attackTriangles, startAttack, cancelAttack } = useAttackAnimation(mapRef, markerRef);
+const { attackTriangles, startAttack } = useAttackAnimation(mapRef, markerRef);
 const { 
   createConnectionLine, 
   removeConnectionLine, 
@@ -191,7 +191,7 @@ const {
 } = useScreenPositions(mapRef, markerRef);
 const { closePOIDialog: closeDialog, handleMapClick } = useMapDialogs();
 const closeAllDialogs = () => {
-  closeDialog(removeConnectionLine, cancelAttack);
+  closeDialog(removeConnectionLine);
   selectedEnemyForAttack.value = null;
   enemyDialogStyle.value = null;
   mapStore.closeAllDialogs();
@@ -565,7 +565,7 @@ const handleSelectBaseAsAttackOrigin = () => {
   
 // Manejar cierre del diálogo de POI
 const handleClosePOIDialog = () => {
-  closeDialog(removeConnectionLine, cancelAttack);
+  closeDialog(removeConnectionLine);
   mapStore.closeAllDialogs();
   selectedEnemyForAttack.value = null;
   enemyDialogStyle.value = null;

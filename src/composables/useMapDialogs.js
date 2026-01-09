@@ -12,12 +12,10 @@ export const useMapDialogs = () => {
   /**
    * Cierra el diálogo de POI y limpia recursos relacionados
    * @param {Function} removeConnectionLine - Callback para eliminar líneas
-   * @param {Function} cancelAttack - Callback para cancelar ataques
    */
-  const closePOIDialog = (removeConnectionLine, cancelAttack) => {
+  const closePOIDialog = (removeConnectionLine) => {
     poiStore.closePOIDialog();
     if (removeConnectionLine) removeConnectionLine();
-    if (cancelAttack) cancelAttack();
   };
 
   /**
