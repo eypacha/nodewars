@@ -138,6 +138,7 @@ import { useProgressTimer } from '@/composables/useProgressTimer';
 
 const mapStore = useMapStore();
 const enemyStore = useEnemyStore();
+enemyStore.initialize();
 
 // Bandera global para evitar bucles watcher <-> eventos Leaflet
 let isProgrammaticMapMove = false;
