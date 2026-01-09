@@ -8,6 +8,7 @@ export const useMapStore = defineStore('map', () => {
   const marker = ref(null);
   const baseConfirmed = ref(false);
   const showUpgradesPanel = ref(false);
+  const coverageMetrics = ref({ perimeter: 0, area: 0 });
   
   // Sistema centralizado de diálogos - solo uno puede estar activo a la vez
   const activeDialog = ref(null); // 'markerConfirm' | 'baseMarker' | null (POI se maneja en poiStore)
@@ -113,6 +114,13 @@ export const useMapStore = defineStore('map', () => {
     baseConfirmed.value = false;
     showUpgradesPanel.value = false;
     activeDialog.value = null;
+    coverageMetrics.value = { perimeter: 0, area: 0 };
+  };
+
+  const setCoverageMetrics = (perimeter = 0, area = 0) => {
+    const safePerimeter = Number.isFinite(perimeter) ? perimeter : 0;
+    const safeArea = Number.isFinite(area) ? area : 0;
+    coverageMetrics.value = { perimeter: safePerimeter, area: safeArea };
   };
 
   return {
@@ -123,6 +131,7 @@ export const useMapStore = defineStore('map', () => {
     activeDialog,
     baseConfirmed,
     showUpgradesPanel,
+    coverageMetrics,
 
     // Actions
     setCenter,
@@ -141,5 +150,6 @@ export const useMapStore = defineStore('map', () => {
     loadMapState,
     hasSavedGame,
     clearSavedGame,
+    setCoverageMetrics,
   };
 });

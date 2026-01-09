@@ -1,11 +1,7 @@
 <template>
   <div class="w-screen h-screen overflow-hidden bg-map text-white">
-    <GameHUD
-      v-if="baseConfirmed"
-      :perimeter="coverageStats.perimeter"
-      :area="coverageStats.area"
-    />
-    <MapComponent @coverage-updated="handleCoverageUpdated" />
+    <GameHUD v-if="baseConfirmed" />
+    <MapComponent />
     <GameStartPopup 
       v-if="gameStore.showStartPopup" 
       @start-game="handleStartGame"
@@ -25,7 +21,6 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
 import { storeToRefs } from 'pinia';
 import MapComponent from '../components/MapComponent.vue';
 import GameHUD from '../components/GameHUD.vue';
@@ -43,14 +38,7 @@ const gameStore = useGameStore();
 const mapStore = useMapStore();
 const poiStore = usePoiStore();
 const { baseConfirmed } = storeToRefs(mapStore);
-const coverageStats = ref({ perimeter: 0, area: 0 });
 const { requestLocation } = useGeolocation();
-
-const handleCoverageUpdated = ({ perimeter, area }) => {
-  const safePerimeter = Number.isFinite(perimeter) ? perimeter : 0;
-  const safeArea = Number.isFinite(area) ? area : 0;
-  coverageStats.value = { perimeter: safePerimeter, area: safeArea };
-};
 
 const handleStartGame = async () => {
   // Resetear el estado del juego, mapa y POIs

@@ -1,5 +1,5 @@
 <template>
-  <div class="next-wave-timer px-2 py-1 rounded bg-sky-900 text-white text-xs flex items-center gap-2">
+  <div class="next-wave-timer px-2 py-1 text-white flex items-center gap-2">
     <span>{{ $t('hud.nextWave') }}</span>
     <span class="font-mono font-bold">{{ formattedTime }}</span>
   </div>

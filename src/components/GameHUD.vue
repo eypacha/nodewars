@@ -3,7 +3,7 @@
     <div class="flex items-center justify-between gap-3">
       <ResourceHUD />
       <NextWaveTimer />
-      <CoverageHUD :perimeter="perimeter" :area="area" />
+      <CoverageHUD />
     </div>
   </div>
 </template>
@@ -12,15 +12,4 @@
 import CoverageHUD from './CoverageHUD.vue';
 import ResourceHUD from './ResourceHUD.vue';
 import NextWaveTimer from './NextWaveTimer.vue';
-
-defineProps({
-  perimeter: {
-    type: Number,
-    default: 0,
-  },
-  area: {
-    type: Number,
-    default: 0,
-  },
-});
 </script>

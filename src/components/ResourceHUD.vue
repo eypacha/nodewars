@@ -1,6 +1,6 @@
 <template>
   <div class="pointer-events-none">
-    <div class="border border-sky-400 px-3 py-2 flex gap-2">
+    <div class="px-3 py-2 flex gap-2">
       <div
         v-for="item in resourceList"
         :key="item.key"

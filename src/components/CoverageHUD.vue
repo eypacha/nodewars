@@ -13,20 +13,14 @@
 
 <script setup>
 import { computed } from 'vue';
+import { storeToRefs } from 'pinia';
+import { useMapStore } from '@/stores/mapStore';
 
-const props = defineProps({
-  perimeter: {
-    type: Number,
-    default: 0,
-  },
-  area: {
-    type: Number,
-    default: 0,
-  },
-});
+const mapStore = useMapStore();
+const { coverageMetrics } = storeToRefs(mapStore);
 
 const formattedPerimeter = computed(() => {
-  const value = Number.isFinite(props.perimeter) ? props.perimeter : 0;
+  const value = Number.isFinite(coverageMetrics.value.perimeter) ? coverageMetrics.value.perimeter : 0;
   if (value >= 1000) {
     return `${(value / 1000).toFixed(2)} km`;
   }
@@ -34,7 +28,7 @@ const formattedPerimeter = computed(() => {
 });
 
 const formattedArea = computed(() => {
-  const value = Number.isFinite(props.area) ? props.area : 0;
+  const value = Number.isFinite(coverageMetrics.value.area) ? coverageMetrics.value.area : 0;
   return `${(value / 1_000_000).toFixed(2)} km²`;
 });
 </script>

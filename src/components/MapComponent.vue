@@ -106,7 +106,7 @@
 </template>
 
 <script setup>
-import { onMounted, onBeforeUnmount, watch, nextTick, computed, ref, reactive } from 'vue';
+import { onMounted, onBeforeUnmount, watch, nextTick, computed, ref } from 'vue';
 import { storeToRefs } from 'pinia';
 import L from 'leaflet';
 import { useMapStore } from '@/stores/mapStore';
@@ -134,8 +134,6 @@ import { useEnemySpawn } from '@/composables/useEnemySpawn';
 import { useEnemyMovement } from '@/composables/useEnemyMovement';
 import { useProgressTimer } from '@/composables/useProgressTimer';
 import { computeRadarsMetrics } from '@/utils/mathUtils';
-
-const emit = defineEmits(['coverage-updated']);
 
 const mapStore = useMapStore();
 const enemyStore = useEnemyStore();
@@ -231,8 +229,6 @@ const enemyMover = useEnemyMovement({
 const baseHealCooldown = useProgressTimer(2000, { key: 'base-heal' });
 const isBaseHealOnCooldown = baseHealCooldown.isRunning;
 const baseHealProgress = baseHealCooldown.progress;
-const coverageStats = reactive({ perimeter: 0, area: 0 });
-
 const handleBaseHeal = () => {
   if (isBaseHealOnCooldown.value) return;
   const healed = gameStore.consumeResource('pharmacy', 1);
@@ -344,14 +340,7 @@ const getOwnedBarracksSignature = () => {
 const updateCoverageMetrics = () => {
   const radars = getCoverageRadars();
   const { perimeterMeters, areaSquareMeters } = computeRadarsMetrics(radars);
-  const safePerimeter = Number.isFinite(perimeterMeters) ? perimeterMeters : 0;
-  const safeArea = Number.isFinite(areaSquareMeters) ? areaSquareMeters : 0;
-  coverageStats.perimeter = safePerimeter;
-  coverageStats.area = safeArea;
-  emit('coverage-updated', {
-    perimeter: safePerimeter,
-    area: safeArea,
-  });
+  mapStore.setCoverageMetrics(perimeterMeters, areaSquareMeters);
 };
 
 // Función para actualizar la posición en pantalla del punto de ataque
