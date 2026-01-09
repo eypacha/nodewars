@@ -1,8 +1,8 @@
-import { ref, onBeforeUnmount } from 'vue';
+import { ref, onBeforeUnmount, watch } from 'vue';
 import { ENEMY_SPAWN_INTERVAL_MS } from '@/constants/enemies';
 import { useEnemyStore } from '@/stores/enemyStore';
 import { getRadarConfig } from '@/services/mapService';
-import { getUniformSpawnOnUnionBoundary } from '@/utils/enemyUtils';
+import { createUniformSpawnOnUnionBoundarySelector } from '@/utils/mathUtils';
 
 const BARRACKS_RADAR_RADIUS = 500;
 
@@ -10,6 +10,7 @@ export const useEnemySpawn = ({ baseMarkerPosition, pois, radarLevel }) => {
   const enemyStore = useEnemyStore();
   const intervalId = ref(null);
   const timeoutId = ref(null);
+  const spawnSelector = ref(null);
 
   const getRadarsForSpawn = () => {
     const list = [];
@@ -39,14 +40,32 @@ export const useEnemySpawn = ({ baseMarkerPosition, pois, radarLevel }) => {
     return list;
   };
 
-  const spawnEnemyAtRadarEdge = () => {
+  const updateSpawnSelector = () => {
     const radars = getRadarsForSpawn();
-    if (!radars.length) return;
+    spawnSelector.value = createUniformSpawnOnUnionBoundarySelector(radars);
+  };
+
+  const getBarracksSignature = () => {
+    if (!Array.isArray(pois.value)) return [];
+    return pois.value
+      .filter((poi) => poi.type === 'barrack')
+      .map((poi) => `${poi.id}:${poi.lat}:${poi.lng}`)
+      .sort();
+  };
+
+  watch(
+    [baseMarkerPosition, radarLevel, getBarracksSignature],
+    updateSpawnSelector,
+    { immediate: true, deep: true }
+  );
+
+  const spawnEnemyAtRadarEdge = () => {
+    if (!spawnSelector.value) return;
 
     const waveSize = Math.max(1, Math.floor(Math.random() * 5) + 1);
 
     for (let i = 0; i < waveSize; i += 1) {
-      const selection = getUniformSpawnOnUnionBoundary(radars);
+      const selection = spawnSelector.value();
       if (!selection) return;
       const { radar, angle } = selection;
       enemyStore.spawnEnemy({

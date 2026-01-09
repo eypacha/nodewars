@@ -129,21 +129,80 @@ const computeAvailableArcs = (radar, radars) => {
   return available;
 };
 
-export const getUniformSpawnOnUnionBoundary = (radars) => {
-  const arcs = radars.flatMap((radar) => computeAvailableArcs(radar, radars));
+export const computeUnionBoundaryArcs = (radars) => {
+  if (!Array.isArray(radars) || !radars.length) return [];
+  return radars.flatMap((radar) => computeAvailableArcs(radar, radars));
+};
+
+export const createUniformSpawnOnUnionBoundarySelector = (radars) => {
+  const arcs = computeUnionBoundaryArcs(radars);
   const totalLength = arcs.reduce((sum, arc) => sum + arc.length, 0);
   if (totalLength <= EPSILON) return null;
 
-  let pick = Math.random() * totalLength;
+  return () => {
+    let pick = Math.random() * totalLength;
 
-  for (const arc of arcs) {
-    if (pick <= arc.length) {
-      const angleOffset = pick / arc.radar.radius;
-      const angle = arc.start + angleOffset;
-      return { radar: arc.radar, angle };
+    for (const arc of arcs) {
+      if (pick <= arc.length) {
+        const angleOffset = pick / arc.radar.radius;
+        const angle = arc.start + angleOffset;
+        return { radar: arc.radar, angle };
+      }
+      pick -= arc.length;
     }
-    pick -= arc.length;
+
+    return null;
+  };
+};
+
+export const getUniformSpawnOnUnionBoundary = (radars) => {
+  const selector = createUniformSpawnOnUnionBoundarySelector(radars);
+  return selector ? selector() : null;
+};
+
+const metersToDegreesLat = (meters) => toDegrees(meters / EARTH_RADIUS_METERS);
+const metersToDegreesLng = (meters, atLatitudeDeg) => toDegrees(meters / (EARTH_RADIUS_METERS * Math.cos((atLatitudeDeg * Math.PI) / 180)));
+
+export const computeRadarsMetrics = (radars, { cellSizeMeters = 50 } = {}) => {
+  if (!Array.isArray(radars) || !radars.length) {
+    return { perimeterMeters: 0, areaSquareMeters: 0 };
   }
 
-  return null;
+  const arcs = computeUnionBoundaryArcs(radars);
+  const perimeterMeters = arcs.reduce((sum, arc) => sum + arc.length, 0);
+
+  const referenceLat = radars[0].center.lat;
+  const latStep = metersToDegreesLat(cellSizeMeters);
+  const lngStep = metersToDegreesLng(cellSizeMeters, referenceLat);
+
+  if (!Number.isFinite(latStep) || !Number.isFinite(lngStep) || latStep <= 0 || lngStep <= 0) {
+    return { perimeterMeters, areaSquareMeters: 0 };
+  }
+
+  let latMin = Infinity;
+  let latMax = -Infinity;
+  let lngMin = Infinity;
+  let lngMax = -Infinity;
+
+  radars.forEach((radar) => {
+    const latDelta = metersToDegreesLat(radar.radius);
+    const lngDelta = metersToDegreesLng(radar.radius, radar.center.lat);
+    latMin = Math.min(latMin, radar.center.lat - latDelta);
+    latMax = Math.max(latMax, radar.center.lat + latDelta);
+    lngMin = Math.min(lngMin, radar.center.lng - lngDelta);
+    lngMax = Math.max(lngMax, radar.center.lng + lngDelta);
+  });
+
+  let coveredCells = 0;
+
+  for (let lat = latMin; lat <= latMax; lat += latStep) {
+    for (let lng = lngMin; lng <= lngMax; lng += lngStep) {
+      const inside = radars.some((radar) => calculateDistance([lat, lng], [radar.center.lat, radar.center.lng]) <= radar.radius + EPSILON);
+      if (inside) coveredCells += 1;
+    }
+  }
+
+  const areaSquareMeters = coveredCells * cellSizeMeters * cellSizeMeters;
+
+  return { perimeterMeters, areaSquareMeters };
 };

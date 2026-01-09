@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { ENEMY_SPEED_MPS } from '@/constants/enemies';
-import { computeBearingRadians, moveTowards, toDegrees } from '@/utils/enemyUtils';
+import { computeBearingRadians, moveTowards, toDegrees } from '@/utils/mathUtils';
 import { calculateDistance } from '@/utils/mapHelpers';
 import { db } from '@/services/dbService';
 

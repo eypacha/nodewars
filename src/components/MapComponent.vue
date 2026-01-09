@@ -3,6 +3,11 @@
     <Transition name="fade">
       <ResourceHUD v-if="baseConfirmed" />
     </Transition>
+    <CoverageHUD
+      v-if="baseConfirmed"
+      :perimeter="coverageStats.perimeter"
+      :area="coverageStats.area"
+    />
     <div id="map" class="w-full h-[calc(100vh+30px)] z-0"></div>
     <MarkerConfirmDialog 
       v-if="activeDialog === 'markerConfirm' && markerScreenPosition" 
@@ -109,7 +114,7 @@
 </template>
 
 <script setup>
-import { onMounted, onBeforeUnmount, watch, nextTick, computed, ref } from 'vue';
+import { onMounted, onBeforeUnmount, watch, nextTick, computed, ref, reactive } from 'vue';
 import { storeToRefs } from 'pinia';
 import L from 'leaflet';
 import { useMapStore } from '@/stores/mapStore';
@@ -132,11 +137,13 @@ import MarkerConfirmDialog from './MarkerConfirmDialog.vue';
 import BaseMarkerDialog from './BaseMarkerDialog.vue';
 import POIDialog from './POIDialog.vue';
 import ResourceHUD from './ResourceHUD.vue';
+import CoverageHUD from './CoverageHUD.vue';
 import EnemyAttackDialog from './EnemyAttackDialog.vue';
 import UpgradesPanel from './UpgradesPanel.vue';
 import { useEnemySpawn } from '@/composables/useEnemySpawn';
 import { useEnemyMovement } from '@/composables/useEnemyMovement';
 import { useProgressTimer } from '@/composables/useProgressTimer';
+import { computeRadarsMetrics } from '@/utils/mathUtils';
 
 const mapStore = useMapStore();
 const enemyStore = useEnemyStore();
@@ -232,6 +239,7 @@ const enemyMover = useEnemyMovement({
 const baseHealCooldown = useProgressTimer(2000, { key: 'base-heal' });
 const isBaseHealOnCooldown = baseHealCooldown.isRunning;
 const baseHealProgress = baseHealCooldown.progress;
+const coverageStats = reactive({ perimeter: 0, area: 0 });
 
 const handleBaseHeal = () => {
   if (isBaseHealOnCooldown.value) return;
@@ -306,6 +314,47 @@ const radarRadius = computed(() => {
   if (!radarData) return 0;
   return radarData.radius;
 });
+
+const BARRACKS_RADAR_RADIUS = 500;
+
+const getCoverageRadars = () => {
+  const list = [];
+
+  if (baseConfirmed.value && baseMarkerPosition.value) {
+    const baseConfig = getRadarConfig(radarLevel.value);
+    list.push({
+      id: 'base',
+      center: baseMarkerPosition.value,
+      radius: baseConfig.radius,
+    });
+  }
+
+  (pois.value || []).forEach((poi) => {
+    if (poi.type !== 'barrack' || !poi.owned) return;
+    list.push({
+      id: `barrack-${poi.id}`,
+      center: { lat: poi.lat, lng: poi.lng },
+      radius: BARRACKS_RADAR_RADIUS,
+    });
+  });
+
+  return list;
+};
+
+const getOwnedBarracksSignature = () => {
+  if (!Array.isArray(pois.value)) return [];
+  return pois.value
+    .filter((poi) => poi.type === 'barrack' && poi.owned)
+    .map((poi) => `${poi.id}:${poi.lat}:${poi.lng}`)
+    .sort();
+};
+
+const updateCoverageMetrics = () => {
+  const radars = getCoverageRadars();
+  const { perimeterMeters, areaSquareMeters } = computeRadarsMetrics(radars);
+  coverageStats.perimeter = perimeterMeters;
+  coverageStats.area = areaSquareMeters;
+};
 
 // Función para actualizar la posición en pantalla del punto de ataque
 const updateAttackOriginScreenPosition = () => {
@@ -913,6 +962,12 @@ watch(radarLevel, (newLevel) => {
     updateRadius(radarConfig.radius);
   }
 });
+
+watch(
+  [baseMarkerPosition, radarLevel, getOwnedBarracksSignature],
+  updateCoverageMetrics,
+  { immediate: true, deep: true }
+);
 
 // Observar cambios en los POIs para actualizar líneas owned y radares de barracas
 watch(pois, (newPois) => {

@@ -7,7 +7,7 @@
 import { ref } from 'vue';
 import L from 'leaflet';
 import { getRadarConfig } from '@/services/mapService';
-import { computePointOnEdge } from '@/utils/enemyUtils';
+import { computePointOnEdge } from '@/utils/mathUtils';
 
 export const useAttackRadar = (mapRef) => {
   const radarRef = ref(null);
