@@ -968,7 +968,7 @@ watch(radarLevel, (newLevel) => {
 });
 
 watch(
-  [baseMarkerPosition, radarLevel, getOwnedBarracksSignature],
+  [baseMarkerPosition, radarLevel, getOwnedBarracksSignature, baseConfirmed],
   updateCoverageMetrics,
   { immediate: true, deep: true }
 );
