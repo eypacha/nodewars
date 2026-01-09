@@ -48,7 +48,7 @@
     "stopScan": "Detener Scan"
   },
   "hud": {
-    "nextWave": "Próxima Oleada",
+    "nextWave": "Próxima Oleada:",
     "contour": "Contorno:",
     "field": "Campo:"
   },
