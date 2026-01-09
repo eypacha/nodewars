@@ -59,10 +59,12 @@ export const useEnemySpawn = ({ baseMarkerPosition, pois, radarLevel }) => {
   };
 
   const getTargetForEnemyBarrack = (barrack) => {
-    if (!barrack?.conqueredFrom) return null;
 
-    if (barrack.conqueredFrom === 'base' && baseMarkerPosition.value) {
-      return { type: 'base', id: 'base', position: baseMarkerPosition.value };
+    if (!barrack?.conqueredFrom || barrack.conqueredFrom === 'base') {
+      if (baseMarkerPosition.value) {
+        return { type: 'base', id: 'base', position: baseMarkerPosition.value };
+      }
+      return null;
     }
 
     const target = (pois.value || []).find(
@@ -77,24 +79,48 @@ export const useEnemySpawn = ({ baseMarkerPosition, pois, radarLevel }) => {
   };
 
   const spawnExtraProjectilesFromEnemyBarracks = () => {
-    if (!Array.isArray(pois.value)) return;
+    if (!Array.isArray(pois.value)) {
+      console.log('[ENEMY BARRACKS] pois.value is not array:', pois.value);
+      return;
+    }
 
-    pois.value
-      .filter((poi) => poi.type === 'barrack' && !poi.owned)
-      .forEach((barrack) => {
-        const target = getTargetForEnemyBarrack(barrack);
-        if (!target) return;
+    const enemyBarracks = pois.value.filter((poi) => poi.type === 'barrack' && !poi.owned);
+    console.log(`[ENEMY BARRACKS] Found ${enemyBarracks.length} enemy barracks`);
 
-        const angle = computeBearingRadians({ lat: barrack.lat, lng: barrack.lng }, target.position);
+    enemyBarracks.forEach((barrack) => {
+      console.log('[ENEMY BARRACKS] Processing barrack:', barrack);
+      const target = getTargetForEnemyBarrack(barrack);
+      if (!target) {
+        console.log('[ENEMY BARRACKS] No target found for barrack', barrack.id, barrack);
+        return;
+      }
 
-        enemyStore.spawnEnemy({
-          center: { lat: barrack.lat, lng: barrack.lng },
-          radius: 0,
-          angle,
-          targetType: target.type,
-          targetId: target.id,
-        });
+      // El proyectil debe salir a 1 metro del centro de la barraca enemiga en dirección al objetivo
+      const angle = computeBearingRadians({ lat: barrack.lat, lng: barrack.lng }, target.position);
+
+      // Calcular nueva posición a 1 metro del centro
+      const earthRadius = 6371000; // metros
+      const deltaLat = (1 * Math.cos(angle)) / earthRadius * (180 / Math.PI);
+      const deltaLng = (1 * Math.sin(angle)) / (earthRadius * Math.cos((barrack.lat * Math.PI) / 180)) * (180 / Math.PI);
+      const spawnLat = barrack.lat + deltaLat;
+      const spawnLng = barrack.lng + deltaLng;
+
+      console.log('[ENEMY BARRACKS] Spawning enemy projectile (offset 1m):', {
+        center: { lat: spawnLat, lng: spawnLng },
+        radius: 0,
+        angle,
+        targetType: target.type,
+        targetId: target.id,
       });
+
+      enemyStore.spawnEnemy({
+        center: { lat: spawnLat, lng: spawnLng },
+        radius: 0,
+        angle,
+        targetType: target.type,
+        targetId: target.id,
+      });
+    });
   };
 
   const getBarracksSignature = () => {

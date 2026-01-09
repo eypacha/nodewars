@@ -100,7 +100,7 @@ export const useEnemyStore = defineStore('enemy', () => {
   };
 
   const spawnEnemy = ({ center, radius, angle, targetType = 'base', targetId = 'base' }) => {
-    if (!center || !radius) return null;
+    if (!center) return null;
     const enemy = createEnemyAtEdge(center, radius, angle, targetType, targetId);
     enemies.value.push(enemy);
     schedulePersist();
