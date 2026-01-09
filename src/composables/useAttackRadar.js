@@ -4,12 +4,16 @@
  * Solo debe haber un radar visible al mismo tiempo
  */
 
-import { ref, computed } from 'vue';
+import { ref } from 'vue';
 import L from 'leaflet';
 import { getRadarConfig } from '@/services/mapService';
+import { computePointOnEdge } from '@/utils/enemyUtils';
 
 export const useAttackRadar = (mapRef) => {
   const radarRef = ref(null);
+  const radialLineRef = ref(null);
+  const radialLabelRef = ref(null);
+  const zoomListenerRef = ref(null);
   const attackCenterRef = ref(null); // Centro de ataque actual (base o cuartel)
   const BASE_RADAR_COLOR = getRadarConfig().color;
 
@@ -64,6 +68,44 @@ export const useAttackRadar = (mapRef) => {
     return null;
   };
 
+  const formatRadiusText = (radius) => {
+    if (!radius) return '';
+    if (radius < 1000) return `${Math.round(radius)} m`;
+    return `${(radius / 1000).toFixed(1)} km`;
+  };
+
+  const renderLabel = (center, radius) => {
+    if (!mapRef.value) return;
+
+    const zoom = typeof mapRef.value.getZoom === 'function' ? mapRef.value.getZoom() : 0;
+    if (zoom < 14) {
+      if (radialLabelRef.value) {
+        radialLabelRef.value.remove();
+        radialLabelRef.value = null;
+      }
+      return;
+    }
+
+    const midPoint = computePointOnEdge({ lat: center.lat, lng: center.lng }, radius / 2, Math.PI / 2);
+    const labelText = formatRadiusText(radius);
+    const icon = L.divIcon({
+      className: 'radar-radius-label',
+      html: `<div style="color: white; font-size: 12px; font-weight: bold; text-shadow: 0 0 4px rgba(0,0,0,0.8); white-space: nowrap;">${labelText}</div>`,
+      iconSize: [0, 0],
+    });
+
+    if (radialLabelRef.value) {
+      radialLabelRef.value.setLatLng([midPoint.lat, midPoint.lng]);
+      radialLabelRef.value.setIcon(icon);
+    } else {
+      radialLabelRef.value = L.marker([midPoint.lat, midPoint.lng], {
+        interactive: false,
+        bubblingMouseEvents: false,
+        icon,
+      }).addTo(mapRef.value);
+    }
+  };
+
   /**
    * Crea o actualiza el radar del centro de ataque
    * @param {Object} center - Centro de ataque {lat, lng, type, level}
@@ -91,6 +133,34 @@ export const useAttackRadar = (mapRef) => {
       interactive: false,
       bubblingMouseEvents: false,
     }).addTo(mapRef.value);
+
+    // Línea radial punteada desde el centro hacia el borde derecho (este)
+    const endPoint = computePointOnEdge({ lat: center.lat, lng: center.lng }, config.radius, Math.PI / 2);
+    radialLineRef.value = L.polyline(
+      [
+        [center.lat, center.lng],
+        [endPoint.lat, endPoint.lng],
+      ],
+      {
+        color: config.color,
+        weight: config.weight,
+        opacity: 0.8,
+        dashArray: '6 6',
+        interactive: false,
+        bubblingMouseEvents: false,
+      }
+    ).addTo(mapRef.value);
+
+    renderLabel(center, config.radius);
+
+    // Re-renderizar etiqueta al cambiar zoom
+    const zoomHandler = () => {
+      const currentCenter = radarRef.value?.getLatLng();
+      if (!currentCenter || !radarRef.value) return;
+      renderLabel({ lat: currentCenter.lat, lng: currentCenter.lng }, radarRef.value.getRadius());
+    };
+    mapRef.value.on('zoom', zoomHandler);
+    zoomListenerRef.value = zoomHandler;
   };
 
   /**
@@ -145,6 +215,15 @@ export const useAttackRadar = (mapRef) => {
   const updatePosition = (newCenter) => {
     if (!radarRef.value) return;
     radarRef.value.setLatLng(newCenter);
+    if (radialLineRef.value) {
+      const radius = radarRef.value.getRadius();
+      const endPoint = computePointOnEdge({ lat: newCenter.lat, lng: newCenter.lng }, radius, Math.PI / 2);
+      radialLineRef.value.setLatLngs([
+        [newCenter.lat, newCenter.lng],
+        [endPoint.lat, endPoint.lng],
+      ]);
+    }
+    renderLabel(newCenter, radarRef.value.getRadius());
   };
 
   /**
@@ -157,6 +236,16 @@ export const useAttackRadar = (mapRef) => {
     // Solo actualizar si es la base (el cuartel siempre tiene radio fijo)
     if (attackCenterRef.value.type === 'base') {
       radarRef.value.setRadius(newRadius);
+      if (radialLineRef.value) {
+        const center = radarRef.value.getLatLng();
+        const endPoint = computePointOnEdge({ lat: center.lat, lng: center.lng }, newRadius, Math.PI / 2);
+        radialLineRef.value.setLatLngs([
+          [center.lat, center.lng],
+          [endPoint.lat, endPoint.lng],
+        ]);
+      }
+      const center = radarRef.value.getLatLng();
+      renderLabel({ lat: center.lat, lng: center.lng }, newRadius);
     }
   };
 
@@ -193,10 +282,22 @@ export const useAttackRadar = (mapRef) => {
       radarRef.value.remove();
       radarRef.value = null;
     }
+    if (radialLineRef.value) {
+      radialLineRef.value.remove();
+      radialLineRef.value = null;
+    }
+    if (radialLabelRef.value) {
+      radialLabelRef.value.remove();
+      radialLabelRef.value = null;
+    }
     attackCenterRef.value = null;
     // Eliminar todos los radares de barracas inactivos
     barracksRadarRefs.value.forEach(obj => obj.circle.remove());
     barracksRadarRefs.value = [];
+    if (zoomListenerRef.value && mapRef.value) {
+      mapRef.value.off('zoom', zoomListenerRef.value);
+      zoomListenerRef.value = null;
+    }
   };
 
   /**
@@ -213,6 +314,12 @@ export const useAttackRadar = (mapRef) => {
   const hide = () => {
     if (!radarRef.value) return;
     radarRef.value.remove();
+    if (radialLineRef.value) radialLineRef.value.remove();
+    if (radialLabelRef.value) radialLabelRef.value.remove();
+    if (zoomListenerRef.value && mapRef.value) {
+      mapRef.value.off('zoom', zoomListenerRef.value);
+      zoomListenerRef.value = null;
+    }
   };
 
   /**
