@@ -68,28 +68,30 @@
     >
       ▲
     </div>
-    <div 
-      v-for="enemy in enemyMarkers" 
-      :key="enemy.id"
-      class="enemy-triangle cursor-pointer"
-      :style="{
-        position: 'absolute',
-        left: `${enemy.x}px`,
-        top: `${enemy.y}px`,
-        transform: `translate(-50%, -50%) rotate(${enemy.rotation}deg)`,
-        zIndex: 800,
-      }"
-      @click.stop="handleEnemyClick(enemy.id)"
-    >
-      ▲
-    </div>
-    <EnemyAttackDialog
-      v-if="selectedEnemyForAttack && enemyDialogStyle"
-      :style="enemyDialogStyle"
-      :is-on-cooldown="isEnemyAttackOnCooldown"
-      :cooldown-progress="enemyAttackCooldownProgress"
-      @attack="handleEnemyAttack"
-    />
+    <template v-if="!showStartPopup && baseConfirmed">
+      <div 
+        v-for="enemy in enemyMarkers" 
+        :key="enemy.id"
+        class="enemy-triangle cursor-pointer"
+        :style="{
+          position: 'absolute',
+          left: `${enemy.x}px`,
+          top: `${enemy.y}px`,
+          transform: `translate(-50%, -50%) rotate(${enemy.rotation}deg)`,
+          zIndex: 800,
+        }"
+        @click.stop="handleEnemyClick(enemy.id)"
+      >
+        ▲
+      </div>
+      <EnemyAttackDialog
+        v-if="selectedEnemyForAttack && enemyDialogStyle"
+        :style="enemyDialogStyle"
+        :is-on-cooldown="isEnemyAttackOnCooldown"
+        :cooldown-progress="enemyAttackCooldownProgress"
+        @attack="handleEnemyAttack"
+      />
+    </template>
     <div 
       v-for="particle in resourceParticles" 
       :key="particle.id"
@@ -145,7 +147,7 @@ let isProgrammaticMapMove = false;
 const poiStore = usePoiStore();
 const gameStore = useGameStore();
 const { center, zoom, marker, activeDialog, baseConfirmed, showUpgradesPanel } = storeToRefs(mapStore);
-const { radarLevel, resources, baseHealth, baseMaxHealth } = storeToRefs(gameStore);
+const { radarLevel, resources, baseHealth, baseMaxHealth, showStartPopup } = storeToRefs(gameStore);
 const { selectedPOI, showPOIDialog, isLoading, pois } = storeToRefs(poiStore);
 const { enemies } = storeToRefs(enemyStore);
 const selectedBarracksForAttack = ref(null); // Cuartel seleccionado para lanzar ataques
@@ -355,7 +357,7 @@ const radarSweepStyles = computed(() => {
 
 const enemyMarkers = computed(() => {
   mapViewVersion.value;
-  if (!mapRef.value) return [];
+  if (!mapRef.value || showStartPopup.value || !baseConfirmed.value) return [];
 
   return enemies.value.map((enemy) => {
     const point = mapRef.value.latLngToContainerPoint([enemy.lat, enemy.lng]);
