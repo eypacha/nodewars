@@ -28,7 +28,7 @@
         
         <!-- Health bar (todos los POIs con vida) -->
         <LabeledProgressBar
-          v-if="poi.health != null && poi.maxHealth && !poi.owned"
+          v-if="!poi.owned || poi.type == 'barrack'"
           class="mb-2"
           :left-label="$t('poi.health')"
           :right-label="`${poi.health} / ${poi.maxHealth}`"
