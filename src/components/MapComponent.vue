@@ -516,22 +516,6 @@ const runScan = async ({ type, position, radius, closeDialogs = true, originId =
 // Manejar extracción manual de recursos
 const handleExtract = () => {
   if (!selectedPOI.value || !selectedPOI.value.owned) return;
-  // Bloquear extracción si la cadena pasa por barracas enemigas
-  const hasEnemyBarrackInChain = (poi) => {
-    let current = poi;
-    while (current?.conqueredFrom) {
-      const barrack = (pois.value || []).find((p) => p.id === current.conqueredFrom);
-      if (!barrack) break;
-      if (barrack.type === 'barrack' && !barrack.owned) return true;
-      current = barrack;
-    }
-    return false;
-  };
-
-  if (hasEnemyBarrackInChain(selectedPOI.value)) {
-    console.log('⚠️ No se pueden extraer recursos conectados a barracas enemigas');
-    return;
-  }
   const consumed = poiStore.consumeResource(selectedPOI.value.id);
   if (!consumed) return;
   const resourceType = selectedPOI.value.category || selectedPOI.value.type;

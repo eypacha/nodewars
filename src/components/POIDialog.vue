@@ -55,7 +55,7 @@
       />
       <div v-else>
         <ProgressButton
-          v-if="poi.type !== 'barrack'"
+          v-if="poi.type !== 'barrack' && !isBlockedByEnemyBarrack"
           class="mt-3"
           :label="poi.resourceAmount ? $t('poi.extract') : $t('poi.noResources')"
           :disabled="isExtractOnCooldown || !poi.resourceAmount"
@@ -64,7 +64,7 @@
           @click="handleExtract"
         />
         <ProgressButton
-          v-if="poi.owned"
+          v-if="poi.owned && !isBlockedByEnemyBarrack"
           class="mt-2"
           :label="$t('poi.heal')"
           :disabled="isHealOnCooldown || poi.health >= poi.maxHealth || !canHeal"
@@ -73,7 +73,7 @@
           @click="handleHeal"
         />
         <ProgressButton
-          v-if="poi.type !== 'barrack'"
+          v-if="poi.type !== 'barrack' && !isBlockedByEnemyBarrack"
           class="mt-2"
           :label="isConverting ? $t('poi.converting') : $t('poi.convertToBarracks')"
           :disabled="isConverting"
@@ -255,6 +255,18 @@ const stopProductionInterval = () => {
 const healthPercentage = computed(() => {
   if (!props.poi || !props.poi.health || !props.poi.maxHealth) return 0;
   return (props.poi.health / props.poi.maxHealth) * 100;
+});
+
+const isBlockedByEnemyBarrack = computed(() => {
+  if (!props.poi || !Array.isArray(props.allPois)) return false;
+  let current = props.poi;
+  while (current?.conqueredFrom) {
+    const barrack = props.allPois.find((p) => p.id === current.conqueredFrom);
+    if (!barrack) break;
+    if (barrack.type === 'barrack' && !barrack.owned) return true;
+    current = barrack;
+  }
+  return false;
 });
 
 const resourcePercentage = computed(() => {
