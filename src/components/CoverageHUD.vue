@@ -1,6 +1,6 @@
 <template>
   <div class="pointer-events-none">
-    <div class="border px-3 py-2 text-white text-sm flex flex-col min-w-[180px]">
+    <div class="border px-3 py-2 text-white text-sm flex flex-col">
       <div class="flex items-center justify-between gap-2">
         <span class="font-bold">{{ $t('hud.contour') }}</span>
         <span>{{ formattedPerimeter }}</span>
