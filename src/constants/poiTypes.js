@@ -26,13 +26,13 @@ export const POI_TYPES = {
   police: {
     displayName: 'Security',
     emoji: '👮',
-    color: '#1E90FF',
+    color: '#858585ff',
     normalizeKeys: ['police'],
   },
   barrack: {
     displayName: 'Barracks',
     emoji: '🏰',
-    color: '#9ca3af',
+    color: '#00bcff',
     normalizeKeys: ['barrack'],
   },
 };
