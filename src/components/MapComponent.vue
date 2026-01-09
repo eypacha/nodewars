@@ -982,6 +982,23 @@ watch(pois, (newPois) => {
   renderAllBarracksRadars(barracks, activeId, baseCenter);
 }, { deep: true });
 
+
+watch(
+  () => selectedBarracksForAttack.value ? selectedBarracksForAttack.value.owned : null,
+  (isOwned) => {
+    if (isOwned === false && selectedBarracksForAttack.value) {
+      const baseOrigin = getBaseAttackOrigin();
+      if (baseOrigin) {
+        setActiveAttackOrigin(baseOrigin);
+      } else {
+        selectedBarracksForAttack.value = null;
+        isBaseAttackOrigin.value = false;
+        removeRadar();
+      }
+    }
+  }
+);
+
 // Observar cambios en la barraca activa para actualizar los radares inactivos
 watch(selectedBarracksForAttack, (newBarrack) => {
   const barracks = getBarracksForRadar();
