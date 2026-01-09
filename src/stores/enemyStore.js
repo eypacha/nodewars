@@ -25,11 +25,12 @@ const createEnemyAtEdge = (center, radius, angle, targetType, targetId) => {
 
 export const useEnemyStore = defineStore('enemy', () => {
   const enemies = ref([]);
+  const waveNumber = ref(1);
   const nextWaveTimestamp = ref(0);
   let persistTimeout = null;
 
   const initialize = async () => {
-    await loadEnemies();
+    await Promise.all([loadEnemies(), loadWaveNumber()]);
   };
 
   const loadEnemies = async () => {
@@ -41,6 +42,17 @@ export const useEnemyStore = defineStore('enemy', () => {
     }
   };
 
+  const loadWaveNumber = async () => {
+    try {
+      const stored = await db.game.get('waveNumber');
+      if (stored?.data) {
+        waveNumber.value = stored.data;
+      }
+    } catch (err) {
+      console.error('Error loading wave number from DB', err);
+    }
+  };
+
   const persistEnemies = async () => {
     try {
       await db.enemies.clear();
@@ -49,6 +61,14 @@ export const useEnemyStore = defineStore('enemy', () => {
       }
     } catch (err) {
       console.error('Error persisting enemies to DB', err);
+    }
+  };
+
+  const persistWaveNumber = async () => {
+    try {
+      await db.game.put({ key: 'waveNumber', data: waveNumber.value });
+    } catch (err) {
+      console.error('Error persisting wave number to DB', err);
     }
   };
 
@@ -107,6 +127,21 @@ export const useEnemyStore = defineStore('enemy', () => {
     nextWaveTimestamp.value = timestamp || 0;
   };
 
+  const setWaveNumber = (value) => {
+    const safeValue = Number.isFinite(value) && value > 0 ? Math.floor(value) : 1;
+    waveNumber.value = safeValue;
+    persistWaveNumber();
+  };
+
+  const incrementWaveNumber = () => {
+    setWaveNumber(waveNumber.value + 1);
+  };
+
+  const resetWaveState = () => {
+    setWaveNumber(1);
+    setNextWaveTimestamp(0);
+  };
+
   const clearEnemies = async () => {
     enemies.value = [];
     if (persistTimeout) {
@@ -122,6 +157,7 @@ export const useEnemyStore = defineStore('enemy', () => {
 
   return {
     enemies,
+    waveNumber,
     nextWaveTimestamp,
     initialize,
     loadEnemies,
@@ -130,7 +166,11 @@ export const useEnemyStore = defineStore('enemy', () => {
     removeEnemy,
     clearEnemies,
     persistEnemies,
+    persistWaveNumber,
     schedulePersist,
     setNextWaveTimestamp,
+    setWaveNumber,
+    incrementWaveNumber,
+    resetWaveState,
   };
 });

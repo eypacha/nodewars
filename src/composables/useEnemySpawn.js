@@ -1,5 +1,5 @@
 import { ref, onBeforeUnmount, watch } from 'vue';
-import { ENEMY_SPAWN_INTERVAL_MS } from '@/constants/enemies';
+import { ENEMY_SPAWN_INTERVAL_MS, ENEMY_WAVE_BASE_SIZE, ENEMY_WAVE_GROWTH_RATE } from '@/constants/enemies';
 import { useEnemyStore } from '@/stores/enemyStore';
 import { getRadarConfig } from '@/services/mapService';
 import { createUniformSpawnOnUnionBoundarySelector } from '@/utils/mathUtils';
@@ -63,7 +63,8 @@ export const useEnemySpawn = ({ baseMarkerPosition, pois, radarLevel }) => {
   const spawnEnemyAtRadarEdge = () => {
     if (!spawnSelector.value) return;
 
-    const waveSize = Math.max(1, Math.floor(Math.random() * 5) + 1);
+    const growth = Math.pow(1 + ENEMY_WAVE_GROWTH_RATE, Math.max(0, enemyStore.waveNumber - 1));
+    const waveSize = Math.max(1, Math.round(ENEMY_WAVE_BASE_SIZE * growth));
 
     for (let i = 0; i < waveSize; i += 1) {
       const selection = spawnSelector.value();
@@ -77,6 +78,7 @@ export const useEnemySpawn = ({ baseMarkerPosition, pois, radarLevel }) => {
         targetId: radar.targetId,
       });
     }
+    enemyStore.incrementWaveNumber();
     enemyStore.setNextWaveTimestamp(Date.now() + ENEMY_SPAWN_INTERVAL_MS);
   };
 

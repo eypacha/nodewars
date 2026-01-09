@@ -31,12 +31,14 @@ import LocationRequiredPopup from '../components/LocationRequiredPopup.vue';
 import { useGameStore } from '@/stores/gameStore';
 import { useMapStore } from '@/stores/mapStore';
 import { usePoiStore } from '@/stores/poiStore';
+import { useEnemyStore } from '@/stores/enemyStore';
 import { useGeolocation } from '@/composables/useGeolocation';
 import { wipeDatabase } from '@/services/dbService';
 
 const gameStore = useGameStore();
 const mapStore = useMapStore();
 const poiStore = usePoiStore();
+const enemyStore = useEnemyStore();
 const { baseConfirmed } = storeToRefs(mapStore);
 const { requestLocation } = useGeolocation();
 
@@ -45,6 +47,8 @@ const handleStartGame = async () => {
   gameStore.resetGame();
   mapStore.resetMap();
   poiStore.resetPOIs();
+  enemyStore.resetWaveState();
+  await enemyStore.clearEnemies();
   mapStore.clearSavedGame();
 };
 

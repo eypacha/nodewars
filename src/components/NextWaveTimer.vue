@@ -1,6 +1,7 @@
 <template>
   <div class="next-wave-timer px-2 py-1 text-white flex items-center gap-2">
-    <span>{{ $t('hud.nextWave') }}</span>
+    <span>{{ $t('hud.wave') }} {{ waveNumber }}</span>
+    <span>→</span>
     <span class="font-mono font-bold">{{ formattedTime }}</span>
   </div>
 </template>
@@ -11,7 +12,7 @@ import { storeToRefs } from 'pinia';
 import { useEnemyStore } from '@/stores/enemyStore';
 
 const enemyStore = useEnemyStore();
-const { nextWaveTimestamp } = storeToRefs(enemyStore);
+const { nextWaveTimestamp, waveNumber } = storeToRefs(enemyStore);
 
 const now = ref(Date.now());
 let intervalId = null;

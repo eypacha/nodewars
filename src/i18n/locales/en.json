@@ -48,7 +48,7 @@
     "stopScan": "Stop Scan"
   },
   "hud": {
-    "nextWave": "Next Wave:",
+    "wave": "Wave",
     "contour": "Contour:",
     "field": "Field:"
   },
