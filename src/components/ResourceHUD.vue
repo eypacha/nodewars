@@ -4,7 +4,7 @@
       <div
         v-for="item in resourceList"
         :key="item.key"
-        class="flex items-center gap-2 font-bold text-white px-2 py-1 w-7 justify-center text-sm"
+        class="flex items-center gap-2 rounded-full font-bold text-white px-2 py-1 w-7 justify-center text-sm"
         :style="{ backgroundColor: item.bg, color: '#0b0b0b' }"
       >
         {{ resources[item.key] }}
