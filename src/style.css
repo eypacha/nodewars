@@ -1,14 +1,5 @@
 @import "tailwindcss";
 @import "./utilities.css";
-@import "./primevue.css";
-
-:root {
-  --color-blue: #142c96;
-  --color-lila: #cc5de8;
-  --color-gray: #dbdddd;
-  --color-orange: #f9490d;
-  background-color: var(--color-gray);
-}
 
 body {
   scroll-behavior: smooth;
