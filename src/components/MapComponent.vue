@@ -305,6 +305,7 @@ const radarRadius = computed(() => {
 
 const BARRACKS_RADAR_RADIUS = 500;
 
+// Solo cuenta radares aliados (base + barracas aliadas) para el HUD
 const getCoverageRadars = () => {
   const list = [];
 
@@ -318,6 +319,7 @@ const getCoverageRadars = () => {
   }
 
   (pois.value || []).forEach((poi) => {
+    // Solo barracas aliadas (owned)
     if (poi.type !== 'barrack' || !poi.owned) return;
     list.push({
       id: `barrack-${poi.id}`,
