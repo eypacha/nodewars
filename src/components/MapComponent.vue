@@ -190,6 +190,12 @@ const {
   poiDialogStyle 
 } = useScreenPositions(mapRef, markerRef);
 const { closePOIDialog: closeDialog, handleMapClick } = useMapDialogs();
+const closeAllDialogs = () => {
+  closeDialog(removeConnectionLine, cancelAttack);
+  selectedEnemyForAttack.value = null;
+  enemyDialogStyle.value = null;
+  mapStore.closeAllDialogs();
+};
 
 // Posición del marcador base para calcular distancia
 const baseMarkerPosition = computed(() => {
@@ -256,6 +262,7 @@ const updateEnemyDialogPosition = (enemy) => {
 const handleEnemyClick = (enemyId) => {
   const enemy = enemies.value.find((e) => e.id === enemyId);
   if (!enemy) return;
+  closeAllDialogs();
   selectedEnemyForAttack.value = enemy;
   updateEnemyDialogPosition(enemy);
 };
@@ -387,6 +394,7 @@ const handleAttack = () => {
     attackOrigin = selectedBarracksForAttack.value;
   }
   startAttack(selectedPOI.value, attackOrigin);
+  closeEnemyDialog();
 };
 
 const getScanKey = (type, id = 'base') => {
@@ -535,6 +543,7 @@ const handleSelectAsAttackOrigin = (barracks) => {
       // Seleccionar cuartel (y deseleccionar base)
       setActiveAttackOrigin(barracks);
     }
+    closeEnemyDialog();
   }
 };
 
@@ -545,12 +554,15 @@ const handleSelectBaseAsAttackOrigin = () => {
   if (baseOrigin) {
     setActiveAttackOrigin(baseOrigin);
   }
+  closeEnemyDialog();
 };
   
 // Manejar cierre del diálogo de POI
 const handleClosePOIDialog = () => {
   closeDialog(removeConnectionLine, cancelAttack);
   mapStore.closeAllDialogs();
+  selectedEnemyForAttack.value = null;
+  enemyDialogStyle.value = null;
 };
 
 const handleScanFromBarracks = async () => {
@@ -601,6 +613,7 @@ const handleOpenUpgrades = () => {
   if (showPOIDialog.value) {
     poiStore.closePOIDialog();
   }
+  closeEnemyDialog();
   mapStore.openUpgradesPanel();
 };
 
@@ -618,6 +631,7 @@ const handleMarkerClick = (e) => {
   if (showPOIDialog.value) {
     poiStore.closePOIDialog();
   }
+  closeEnemyDialog();
 
   if (baseAlreadySelected) {
     mapStore.openBaseMarkerDialog();
@@ -850,6 +864,7 @@ watch(currentAttackOrigin, () => {
 // Observar cambios en el POI seleccionado
 watch(selectedPOI, (poi, prevPoi) => {
   if (poi) {
+    closeEnemyDialog();
     updatePOIScreenPosition(poi);
     // Limpiar línea anterior
     removeConnectionLine();
@@ -872,6 +887,7 @@ watch(selectedPOI, (poi, prevPoi) => {
 // Actualizar posición del diálogo de POI cuando el mapa se mueve
 watch(showPOIDialog, (visible) => {
   if (visible) {
+    closeEnemyDialog();
     updatePOIScreenPosition(selectedPOI.value);
     // Crear línea de conexión cuando se abre el diálogo
     nextTick(() => {
