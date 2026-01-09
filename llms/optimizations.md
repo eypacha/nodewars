@@ -35,3 +35,26 @@ Reducir el coste del cálculo de arcos disponibles y de la selección uniforme e
 
 ## Activación
 - Solo activar estas optimizaciones cuando el número de radares supere un umbral (p.ej. 40-50) para no añadir complejidad innecesaria en escenarios chicos.
+
+# Métricas de cobertura (perímetro/área) – notas y simplificación futura
+
+## Contexto
+- **Perímetro**: se calcula con arcos de unión (O(n²) con pocos radares tolerable).
+- **Área**: rasteriza el bounding box con celdas de 50 m y, por celda, evalúa distancia Haversine a cada radar (`O(radars * celdas)` con trigonometría). Puede crecer si hay muchos radares o un bounding box grande.
+
+## Cuándo preocuparse
+- Tranquilo hasta ~20–30 radares con cell size grueso (50–100 m) y bounding box acotado.
+- Preocuparse si:
+  - Se superan ~50 radares, o
+  - El bounding box cubre varios km y genera decenas de miles de celdas con el cell size actual.
+
+## Plan de simplificación
+- **Plano local sin Haversine**: proyectar a metros con latitud de referencia; comparar contra `radio²` (solo sumas/mult.).
+- **Cell size adaptable**: subir `cellSizeMeters` (p.ej. 150–250 m) o hacerlo dependiente del tamaño del bounding box.
+- **Muestreo opcional**: si `radars * celdas` excede umbral, muestrear celdas aleatorias para aproximar área.
+- **Perímetro**: mantener arcos mientras haya pocos radares; si crece mucho, se puede aproximar perímetro desde área o con longitudes medias por radar.
+
+## Checklist rápido
+- [ ] Cambiar cálculo de área a plano local con radios² (sin Haversine).
+- [ ] Hacer `cellSizeMeters` configurable/adaptativo según bounding box.
+- [ ] Opcional: modo “rápido” de muestreo si `radars * celdas` supera un umbral.
