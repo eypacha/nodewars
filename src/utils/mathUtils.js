@@ -72,8 +72,8 @@ const mergeIntervals = (intervals) => {
   return merged;
 };
 
-const computeAvailableArcs = (radar, radars) => {
-  const others = radars.filter((r) => r.id !== radar.id);
+const computeAvailableArcs = (radar, radars, blockers = []) => {
+  const others = [...radars, ...blockers].filter((r) => r.id !== radar.id);
   if (!others.length) {
     return [{ start: 0, end: TWO_PI, length: TWO_PI * radar.radius, radar }];
   }
@@ -129,13 +129,14 @@ const computeAvailableArcs = (radar, radars) => {
   return available;
 };
 
-export const computeUnionBoundaryArcs = (radars) => {
+export const computeUnionBoundaryArcs = (radars, blockers = []) => {
   if (!Array.isArray(radars) || !radars.length) return [];
-  return radars.flatMap((radar) => computeAvailableArcs(radar, radars));
+  const blockingRadars = Array.isArray(blockers) ? blockers : [];
+  return radars.flatMap((radar) => computeAvailableArcs(radar, radars, blockingRadars));
 };
 
-export const createUniformSpawnOnUnionBoundarySelector = (radars) => {
-  const arcs = computeUnionBoundaryArcs(radars);
+export const createUniformSpawnOnUnionBoundarySelector = (radars, { blockers = [] } = {}) => {
+  const arcs = computeUnionBoundaryArcs(radars, blockers);
   const totalLength = arcs.reduce((sum, arc) => sum + arc.length, 0);
   if (totalLength <= EPSILON) return null;
 
@@ -155,8 +156,8 @@ export const createUniformSpawnOnUnionBoundarySelector = (radars) => {
   };
 };
 
-export const getUniformSpawnOnUnionBoundary = (radars) => {
-  const selector = createUniformSpawnOnUnionBoundarySelector(radars);
+export const getUniformSpawnOnUnionBoundary = (radars, options) => {
+  const selector = createUniformSpawnOnUnionBoundarySelector(radars, options);
   return selector ? selector() : null;
 };
 

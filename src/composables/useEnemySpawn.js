@@ -41,9 +41,21 @@ export const useEnemySpawn = ({ baseMarkerPosition, pois, radarLevel }) => {
     return list;
   };
 
+  const getEnemyBarracksRadars = () => {
+    if (!Array.isArray(pois.value)) return [];
+    return pois.value
+      .filter((poi) => poi.type === 'barrack' && !poi.owned)
+      .map((poi) => ({
+        id: `enemy-barrack-${poi.id}`,
+        center: { lat: poi.lat, lng: poi.lng },
+        radius: BARRACKS_RADAR_RADIUS,
+      }));
+  };
+
   const updateSpawnSelector = () => {
     const radars = getRadarsForSpawn();
-    spawnSelector.value = createUniformSpawnOnUnionBoundarySelector(radars);
+    const blockers = getEnemyBarracksRadars();
+    spawnSelector.value = createUniformSpawnOnUnionBoundarySelector(radars, { blockers });
   };
 
   const getBarracksSignature = () => {
