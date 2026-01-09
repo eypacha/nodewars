@@ -16,6 +16,7 @@ export const useAttackRadar = (mapRef) => {
   const zoomListenerRef = ref(null);
   const attackCenterRef = ref(null); // Centro de ataque actual (base o cuartel)
   const BASE_RADAR_COLOR = getRadarConfig().color;
+  const ENEMY_RADAR_COLOR = '#ff4d4f';
 
   // Múltiples radares de barraca (inactivos)
   const barracksRadarRefs = ref([]); // [{circle, poiId}]
@@ -32,11 +33,12 @@ export const useAttackRadar = (mapRef) => {
     if (!center) return null;
 
     if (center.type === 'barrack') {
+      const color = center.isEnemy ? ENEMY_RADAR_COLOR : BASE_RADAR_COLOR;
       if (isActive) {
         // Radar de cuartel ACTIVO (más sólido)
         return {
-          color: BASE_RADAR_COLOR,
-          fillColor: BASE_RADAR_COLOR,
+          color,
+          fillColor: color,
           fillOpacity: 0.2,
           radius: BARRACKS_RADAR_RADIUS,
           weight: 2,
@@ -44,8 +46,8 @@ export const useAttackRadar = (mapRef) => {
       } else {
         // Radar de cuartel INACTIVO (más tenue)
         return {
-          color: BASE_RADAR_COLOR,
-          fillColor: BASE_RADAR_COLOR,
+          color,
+          fillColor: color,
           fillOpacity: 0.08,
           radius: BARRACKS_RADAR_RADIUS,
           weight: 1,

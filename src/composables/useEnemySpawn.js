@@ -27,7 +27,7 @@ export const useEnemySpawn = ({ baseMarkerPosition, pois, radarLevel }) => {
     }
 
     (pois.value || []).forEach((poi) => {
-      if (poi.type !== 'barrack') return;
+      if (poi.type !== 'barrack' || !poi.owned) return;
       list.push({
         id: `barrack-${poi.id}`,
         center: { lat: poi.lat, lng: poi.lng },
@@ -49,7 +49,7 @@ export const useEnemySpawn = ({ baseMarkerPosition, pois, radarLevel }) => {
     if (!Array.isArray(pois.value)) return [];
     return pois.value
       .filter((poi) => poi.type === 'barrack')
-      .map((poi) => `${poi.id}:${poi.lat}:${poi.lng}`)
+      .map((poi) => `${poi.id}:${poi.lat}:${poi.lng}:${poi.owned}`)
       .sort();
   };
 

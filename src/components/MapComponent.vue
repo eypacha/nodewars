@@ -224,7 +224,7 @@ const enemyMover = useEnemyMovement({
       return baseMarkerPosition.value;
     }
     if (type === 'barrack') {
-      const target = (pois.value || []).find((p) => String(p.id) === String(id));
+      const target = (pois.value || []).find((p) => String(p.id) === String(id) && p.owned);
       if (target) return { lat: target.lat, lng: target.lng };
     }
     return null;
@@ -233,7 +233,7 @@ const enemyMover = useEnemyMovement({
     gameStore.setBaseHealth(baseHealth.value - 1);
   },
   onBarrackHit: (poiId) => {
-    poiStore.damagePOI(poiId, 1);
+    poiStore.damagePOI(poiId, 1, null, { attackedByEnemy: true });
   },
 });
 const baseHealCooldown = useProgressTimer(2000, { key: 'base-heal' });
@@ -516,6 +516,22 @@ const runScan = async ({ type, position, radius, closeDialogs = true, originId =
 // Manejar extracción manual de recursos
 const handleExtract = () => {
   if (!selectedPOI.value || !selectedPOI.value.owned) return;
+  // Bloquear extracción si la cadena pasa por barracas enemigas
+  const hasEnemyBarrackInChain = (poi) => {
+    let current = poi;
+    while (current?.conqueredFrom) {
+      const barrack = (pois.value || []).find((p) => p.id === current.conqueredFrom);
+      if (!barrack) break;
+      if (barrack.type === 'barrack' && !barrack.owned) return true;
+      current = barrack;
+    }
+    return false;
+  };
+
+  if (hasEnemyBarrackInChain(selectedPOI.value)) {
+    console.log('⚠️ No se pueden extraer recursos conectados a barracas enemigas');
+    return;
+  }
   const consumed = poiStore.consumeResource(selectedPOI.value.id);
   if (!consumed) return;
   const resourceType = selectedPOI.value.category || selectedPOI.value.type;
@@ -562,11 +578,15 @@ const getBaseAttackOrigin = () => {
 };
 
 const getOwnedBarracks = () => (pois.value || []).filter((p) => p.type === 'barrack' && p.owned);
+const getBarracksForRadar = () =>
+  (pois.value || [])
+    .filter((p) => p.type === 'barrack')
+    .map((p) => ({ ...p, isEnemy: !p.owned }));
 
 const setActiveAttackOrigin = (origin) => {
   if (!origin) return;
 
-  const ownedBarracks = getOwnedBarracks();
+  const barracksForRadar = getBarracksForRadar();
   const baseCenter = baseMarkerPosition.value
     ? { lat: baseMarkerPosition.value.lat, lng: baseMarkerPosition.value.lng, type: 'base', level: radarLevel.value }
     : null;
@@ -575,12 +595,12 @@ const setActiveAttackOrigin = (origin) => {
     isBaseAttackOrigin.value = false;
     selectedBarracksForAttack.value = origin;
     createRadar({ lat: origin.lat, lng: origin.lng, type: 'barrack' });
-    renderAllBarracksRadars(ownedBarracks, origin.id, baseCenter);
+    renderAllBarracksRadars(barracksForRadar, origin.id, baseCenter);
   } else if (origin.type === 'base') {
     selectedBarracksForAttack.value = null;
     isBaseAttackOrigin.value = true;
     createRadar(origin);
-    renderAllBarracksRadars(ownedBarracks, 'base', baseCenter);
+    renderAllBarracksRadars(barracksForRadar, 'base', baseCenter);
   }
 };
 
@@ -872,7 +892,7 @@ watch(baseConfirmed, async (confirmed) => {
     // Añadir listener de click al marcador cuando está confirmado
     onMarker('click', handleMarkerClick);
     // Actualizar radares de barracas inactivos
-    const barracks = Array.isArray(pois.value) ? pois.value.filter(p => p.type === 'barrack' && p.owned) : [];
+    const barracks = getBarracksForRadar();
     const baseCenter = {
       lat: position.lat,
       lng: position.lng,
@@ -975,7 +995,7 @@ watch(pois, (newPois) => {
     createOwnedConnectionLines(newPois);
   }
   // Mostrar todos los radares de barracas (menos el activo)
-  const barracks = Array.isArray(newPois) ? newPois.filter(p => p.type === 'barrack' && p.owned) : [];
+  const barracks = getBarracksForRadar();
   let activeId = null;
   const baseCenter = baseConfirmed.value && markerRef.value ? {
     lat: markerRef.value.getLatLng().lat,
@@ -993,7 +1013,7 @@ watch(pois, (newPois) => {
 
 // Observar cambios en la barraca activa para actualizar los radares inactivos
 watch(selectedBarracksForAttack, (newBarrack) => {
-  const barracks = Array.isArray(pois.value) ? pois.value.filter(p => p.type === 'barrack' && p.owned) : [];
+  const barracks = getBarracksForRadar();
   let activeId = null;
   const baseCenter = baseConfirmed.value && markerRef.value ? {
     lat: markerRef.value.getLatLng().lat,

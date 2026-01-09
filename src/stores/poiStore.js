@@ -414,18 +414,26 @@ export const usePoiStore = defineStore('poi', () => {
     return true;
   };
 
-  const damagePOI = (poiId, damage = 1, attackOriginId = null) => {
+  const damagePOI = (poiId, damage = 1, attackOriginId = null, { attackedByEnemy = false } = {}) => {
     const poi = getPOIById(poiId);
     if (poi) {
       // Reducir health de cualquier POI (owned o no)
       poi.health = Math.max(0, poi.health - damage);
       
       // Si el health llega a 0 y no estaba owned, marcar como conquistado
-      if (poi.health <= 0 && !poi.owned) {
-        poi.owned = true;
-        poi.conqueredFrom = attackOriginId;
+      if (poi.health <= 0) {
+        if (!poi.owned) {
+          poi.owned = true;
+          poi.conqueredFrom = attackOriginId;
+        } else if (poi.type === 'barrack' && attackedByEnemy) {
+          const resetHealth = poi.maxHealth || 5;
+          poi.owned = false;
+          poi.health = resetHealth;
+          poi.conqueredFrom = null;
+          poi.radarActive = false;
+        }
       }
-      updatePOI(poiId, { health: poi.health, owned: poi.owned, conqueredFrom: poi.conqueredFrom });
+      updatePOI(poiId, { health: poi.health, owned: poi.owned, conqueredFrom: poi.conqueredFrom, radarActive: poi.radarActive });
     }
   };
 
