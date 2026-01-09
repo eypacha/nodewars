@@ -47,6 +47,11 @@
     "scan": "Escanear",
     "stopScan": "Detener Scan"
   },
+  "hud": {
+    "nextWave": "Próxima Oleada",
+    "contour": "Contorno:",
+    "field": "Campo:"
+  },
   "upgrades": {
     "title": "Mejorar Base",
     "close": "✕",
@@ -61,9 +66,5 @@
     "title": "Game Over",
     "description": "La base ha sido destruida.",
     "restart": "Reiniciar"
-  },
-  "coverage": {
-    "contour": "Contorno",
-    "field": "Campo"
   }
 }

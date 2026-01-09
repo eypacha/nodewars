@@ -1,13 +1,5 @@
 <template>
   <div class="w-full h-[100vh] overflow-hidden relative">
-    <Transition name="fade">
-      <ResourceHUD v-if="baseConfirmed" />
-    </Transition>
-    <CoverageHUD
-      v-if="baseConfirmed"
-      :perimeter="coverageStats.perimeter"
-      :area="coverageStats.area"
-    />
     <div id="map" class="w-full h-[calc(100vh+30px)] z-0"></div>
     <MarkerConfirmDialog 
       v-if="activeDialog === 'markerConfirm' && markerScreenPosition" 
@@ -136,14 +128,14 @@ import BaseMarker from './BaseMarker.vue';
 import MarkerConfirmDialog from './MarkerConfirmDialog.vue';
 import BaseMarkerDialog from './BaseMarkerDialog.vue';
 import POIDialog from './POIDialog.vue';
-import ResourceHUD from './ResourceHUD.vue';
-import CoverageHUD from './CoverageHUD.vue';
 import EnemyAttackDialog from './EnemyAttackDialog.vue';
 import UpgradesPanel from './UpgradesPanel.vue';
 import { useEnemySpawn } from '@/composables/useEnemySpawn';
 import { useEnemyMovement } from '@/composables/useEnemyMovement';
 import { useProgressTimer } from '@/composables/useProgressTimer';
 import { computeRadarsMetrics } from '@/utils/mathUtils';
+
+const emit = defineEmits(['coverage-updated']);
 
 const mapStore = useMapStore();
 const enemyStore = useEnemyStore();
@@ -352,8 +344,14 @@ const getOwnedBarracksSignature = () => {
 const updateCoverageMetrics = () => {
   const radars = getCoverageRadars();
   const { perimeterMeters, areaSquareMeters } = computeRadarsMetrics(radars);
-  coverageStats.perimeter = perimeterMeters;
-  coverageStats.area = areaSquareMeters;
+  const safePerimeter = Number.isFinite(perimeterMeters) ? perimeterMeters : 0;
+  const safeArea = Number.isFinite(areaSquareMeters) ? areaSquareMeters : 0;
+  coverageStats.perimeter = safePerimeter;
+  coverageStats.area = safeArea;
+  emit('coverage-updated', {
+    perimeter: safePerimeter,
+    area: safeArea,
+  });
 };
 
 // Función para actualizar la posición en pantalla del punto de ataque

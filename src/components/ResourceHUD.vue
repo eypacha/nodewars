@@ -1,6 +1,6 @@
 <template>
-  <div class="pointer-events-none fixed top-3 left-1/2 -translate-x-1/2 z-[2000]">
-    <div class="bg-black/70 border border-sky-400 shadow-lg px-3 py-2 flex gap-2 backdrop-blur-sm">
+  <div class="pointer-events-none">
+    <div class="border border-sky-400 px-3 py-2 flex gap-2">
       <div
         v-for="item in resourceList"
         :key="item.key"

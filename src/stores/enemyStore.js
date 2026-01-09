@@ -25,6 +25,7 @@ const createEnemyAtEdge = (center, radius, angle, targetType, targetId) => {
 
 export const useEnemyStore = defineStore('enemy', () => {
   const enemies = ref([]);
+  const nextWaveTimestamp = ref(0);
   let persistTimeout = null;
 
   const initialize = async () => {
@@ -102,6 +103,10 @@ export const useEnemyStore = defineStore('enemy', () => {
     schedulePersist();
   };
 
+  const setNextWaveTimestamp = (timestamp) => {
+    nextWaveTimestamp.value = timestamp || 0;
+  };
+
   const clearEnemies = async () => {
     enemies.value = [];
     if (persistTimeout) {
@@ -117,6 +122,7 @@ export const useEnemyStore = defineStore('enemy', () => {
 
   return {
     enemies,
+    nextWaveTimestamp,
     initialize,
     loadEnemies,
     spawnEnemy,
@@ -125,5 +131,6 @@ export const useEnemyStore = defineStore('enemy', () => {
     clearEnemies,
     persistEnemies,
     schedulePersist,
+    setNextWaveTimestamp,
   };
 });

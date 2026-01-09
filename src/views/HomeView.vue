@@ -1,6 +1,11 @@
 <template>
   <div class="w-screen h-screen overflow-hidden bg-map text-white">
-    <MapComponent />
+    <GameHUD
+      v-if="baseConfirmed"
+      :perimeter="coverageStats.perimeter"
+      :area="coverageStats.area"
+    />
+    <MapComponent @coverage-updated="handleCoverageUpdated" />
     <GameStartPopup 
       v-if="gameStore.showStartPopup" 
       @start-game="handleStartGame"
@@ -20,7 +25,10 @@
 </template>
 
 <script setup>
+import { ref } from 'vue';
+import { storeToRefs } from 'pinia';
 import MapComponent from '../components/MapComponent.vue';
+import GameHUD from '../components/GameHUD.vue';
 import GameStartPopup from '../components/GameStartPopup.vue';
 import GameOverPopup from '../components/GameOverPopup.vue';
 import BaseLocationPopup from '../components/BaseLocationPopup.vue';
@@ -34,7 +42,15 @@ import { wipeDatabase } from '@/services/dbService';
 const gameStore = useGameStore();
 const mapStore = useMapStore();
 const poiStore = usePoiStore();
+const { baseConfirmed } = storeToRefs(mapStore);
+const coverageStats = ref({ perimeter: 0, area: 0 });
 const { requestLocation } = useGeolocation();
+
+const handleCoverageUpdated = ({ perimeter, area }) => {
+  const safePerimeter = Number.isFinite(perimeter) ? perimeter : 0;
+  const safeArea = Number.isFinite(area) ? area : 0;
+  coverageStats.value = { perimeter: safePerimeter, area: safeArea };
+};
 
 const handleStartGame = async () => {
   // Resetear el estado del juego, mapa y POIs

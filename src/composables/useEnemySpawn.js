@@ -11,6 +11,7 @@ export const useEnemySpawn = ({ baseMarkerPosition, pois, radarLevel }) => {
   const intervalId = ref(null);
   const timeoutId = ref(null);
   const spawnSelector = ref(null);
+  const nextWaveTimestamp = ref(0);
 
   const getRadarsForSpawn = () => {
     const list = [];
@@ -76,10 +77,12 @@ export const useEnemySpawn = ({ baseMarkerPosition, pois, radarLevel }) => {
         targetId: radar.targetId,
       });
     }
+    enemyStore.setNextWaveTimestamp(Date.now() + ENEMY_SPAWN_INTERVAL_MS);
   };
 
   const startEnemySpawnLoop = () => {
     stopEnemySpawnLoop();
+    enemyStore.setNextWaveTimestamp(Date.now() + ENEMY_SPAWN_INTERVAL_MS);
     timeoutId.value = setTimeout(() => {
       spawnEnemyAtRadarEdge();
       intervalId.value = setInterval(spawnEnemyAtRadarEdge, ENEMY_SPAWN_INTERVAL_MS);
@@ -95,6 +98,7 @@ export const useEnemySpawn = ({ baseMarkerPosition, pois, radarLevel }) => {
       clearInterval(intervalId.value);
       intervalId.value = null;
     }
+    enemyStore.setNextWaveTimestamp(0);
   };
 
   onBeforeUnmount(() => {

@@ -47,6 +47,11 @@
     "scan": "Scan",
     "stopScan": "Stop Scan"
   },
+  "hud": {
+    "nextWave": "Next Wave",
+    "contour": "Contour:",
+    "field": "Field:"
+  },
   "upgrades": {
     "title": "Upgrade Base",
     "close": "✕",
@@ -61,9 +66,5 @@
     "title": "Game Over",
     "description": "The base has been destroyed.",
     "restart": "Restart"
-  },
-  "coverage": {
-    "contour": "Contour",
-    "field": "Field"
   }
 }
