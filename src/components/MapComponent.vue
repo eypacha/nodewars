@@ -196,6 +196,12 @@ const closeAllDialogs = () => {
   enemyDialogStyle.value = null;
   mapStore.closeAllDialogs();
 };
+const closeDialogsKeepAttack = () => {
+  closeDialog(removeConnectionLine);
+  selectedEnemyForAttack.value = null;
+  enemyDialogStyle.value = null;
+  mapStore.closeAllDialogs();
+};
 
 // Posición del marcador base para calcular distancia
 const baseMarkerPosition = computed(() => {
@@ -262,7 +268,7 @@ const updateEnemyDialogPosition = (enemy) => {
 const handleEnemyClick = (enemyId) => {
   const enemy = enemies.value.find((e) => e.id === enemyId);
   if (!enemy) return;
-  closeAllDialogs();
+  closeDialogsKeepAttack();
   selectedEnemyForAttack.value = enemy;
   updateEnemyDialogPosition(enemy);
 };
