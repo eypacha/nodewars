@@ -64,7 +64,7 @@ export const useEnemySpawn = ({ baseMarkerPosition, pois, radarLevel }) => {
     if (!spawnSelector.value) return;
 
     const growth = Math.pow(1 + ENEMY_WAVE_GROWTH_RATE, Math.max(0, enemyStore.waveNumber - 1));
-    const waveSize = Math.max(1, Math.round(ENEMY_WAVE_BASE_SIZE * growth));
+    const waveSize = Math.max(1, Math.ceil(ENEMY_WAVE_BASE_SIZE * growth));
 
     for (let i = 0; i < waveSize; i += 1) {
       const selection = spawnSelector.value();
