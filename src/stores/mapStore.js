@@ -63,7 +63,8 @@ export const useMapStore = defineStore('map', () => {
 
   const setMarker = (newMarker) => {
     marker.value = newMarker;
-    if (newMarker) {
+    
+    if (newMarker && !baseConfirmed.value) {
       activeDialog.value = 'markerConfirm';
     }
   };

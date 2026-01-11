@@ -25,8 +25,10 @@ export const useMapDialogs = () => {
     if (poiStore.showPOIDialog) {
       poiStore.closePOIDialog();
     }
-    // Cerrar todos los diálogos del mapa
-    mapStore.closeAllDialogs();
+    
+    if (mapStore.activeDialog !== 'markerConfirm') {
+      mapStore.closeAllDialogs();
+    }
   };
 
   return {
