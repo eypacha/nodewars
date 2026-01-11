@@ -1,8 +1,10 @@
 <template>
   <div class="next-wave-timer px-2 py-1 text-white flex items-center gap-2">
     <span>{{ $t('hud.wave') }} {{ waveNumber }}</span>
-    <span>→</span>
-    <span class="font-mono font-bold">{{ formattedTime }}</span>
+    <template v-if="showCountdown">
+      <span>→</span>
+      <span class="font-mono font-bold">{{ formattedTime }}</span>
+    </template>
   </div>
 </template>
 
@@ -30,9 +32,14 @@ onUnmounted(() => {
   }
 });
 
+const showCountdown = computed(() => {
+  const target = Number.isFinite(nextWaveTimestamp.value) ? nextWaveTimestamp.value : 0;
+  return target > now.value;
+});
+
 const formattedTime = computed(() => {
   const target = Number.isFinite(nextWaveTimestamp.value) ? nextWaveTimestamp.value : 0;
-  if (!target || target <= now.value) return '0:00';
+  if (!target || target <= now.value) return '';
   const diff = Math.max(0, Math.floor((target - now.value) / 1000));
   const min = Math.floor(diff / 60);
   const sec = diff % 60;
