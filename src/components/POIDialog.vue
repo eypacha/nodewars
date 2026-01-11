@@ -97,6 +97,7 @@
 <script setup>
 import { computed, ref, onMounted, onBeforeUnmount, watch } from 'vue';
 import { calculateDistance } from '@/utils/mapHelpers';
+import { BARRACKS_RADAR_RADIUS } from '@/constants/player';
 import { getPOIEmoji, getPOIDisplayName } from '@/constants/poiTypes';
 import { getRadarConfig } from '@/services/mapService';
 import { usePoiStore } from '@/stores/poiStore';
@@ -309,8 +310,6 @@ const formattedDistance = computed(() => {
 // Verificar si el POI está en rango de ataque
 const isInRange = computed(() => {
   if (!props.poi || props.poi.owned) return true;
-  
-  const BARRACKS_RADAR_RADIUS = 500; // metros
   
   // Si hay un cuartel seleccionado como punto de ataque, verificar SOLO desde ese cuartel
   if (props.selectedBarracksForAttack) {

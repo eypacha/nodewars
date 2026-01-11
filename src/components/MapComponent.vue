@@ -122,6 +122,7 @@ import { useConnectionLines } from '@/composables/useConnectionLines';
 import { useScreenPositions } from '@/composables/useScreenPositions';
 import { useMapDialogs } from '@/composables/useMapDialogs';
 import { getRadarConfig } from '@/services/mapService';
+import { BARRACKS_RADAR_RADIUS } from '@/constants/player';
 import { getPOIColor } from '@/constants/poiTypes';
 import { useEnemyStore } from '@/stores/enemyStore';
 import BaseMarker from './BaseMarker.vue';
@@ -303,7 +304,6 @@ const radarRadius = computed(() => {
   return radarData.radius;
 });
 
-const BARRACKS_RADAR_RADIUS = 500;
 
 // Solo cuenta radares aliados (base + barracas aliadas) para el HUD
 const getCoverageRadars = () => {

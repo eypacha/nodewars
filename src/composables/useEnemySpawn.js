@@ -1,9 +1,9 @@
 import { ref, onBeforeUnmount, watch } from 'vue';
 import { ENEMY_SPAWN_INTERVAL_MS, ENEMY_WAVE_BASE_SIZE, ENEMY_WAVE_GROWTH_RATE, ENEMY_PROJECTILE_STAGGER_MS } from '@/constants/enemies';
+import { BARRACKS_RADAR_RADIUS } from '@/constants/player';
 import { useEnemyStore } from '@/stores/enemyStore';
 import { getRadarConfig } from '@/services/mapService';
 import { computeBearingRadians, createUniformSpawnOnUnionBoundarySelector } from '@/utils/mathUtils';
-
 
 
 export const useEnemySpawn = ({ baseMarkerPosition, pois, radarLevel }) => {
@@ -11,7 +11,7 @@ export const useEnemySpawn = ({ baseMarkerPosition, pois, radarLevel }) => {
   const intervalId = ref(null);
   const timeoutId = ref(null);
   const spawnSelector = ref(null);
-  const nextWaveTimestamp = ref(0);
+
 
   const getRadarsForSpawn = () => {
     const list = [];

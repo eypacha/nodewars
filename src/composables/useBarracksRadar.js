@@ -5,13 +5,13 @@
 import { ref } from 'vue';
 import L from 'leaflet';
 import { getRadarConfig } from '@/services/mapService';
+import { BARRACKS_RADAR_RADIUS } from '@/constants/player';
 
 export const useBarracksRadar = (mapRef) => {
   const barracksRadars = ref(new Map());
   const BASE_RADAR_COLOR = getRadarConfig().color;
 
   // Radio del radar de cuartel (más pequeño que el principal)
-  const BARRACKS_RADAR_RADIUS = 500; // metros
 
   /**
    * Crea o actualiza radares para todos los cuarteles conquistados

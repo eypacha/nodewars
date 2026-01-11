@@ -7,6 +7,7 @@
 import { ref } from 'vue';
 import L from 'leaflet';
 import { getRadarConfig } from '@/services/mapService';
+import { BARRACKS_RADAR_RADIUS } from '@/constants/player';
 import { computePointOnEdge } from '@/utils/mathUtils';
 
 export const useAttackRadar = (mapRef) => {
@@ -19,7 +20,6 @@ export const useAttackRadar = (mapRef) => {
   const barracksRadarRefs = ref([]); // [{circle, poiId}]
 
   // Radio del radar de cuartel (menor que el de la base)
-  const BARRACKS_RADAR_RADIUS = 500; // metros
 
   /**
    * Obtiene la configuración del radar según el tipo de centro
