@@ -63,7 +63,7 @@
         zIndex: 800,
       }"
     >
-      ▲
+      ▴
     </div>
     <template v-if="!showStartPopup && baseConfirmed">
       <div 
@@ -125,6 +125,7 @@ import { getRadarConfig } from '@/services/mapService';
 import { BARRACKS_RADAR_RADIUS } from '@/constants/player';
 import { getPOIColor } from '@/constants/poiTypes';
 import { useEnemyStore } from '@/stores/enemyStore';
+import { useAutoAttack } from '@/composables/useAutoAttack';
 import BaseMarker from './BaseMarker.vue';
 import MarkerConfirmDialog from './MarkerConfirmDialog.vue';
 import BaseMarkerDialog from './BaseMarkerDialog.vue';
@@ -145,7 +146,7 @@ let isProgrammaticMapMove = false;
 const poiStore = usePoiStore();
 const gameStore = useGameStore();
 const { center, zoom, marker, activeDialog, baseConfirmed, showUpgradesPanel } = storeToRefs(mapStore);
-const { radarLevel, resources, baseHealth, baseMaxHealth, showStartPopup } = storeToRefs(gameStore);
+const { radarLevel, resources, baseHealth, baseMaxHealth, showStartPopup, autoAttackLevel } = storeToRefs(gameStore);
 const { selectedPOI, showPOIDialog, isLoading, pois } = storeToRefs(poiStore);
 const { enemies } = storeToRefs(enemyStore);
 const selectedBarracksForAttack = ref(null); // Cuartel seleccionado para lanzar ataques
@@ -188,6 +189,15 @@ const {
   poiDialogStyle 
 } = useScreenPositions(mapRef, markerRef);
 const { closePOIDialog: closeDialog, handleMapClick } = useMapDialogs();
+useAutoAttack({
+  markerRef,
+  enemies,
+  baseConfirmed,
+  autoAttackLevel,
+  getCooldownMs: () => gameStore.getAutoAttackCooldownMs(),
+  startAttack,
+  removeEnemy: enemyStore.removeEnemy,
+});
 const closeAllDialogs = () => {
   closeDialog(removeConnectionLine);
   selectedEnemyForAttack.value = null;

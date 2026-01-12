@@ -38,6 +38,33 @@
             base-class="font-bold py-3 px-4 border-2 border-white text-sm relative overflow-hidden transition-all"
           />
         </div>
+
+        <!-- Auto-Attack Upgrade -->
+        <div class="border border-white p-4">
+          <div class="flex justify-between items-start mb-3">
+            <div>
+              <p class="text-white text-sm font-bold">{{ $t('upgrades.autoAttack') }}</p>
+              <p class="text-gray-400 text-xs mt-1">{{ autoAttackLevel }} → {{ autoAttackLevel + 1 }}</p>
+            </div>
+            <div class="text-right">
+              <p class="text-gray-400 text-base font-bold">{{ nextAutoUpgradeCostDisplay }}</p>
+            </div>
+          </div>
+
+          <div class="mb-4 text-gray-300 text-sm space-y-1">
+            <p>{{ $t('upgrades.autoAttackDesc') }}</p>
+            <p class="text-gray-500" v-if="autoAttackLevel > 0">{{ $t('upgrades.currentCooldown') }} <span class="text-white font-bold">{{ autoAttackCooldownDisplay }}s</span></p>
+          </div>
+
+          <BaseButton
+            @click="handleAutoUpgrade"
+            :disabled="!canAffordAutoUpgrade || autoMaxLevelReached"
+            :label="autoMaxLevelReached ? $t('upgrades.maxLevel') : canAffordAutoUpgrade ? $t('upgrades.upgradeButton') : $t('upgrades.insufficientFunds')"
+            block
+            full-width
+            base-class="font-bold py-3 px-4 border-2 border-white text-sm relative overflow-hidden transition-all"
+          />
+        </div>
       </div>
     </div>
   </div>
@@ -48,11 +75,12 @@ import { computed } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useGameStore } from '@/stores/gameStore';
 import { getRadarConfig } from '@/services/mapService';
+import { AUTO_ATTACK_BASE_COOLDOWN_MS, AUTO_ATTACK_COOLDOWN_REDUCTION_RATE, AUTO_ATTACK_MIN_COOLDOWN_MS } from '@/constants/player';
 import BaseButton from '@/components/UI/BaseButton.vue';
 const emit = defineEmits(['close']);
 
 const gameStore = useGameStore();
-const { resources, radarLevel } = storeToRefs(gameStore);
+const { resources, radarLevel, autoAttackLevel } = storeToRefs(gameStore);
 
 const nextUpgradeCost = computed(() => gameStore.getRadarUpgradeCost());
 const nextUpgradeCostDisplay = computed(() => nextUpgradeCost.value ?? '—');
@@ -71,6 +99,34 @@ const currentRadarRadius = computed(() => {
 
 const handleUpgrade = () => {
   const success = gameStore.upgradeRadar();
+  if (success) {
+    // Upgrade realizado, el componente se actualizará automáticamente
+  }
+};
+
+const nextAutoUpgradeCost = computed(() => gameStore.getAutoAttackUpgradeCost());
+const nextAutoUpgradeCostDisplay = computed(() => nextAutoUpgradeCost.value ?? '—');
+const autoMaxLevelReached = computed(() => nextAutoUpgradeCost.value == null);
+const canAffordAutoUpgrade = computed(() => {
+  const cost = nextAutoUpgradeCost.value;
+  return cost != null && resources.value.police >= cost;
+});
+
+const autoAttackCooldownMs = computed(() => gameStore.getAutoAttackCooldownMs());
+const autoAttackCooldownDisplay = computed(() => {
+  const value = autoAttackCooldownMs.value;
+  if (!value) return '—';
+  return (value / 1000).toFixed(1);
+});
+const nextAutoAttackCooldownDisplay = computed(() => {
+  const nextLevel = autoAttackLevel.value + 1;
+  const cooldown = gameStore.computeAutoAttackCooldownMs(nextLevel);
+  if (!cooldown) return '—';
+  return (cooldown / 1000).toFixed(1);
+});
+
+const handleAutoUpgrade = () => {
+  const success = gameStore.upgradeAutoAttack();
   if (success) {
     // Upgrade realizado, el componente se actualizará automáticamente
   }

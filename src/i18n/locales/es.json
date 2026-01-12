@@ -57,6 +57,10 @@
     "radar": "Radar",
     "increaseRange": "Aumenta el rango del radar en 30%",
     "currentRadius": "Radio actual:",
+    "autoAttack": "Auto-ataque",
+    "autoAttackDesc": "Ataque pasivo desde la base contra enemigos cercanos.",
+    "currentCooldown": "Cooldown actual:",
+    "nextCooldown": "Próximo cooldown:",
     "upgradeButton": "Mejorar",
     "maxLevel": "Nivel Máximo",
     "insufficientFunds": "Dinero insuficiente"

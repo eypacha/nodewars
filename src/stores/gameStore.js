@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { db } from '@/services/dbService';
+import { AUTO_ATTACK_BASE_COOLDOWN_MS, AUTO_ATTACK_COOLDOWN_REDUCTION_RATE, AUTO_ATTACK_MIN_COOLDOWN_MS } from '@/constants/player';
 
 export const useGameStore = defineStore('game', () => {
   // Estado de los popups
@@ -27,9 +28,18 @@ export const useGameStore = defineStore('game', () => {
     4: 50,
     5: 100,
   };
+  const autoAttackLevel = ref(1);
+  const autoAttackUpgradeCosts = {
+    2: 10,
+    3: 25,
+    4: 50,
+  };
   const maxPredefinedLevel = Math.max(...Object.keys(radarUpgradeCosts).map(Number));
   const maxPredefinedCost = radarUpgradeCosts[maxPredefinedLevel];
   const fallbackGrowthRate = 2; // Multiplicador exponencial para niveles superiores
+
+  const autoAttackMaxPredefinedLevel = Math.max(...Object.keys(autoAttackUpgradeCosts).map(Number));
+  const autoAttackMaxPredefinedCost = autoAttackUpgradeCosts[autoAttackMaxPredefinedLevel];
 
   const calculateUpgradeCost = (nextLevel) => {
     if (nextLevel <= 1) return 0;
@@ -40,6 +50,15 @@ export const useGameStore = defineStore('game', () => {
     // A partir del último nivel definido, duplicamos el costo por nivel
     const extraLevels = nextLevel - maxPredefinedLevel;
     return Math.round(maxPredefinedCost * Math.pow(fallbackGrowthRate, extraLevels));
+  };
+
+  const calculateAutoAttackUpgradeCost = (nextLevel) => {
+    const predefined = autoAttackUpgradeCosts[nextLevel];
+    if (predefined) return predefined;
+
+    const extraLevels = nextLevel - autoAttackMaxPredefinedLevel;
+    if (extraLevels <= 0) return autoAttackMaxPredefinedCost;
+    return autoAttackMaxPredefinedCost; // Coste constante 50 para niveles superiores
   };
 
   // Acciones
@@ -84,6 +103,14 @@ export const useGameStore = defineStore('game', () => {
     }
   };
 
+  const persistAutoAttackLevel = async () => {
+    try {
+      await db.game.put({ key: 'autoAttackLevel', data: autoAttackLevel.value });
+    } catch (error) {
+      console.error('Error saving auto-attack level to DB:', error);
+    }
+  };
+
   const loadResources = async () => {
     try {
       const saved = await db.game.get('resources');
@@ -103,6 +130,17 @@ export const useGameStore = defineStore('game', () => {
       }
     } catch (error) {
       console.error('Error loading radar level from DB:', error);
+    }
+  };
+
+  const loadAutoAttackLevel = async () => {
+    try {
+      const saved = await db.game.get('autoAttackLevel');
+      if (saved?.data) {
+        autoAttackLevel.value = saved.data;
+      }
+    } catch (error) {
+      console.error('Error loading auto-attack level from DB:', error);
     }
   };
 
@@ -164,8 +202,34 @@ export const useGameStore = defineStore('game', () => {
     return true;
   };
 
+  const upgradeAutoAttack = () => {
+    const nextLevel = autoAttackLevel.value + 1;
+    const cost = calculateAutoAttackUpgradeCost(nextLevel);
+    if (resources.value.police < cost) return false; // Not enough police resources
+
+    resources.value.police -= cost;
+    autoAttackLevel.value = nextLevel;
+    persistResources();
+    persistAutoAttackLevel();
+    return true;
+  };
+
   const getRadarUpgradeCost = () => {
     return calculateUpgradeCost(radarLevel.value + 1);
+  };
+
+  const getAutoAttackUpgradeCost = () => {
+    return calculateAutoAttackUpgradeCost(autoAttackLevel.value + 1);
+  };
+
+  const computeAutoAttackCooldownMs = (level) => {
+    if (!Number.isFinite(level) || level <= 0) return null;
+    const cooldown = AUTO_ATTACK_BASE_COOLDOWN_MS * Math.pow(AUTO_ATTACK_COOLDOWN_REDUCTION_RATE, Math.max(0, level - 1));
+    return Math.max(AUTO_ATTACK_MIN_COOLDOWN_MS, Math.round(cooldown));
+  };
+
+  const getAutoAttackCooldownMs = () => {
+    return computeAutoAttackCooldownMs(autoAttackLevel.value);
   };
 
   const resetGame = () => {
@@ -184,6 +248,7 @@ export const useGameStore = defineStore('game', () => {
 
     // Resetear nivel del radar
     radarLevel.value = 1;
+    autoAttackLevel.value = 1;
     
     // Resetear popups
     showStartPopup.value = false;
@@ -192,12 +257,14 @@ export const useGameStore = defineStore('game', () => {
     persistResources();
     persistBaseHealth();
     persistRadarLevel();
+    persistAutoAttackLevel();
   };
 
   // Cargar recursos al inicializar el store
   loadResources();
   loadBaseHealth();
   loadRadarLevel();
+  loadAutoAttackLevel();
 
   return {
     // State
@@ -207,6 +274,7 @@ export const useGameStore = defineStore('game', () => {
     showGameOverPopup,
     resources,
     radarLevel,
+    autoAttackLevel,
     baseHealth,
     baseMaxHealth,
 
@@ -218,12 +286,18 @@ export const useGameStore = defineStore('game', () => {
     continueGame,
     addResource,
     upgradeRadar,
+    upgradeAutoAttack,
     getRadarUpgradeCost,
+    getAutoAttackUpgradeCost,
+    computeAutoAttackCooldownMs,
+    getAutoAttackCooldownMs,
     resetGame,
     consumeResource,
     loadResources,
     persistRadarLevel,
     loadRadarLevel,
+    persistAutoAttackLevel,
+    loadAutoAttackLevel,
     persistBaseHealth,
     loadBaseHealth,
     setBaseHealth,
