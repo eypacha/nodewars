@@ -136,6 +136,7 @@ import { useEnemySpawn } from '@/composables/useEnemySpawn';
 import { useEnemyMovement } from '@/composables/useEnemyMovement';
 import { useProgressTimer } from '@/composables/useProgressTimer';
 import { computeRadarsMetrics } from '@/utils/mathUtils';
+import { ENEMY_COLOR } from '@/constants/colors';
 
 const mapStore = useMapStore();
 const enemyStore = useEnemyStore();
@@ -146,7 +147,7 @@ let isProgrammaticMapMove = false;
 const poiStore = usePoiStore();
 const gameStore = useGameStore();
 const { center, zoom, marker, activeDialog, baseConfirmed, showUpgradesPanel } = storeToRefs(mapStore);
-const { radarLevel, resources, baseHealth, baseMaxHealth, showStartPopup, autoAttackLevel } = storeToRefs(gameStore);
+const { radarLevel, resources, baseHealth, baseMaxHealth, showStartPopup, autoAttackLevel, isBaseCaptured } = storeToRefs(gameStore);
 const { selectedPOI, showPOIDialog, isLoading, pois } = storeToRefs(poiStore);
 const { enemies } = storeToRefs(enemyStore);
 const selectedBarracksForAttack = ref(null); // Cuartel seleccionado para lanzar ataques
@@ -165,8 +166,8 @@ const isSelectedBarrackScanActive = computed(() => {
 // Inicializar composables principales
 // Usar refs reactivos para que el mapa se inicialice con los valores restaurados
 const { mapRef, initMap, flyTo, on } = useLeafletMap('map', center.value, zoom.value);
-const { markerRef, createMarker, disableDragging, removeMarker, on: onMarker } = useMapMarker(mapRef);
-const { radarRef, createRadar, renderAllBarracksRadars, updatePosition: updateRadarPosition, updateRadius, removeRadar, hasActiveRadar, getRadarData } = useAttackRadar(mapRef);
+const { markerRef, createMarker, disableDragging, removeMarker, on: onMarker, updateIcon } = useMapMarker(mapRef);
+const { radarRef, createRadar, renderAllBarracksRadars, updatePosition: updateRadarPosition, updateRadius, removeRadar, hasActiveRadar, getRadarData, getAttackCenter } = useAttackRadar(mapRef);
 const { clearPOIMarkers } = usePointsOfInterest(mapRef);
 
 // Composables para funcionalidades específicas
@@ -557,6 +558,7 @@ const getBaseAttackOrigin = () => {
     lng: latLng.lng,
     type: 'base',
     level: gameStore.radarLevel,
+    isEnemy: isBaseCaptured.value,
   };
 };
 
@@ -566,12 +568,42 @@ const getBarracksForRadar = () =>
     .filter((p) => p.type === 'barrack')
     .map((p) => ({ ...p, isEnemy: !p.owned }));
 
+const refreshBaseCaptureVisuals = () => {
+  const captured = isBaseCaptured.value;
+
+  if (markerRef.value) {
+    updateIcon(BaseMarker, { componentProps: { isEnemy: captured } });
+  }
+
+  const attackCenter = getAttackCenter();
+  if (radarRef.value && attackCenter?.type === 'base') {
+    const radarColor = captured ? ENEMY_COLOR : getRadarConfig(radarLevel.value).color;
+    radarRef.value.setStyle({ color: radarColor, fillColor: radarColor });
+  }
+
+  const barracks = getBarracksForRadar();
+  const baseCenter = baseConfirmed.value && markerRef.value ? {
+    lat: markerRef.value.getLatLng().lat,
+    lng: markerRef.value.getLatLng().lng,
+    type: 'base',
+    level: radarLevel.value,
+    isEnemy: captured,
+  } : null;
+  let activeId = null;
+  if (selectedBarracksForAttack.value) {
+    activeId = selectedBarracksForAttack.value.id;
+  } else if (baseCenter) {
+    activeId = 'base';
+  }
+  renderAllBarracksRadars(barracks, activeId, baseCenter);
+};
+
 const setActiveAttackOrigin = (origin) => {
   if (!origin) return;
 
   const barracksForRadar = getBarracksForRadar();
   const baseCenter = baseMarkerPosition.value
-    ? { lat: baseMarkerPosition.value.lat, lng: baseMarkerPosition.value.lng, type: 'base', level: radarLevel.value }
+    ? { lat: baseMarkerPosition.value.lat, lng: baseMarkerPosition.value.lng, type: 'base', level: radarLevel.value, isEnemy: isBaseCaptured.value }
     : null;
 
   if (origin.type === 'barrack') {
@@ -736,6 +768,7 @@ watch(isBaseAttackOrigin, (isBase) => {
       lat: latLng.lat,
       lng: latLng.lng,
       type: 'base',
+      isEnemy: isBaseCaptured.value,
     };
   } else if (!isBase && !selectedBarracksForAttack.value) {
     currentAttackOrigin.value = null;
@@ -829,7 +862,7 @@ watch(marker, async (newMarker) => {
     // Crear el marcador - solo draggable si NO está confirmado
     createMarker(newMarker, BaseMarker, {
       draggable: !baseConfirmed.value,
-      componentProps: { showDialog: false },
+      componentProps: { isEnemy: isBaseCaptured.value },
     });
     
     // Añadir eventos al marcador solo si no está confirmado
@@ -845,6 +878,7 @@ watch(marker, async (newMarker) => {
         lng: newMarker[1],
         type: 'base',
         level: gameStore.radarLevel,
+        isEnemy: isBaseCaptured.value,
       });
       // Actualizar el punto de ataque si la base es el origen
       if (isBaseAttackOrigin.value) {
@@ -862,6 +896,10 @@ watch(marker, async (newMarker) => {
     updateMarkerScreenPosition();
   }
 });
+
+watch([isBaseCaptured, markerRef, radarRef], () => {
+  refreshBaseCaptureVisuals();
+}, { immediate: true });
 
 // Observar confirmación de la base
 watch(baseConfirmed, async (confirmed) => {
@@ -881,6 +919,7 @@ watch(baseConfirmed, async (confirmed) => {
       lng: position.lng,
       type: 'base',
       level: gameStore.radarLevel,
+      isEnemy: isBaseCaptured.value,
     };
     renderAllBarracksRadars(barracks, 'base', baseCenter);
     // No hacer scan automático - el usuario debe hacer clic en "Scan"
@@ -985,6 +1024,7 @@ watch(pois, (newPois) => {
     lng: markerRef.value.getLatLng().lng,
     type: 'base',
     level: gameStore.radarLevel,
+    isEnemy: isBaseCaptured.value,
   } : null;
   if (selectedBarracksForAttack.value) {
     activeId = selectedBarracksForAttack.value.id;
@@ -1020,6 +1060,7 @@ watch(selectedBarracksForAttack, (newBarrack) => {
     lng: markerRef.value.getLatLng().lng,
     type: 'base',
     level: gameStore.radarLevel,
+    isEnemy: isBaseCaptured.value,
   } : null;
   if (newBarrack) {
     activeId = newBarrack.id;

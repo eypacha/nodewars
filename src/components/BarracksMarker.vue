@@ -10,6 +10,7 @@
 <script setup>
 import { computed } from 'vue';
 import { getPOIColor } from '@/constants/poiTypes';
+import { ENEMY_COLOR } from '@/constants/colors';
 
 const props = defineProps({
   isEnemy: {
@@ -19,7 +20,6 @@ const props = defineProps({
 });
 
 const friendlyColor = getPOIColor('barrack');
-const enemyColor = '#ff4d4f';
 
-const borderColor = computed(() => (props.isEnemy ? enemyColor : friendlyColor));
+const borderColor = computed(() => (props.isEnemy ? ENEMY_COLOR : friendlyColor));
 </script>

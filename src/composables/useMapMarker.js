@@ -123,6 +123,30 @@ export const useMapMarker = (mapRef) => {
     return markerRef.value !== null;
   };
 
+  /**
+   * Actualiza el icono del marcador manteniendo la posición
+   * @param {Object} markerComponent - Componente Vue para el marcador
+   * @param {Object} options - Opciones adicionales
+   */
+  const updateIcon = (markerComponent, options = {}) => {
+    if (!markerRef.value) return;
+
+    const container = document.createElement('div');
+    const app = createApp(markerComponent, options.componentProps || {});
+    app.mount(container);
+
+    const markerConfig = getMarkerConfig();
+    const customIcon = L.divIcon({
+      html: container.innerHTML,
+      className: markerConfig.className,
+      iconSize: markerConfig.iconSize,
+      iconAnchor: markerConfig.iconAnchor,
+    });
+
+    markerRef.value.setIcon(customIcon);
+    app.unmount();
+  };
+
   return {
     markerRef,
     createMarker,
@@ -134,5 +158,6 @@ export const useMapMarker = (mapRef) => {
     disableDragging,
     removeMarker,
     hasMarker,
+    updateIcon,
   };
 };

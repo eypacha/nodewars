@@ -19,6 +19,30 @@ export const useGameStore = defineStore('game', () => {
 
   const baseHealth = ref(10);
   const baseMaxHealth = ref(10);
+  const isBaseCaptured = ref(false);
+  const GAME_OVER_DELAY_MS = 1000;
+  let gameOverTimeoutId = null;
+
+  const clearGameOverTimer = () => {
+    if (gameOverTimeoutId) {
+      clearTimeout(gameOverTimeoutId);
+      gameOverTimeoutId = null;
+    }
+  };
+
+  const scheduleGameOverPopup = (delayMs = GAME_OVER_DELAY_MS) => {
+    clearGameOverTimer();
+    gameOverTimeoutId = setTimeout(() => {
+      showGameOverPopup.value = true;
+    }, delayMs);
+  };
+
+  const handleBaseCaptured = (delayMs = GAME_OVER_DELAY_MS) => {
+    if (isBaseCaptured.value) return;
+    isBaseCaptured.value = true;
+    showGameOverPopup.value = false;
+    scheduleGameOverPopup(delayMs);
+  };
 
   // Upgrades
   const radarLevel = ref(1);
@@ -159,7 +183,9 @@ export const useGameStore = defineStore('game', () => {
         baseHealth.value = saved.data.health ?? 10;
         baseMaxHealth.value = saved.data.maxHealth ?? 10;
         if (baseHealth.value <= 0) {
-          showGameOverPopup.value = true;
+          handleBaseCaptured();
+        } else {
+          isBaseCaptured.value = false;
         }
       }
     } catch (error) {
@@ -167,10 +193,15 @@ export const useGameStore = defineStore('game', () => {
     }
   };
 
-  const setBaseHealth = (value) => {
+  const setBaseHealth = (value, { delayMs = GAME_OVER_DELAY_MS } = {}) => {
     baseHealth.value = Math.max(0, Math.min(baseMaxHealth.value, value));
     if (baseHealth.value <= 0) {
-      showGameOverPopup.value = true;
+      baseHealth.value = 0;
+      handleBaseCaptured(delayMs);
+    } else {
+      isBaseCaptured.value = false;
+      showGameOverPopup.value = false;
+      clearGameOverTimer();
     }
     persistBaseHealth();
   };
@@ -244,7 +275,9 @@ export const useGameStore = defineStore('game', () => {
     // Resetear salud base
     baseHealth.value = 10;
     baseMaxHealth.value = 10;
+    isBaseCaptured.value = false;
     showGameOverPopup.value = false;
+    clearGameOverTimer();
 
     // Resetear nivel del radar
     radarLevel.value = 1;
@@ -277,6 +310,7 @@ export const useGameStore = defineStore('game', () => {
     autoAttackLevel,
     baseHealth,
     baseMaxHealth,
+    isBaseCaptured,
 
     // Actions
     startGame,

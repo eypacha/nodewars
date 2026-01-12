@@ -9,12 +9,13 @@ import L from 'leaflet';
 import { getRadarConfig } from '@/services/mapService';
 import { BARRACKS_RADAR_RADIUS } from '@/constants/player';
 import { computePointOnEdge } from '@/utils/mathUtils';
+import { ENEMY_COLOR } from '@/constants/colors';
 
 export const useAttackRadar = (mapRef) => {
   const radarRef = ref(null);
   const attackCenterRef = ref(null); // Centro de ataque actual (base o cuartel)
   const BASE_RADAR_COLOR = getRadarConfig().color;
-  const ENEMY_RADAR_COLOR = '#ff4d4f';
+  const ENEMY_RADAR_COLOR = ENEMY_COLOR;
 
   // Múltiples radares de barraca (inactivos)
   const barracksRadarRefs = ref([]); // [{circle, poiId}]
@@ -53,11 +54,12 @@ export const useAttackRadar = (mapRef) => {
     } else if (center.type === 'base') {
       // Radar de base: usa el nivel del radar pero mantiene opacidad consistente con barracas
       const radarConfig = getRadarConfig(center.level);
+      const color = center.isEnemy ? ENEMY_RADAR_COLOR : radarConfig.color;
       const ACTIVE_OPACITY = 0.2;
       const INACTIVE_OPACITY = 0.08;
       return {
-        color: radarConfig.color,
-        fillColor: radarConfig.color,
+        color,
+        fillColor: color,
         fillOpacity: isActive ? ACTIVE_OPACITY : INACTIVE_OPACITY,
         radius: radarConfig.radius,
         weight: isActive ? radarConfig.weight : 1,
