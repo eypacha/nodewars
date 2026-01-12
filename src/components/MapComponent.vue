@@ -136,8 +136,8 @@ import { useEnemyMovement } from '@/composables/useEnemyMovement';
 import { useProgressTimer } from '@/composables/useProgressTimer';
 import { computeRadarsMetrics } from '@/utils/mathUtils';
 import { buildCoverageRadars, buildOwnedBarracksSignature } from '@/utils/mapCoverage';
-import { ENEMY_COLOR } from '@/constants/colors';
 import { useScanCoverage } from '@/composables/useScanCoverage';
+import { useAttackOrigin } from '@/composables/useAttackOrigin';
 
 const mapStore = useMapStore();
 const enemyStore = useEnemyStore();
@@ -154,8 +154,6 @@ const { enemies } = storeToRefs(enemyStore);
 const selectedBarracksForAttack = ref(null); // Cuartel seleccionado para lanzar ataques
 const isBaseAttackOrigin = ref(false); // Si la base está seleccionada como punto de ataque
 const currentAttackOrigin = ref(null); // Punto de ataque activo (se actualiza cuando cambia)
-const attackOriginScreenPosition = ref(null); // Posición en pantalla del punto de ataque
-
 const mapViewVersion = ref(0);
 
 // Inicializar composables principales
@@ -185,6 +183,36 @@ const {
   poiDialogStyle 
 } = useScreenPositions(mapRef, markerRef);
 const { closePOIDialog: closeDialog, handleMapClick } = useMapDialogs();
+const {
+  baseMarkerPosition,
+  getBaseAttackOrigin,
+  getOwnedBarracks,
+  getBarracksForRadar,
+  refreshBaseCaptureVisuals,
+  setActiveAttackOrigin,
+  handleSelectAsAttackOrigin,
+  handleSelectBaseAsAttackOrigin,
+  attackOriginScreenPosition,
+  updateAttackOriginScreenPosition,
+} = useAttackOrigin({
+  mapRef,
+  markerRef,
+  radarRef,
+  renderAllBarracksRadars,
+  createRadar,
+  removeRadar,
+  getAttackCenter,
+  updateIcon,
+  BaseMarker,
+  radarLevel,
+  baseConfirmed,
+  isBaseCaptured,
+  pois,
+  gameStore,
+  isBaseAttackOrigin,
+  selectedBarracksForAttack,
+  currentAttackOrigin,
+});
 const {
   isBaseScanActive,
   isSelectedBarrackScanActive,
@@ -222,13 +250,6 @@ const closeDialogsKeepAttack = () => {
   enemyDialogStyle.value = null;
   mapStore.closeAllDialogs();
 };
-
-// Posición del marcador base para calcular distancia
-const baseMarkerPosition = computed(() => {
-  if (!markerRef.value) return null;
-  const latLng = markerRef.value.getLatLng();
-  return { lat: latLng.lat, lng: latLng.lng };
-});
 
 const enemySpawner = useEnemySpawn({ baseMarkerPosition, pois, radarLevel });
 const enemyMover = useEnemyMovement({
@@ -338,24 +359,6 @@ const updateCoverageMetrics = () => {
   mapStore.setCoverageMetrics(perimeterMeters, areaSquareMeters);
 };
 
-// Función para actualizar la posición en pantalla del punto de ataque
-const updateAttackOriginScreenPosition = () => {
-  if (!mapRef.value || !currentAttackOrigin.value) {
-    attackOriginScreenPosition.value = null;
-    return;
-  }
-  
-  const point = mapRef.value.latLngToContainerPoint([
-    currentAttackOrigin.value.lat, 
-    currentAttackOrigin.value.lng
-  ]);
-  
-  attackOriginScreenPosition.value = {
-    x: point.x,
-    y: point.y
-  };
-};
-
 const enemyMarkers = computed(() => {
   mapViewVersion.value;
   if (!mapRef.value || showStartPopup.value || !baseConfirmed.value) return [];
@@ -426,102 +429,6 @@ const handleConvertToBarracks = () => {
   poiStore.convertToBarracks(selectedPOI.value.id);
   // Seleccionar la barraca como punto de ataque para mostrar el botón de scan
   handleSelectAsAttackOrigin(selectedPOI.value);
-};
-
-const getBaseAttackOrigin = () => {
-  if (!markerRef.value) return null;
-  const latLng = markerRef.value.getLatLng();
-  return {
-    lat: latLng.lat,
-    lng: latLng.lng,
-    type: 'base',
-    level: gameStore.radarLevel,
-    isEnemy: isBaseCaptured.value,
-  };
-};
-
-const getOwnedBarracks = () => (pois.value || []).filter((p) => p.type === 'barrack' && p.owned);
-const getBarracksForRadar = () =>
-  (pois.value || [])
-    .filter((p) => p.type === 'barrack')
-    .map((p) => ({ ...p, isEnemy: !p.owned }));
-
-const refreshBaseCaptureVisuals = () => {
-  const captured = isBaseCaptured.value;
-
-  if (markerRef.value) {
-    updateIcon(BaseMarker, { componentProps: { isEnemy: captured } });
-  }
-
-  const attackCenter = getAttackCenter();
-  if (radarRef.value && attackCenter?.type === 'base') {
-    const radarColor = captured ? ENEMY_COLOR : getRadarConfig(radarLevel.value).color;
-    radarRef.value.setStyle({ color: radarColor, fillColor: radarColor });
-  }
-
-  const barracks = getBarracksForRadar();
-  const baseCenter = baseConfirmed.value && markerRef.value ? {
-    lat: markerRef.value.getLatLng().lat,
-    lng: markerRef.value.getLatLng().lng,
-    type: 'base',
-    level: radarLevel.value,
-    isEnemy: captured,
-  } : null;
-  let activeId = null;
-  if (selectedBarracksForAttack.value) {
-    activeId = selectedBarracksForAttack.value.id;
-  } else if (baseCenter) {
-    activeId = 'base';
-  }
-  renderAllBarracksRadars(barracks, activeId, baseCenter);
-};
-
-const setActiveAttackOrigin = (origin) => {
-  if (!origin) return;
-
-  const barracksForRadar = getBarracksForRadar();
-  const baseCenter = baseMarkerPosition.value
-    ? { lat: baseMarkerPosition.value.lat, lng: baseMarkerPosition.value.lng, type: 'base', level: radarLevel.value, isEnemy: isBaseCaptured.value }
-    : null;
-
-  if (origin.type === 'barrack') {
-    isBaseAttackOrigin.value = false;
-    selectedBarracksForAttack.value = origin;
-    createRadar({ lat: origin.lat, lng: origin.lng, type: 'barrack' });
-    renderAllBarracksRadars(barracksForRadar, origin.id, baseCenter);
-  } else if (origin.type === 'base') {
-    selectedBarracksForAttack.value = null;
-    isBaseAttackOrigin.value = true;
-    createRadar(origin);
-    renderAllBarracksRadars(barracksForRadar, 'base', baseCenter);
-  }
-};
-
-// Manejar selección de cuartel como punto de ataque
-const handleSelectAsAttackOrigin = (barracks) => {
-  if (barracks && barracks.type === 'barrack' && barracks.owned) {
-    // Toggle: si ya está seleccionado, volver a la base; si no, seleccionar cuartel
-    if (selectedBarracksForAttack.value && selectedBarracksForAttack.value.id === barracks.id) {
-      // Deseleccionar cuartel y volver a la base como punto de ataque
-      const baseOrigin = getBaseAttackOrigin();
-      if (baseOrigin) {
-        setActiveAttackOrigin(baseOrigin);
-      }
-    } else {
-      // Seleccionar cuartel (y deseleccionar base)
-      setActiveAttackOrigin(barracks);
-    }
-    closeEnemyDialog();
-  }
-};
-
-// Manejar selección de base como punto de ataque
-const handleSelectBaseAsAttackOrigin = () => {
-  // La base siempre puede establecerse como punto de ataque (deseleccionando cuartel si hay uno)
-  const baseOrigin = getBaseAttackOrigin();
-  if (baseOrigin) {
-    setActiveAttackOrigin(baseOrigin);
-  }
   closeEnemyDialog();
 };
   
@@ -855,6 +762,7 @@ watch(selectedPOI, (poi, prevPoi) => {
       (!selectedBarracksForAttack.value || selectedBarracksForAttack.value.id !== poi.id)
     ) {
       handleSelectAsAttackOrigin(poi);
+      closeEnemyDialog();
     }
   }
 });
