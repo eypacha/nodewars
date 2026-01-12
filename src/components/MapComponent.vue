@@ -108,7 +108,6 @@
 <script setup>
 import { onMounted, onBeforeUnmount, watch, nextTick, computed, ref } from 'vue';
 import { storeToRefs } from 'pinia';
-import L from 'leaflet';
 import { useMapStore } from '@/stores/mapStore';
 import { usePoiStore } from '@/stores/poiStore';
 import { useGameStore } from '@/stores/gameStore';
@@ -123,27 +122,21 @@ import { useScreenPositions } from '@/composables/useScreenPositions';
 import { useMapDialogs } from '@/composables/useMapDialogs';
 import { getRadarConfig } from '@/services/mapService';
 import { getPOIColor } from '@/constants/poiTypes';
-import { useEnemyStore } from '@/stores/enemyStore';
-import { useAutoAttack } from '@/composables/useAutoAttack';
 import BaseMarker from './BaseMarker.vue';
 import MarkerConfirmDialog from './MarkerConfirmDialog.vue';
 import BaseMarkerDialog from './BaseMarkerDialog.vue';
 import POIDialog from './POIDialog.vue';
 import EnemyAttackDialog from './EnemyAttackDialog.vue';
 import UpgradesPanel from './UpgradesPanel.vue';
-import { useEnemySpawn } from '@/composables/useEnemySpawn';
-import { useEnemyMovement } from '@/composables/useEnemyMovement';
-import { useProgressTimer } from '@/composables/useProgressTimer';
 import { computeRadarsMetrics } from '@/utils/mathUtils';
 import { buildCoverageRadars, buildOwnedBarracksSignature } from '@/utils/mapCoverage';
 import { useScanCoverage } from '@/composables/useScanCoverage';
 import { useAttackOrigin } from '@/composables/useAttackOrigin';
-import { useEnemyDialog } from '@/composables/useEnemyDialog';
+import { provideMapContext } from '@/composables/useMapContext';
+import { useEnemyFeature } from '@/composables/useEnemyFeature';
+import { useBaseFeature } from '@/composables/useBaseFeature';
 
 const mapStore = useMapStore();
-const enemyStore = useEnemyStore();
-enemyStore.initialize();
-
 // Bandera global para evitar bucles watcher <-> eventos Leaflet
 let isProgrammaticMapMove = false;
 const poiStore = usePoiStore();
@@ -151,7 +144,6 @@ const gameStore = useGameStore();
 const { center, zoom, marker, activeDialog, baseConfirmed, showUpgradesPanel } = storeToRefs(mapStore);
 const { radarLevel, resources, baseHealth, baseMaxHealth, showStartPopup, autoAttackLevel, isBaseCaptured } = storeToRefs(gameStore);
 const { selectedPOI, showPOIDialog, isLoading, pois } = storeToRefs(poiStore);
-const { enemies } = storeToRefs(enemyStore);
 const selectedBarracksForAttack = ref(null); // Cuartel seleccionado para lanzar ataques
 const isBaseAttackOrigin = ref(false); // Si la base está seleccionada como punto de ataque
 const currentAttackOrigin = ref(null); // Punto de ataque activo (se actualiza cuando cambia)
@@ -230,74 +222,74 @@ const {
   poiStore,
   mapStore,
 });
-useAutoAttack({
+provideMapContext({
+  mapRef,
   markerRef,
-  enemies,
-  baseConfirmed,
-  autoAttackLevel,
-  getCooldownMs: () => gameStore.getAutoAttackCooldownMs(),
-  startAttack,
-  removeEnemy: enemyStore.removeEnemy,
+  radarRef,
+  mapStore,
+  poiStore,
+  gameStore,
 });
-const closeAllDialogs = () => {
-  closeDialog(removeConnectionLine);
-  selectedEnemyForAttack.value = null;
-  enemyDialogStyle.value = null;
-  mapStore.closeAllDialogs();
-};
-const closeDialogsKeepAttack = () => {
-  closeDialog(removeConnectionLine);
-  selectedEnemyForAttack.value = null;
-  enemyDialogStyle.value = null;
-  mapStore.closeAllDialogs();
-};
-
-const enemySpawner = useEnemySpawn({ baseMarkerPosition, pois, radarLevel });
-const enemyMover = useEnemyMovement({
-  getTargetPosition: (type, id) => {
-    if (type === 'base') {
-      return baseMarkerPosition.value;
-    }
-    if (type === 'barrack') {
-      const target = (pois.value || []).find((p) => String(p.id) === String(id) && p.owned);
-      if (target) return { lat: target.lat, lng: target.lng };
-    }
-    return null;
-  },
-  onBaseHit: () => {
-    gameStore.setBaseHealth(baseHealth.value - 1);
-  },
-  onBarrackHit: (poiId) => {
-    poiStore.damagePOI(poiId, 1, null, { attackedByEnemy: true });
-  },
-});
-const baseHealCooldown = useProgressTimer(2000, { key: 'base-heal' });
-const isBaseHealOnCooldown = baseHealCooldown.isRunning;
-const baseHealProgress = baseHealCooldown.progress;
-const handleBaseHeal = () => {
-  if (isBaseHealOnCooldown.value) return;
-  const healed = gameStore.consumeResource('pharmacy', 1);
-  if (!healed) return;
-  gameStore.setBaseHealth(baseHealth.value + 1);
-  baseHealCooldown.start();
-};
 
 const {
+  enemyMarkers,
   selectedEnemyForAttack,
   enemyDialogStyle,
   isEnemyAttackOnCooldown,
   enemyAttackCooldownProgress,
-  closeEnemyDialog,
-  updateEnemyDialogPosition,
   handleEnemyClick,
   handleEnemyAttack,
-} = useEnemyDialog({
+  closeEnemyDialog,
+} = useEnemyFeature({
   mapRef,
-  enemies,
+  onMapEvent: on,
+  mapViewVersion,
+  baseConfirmed,
+  showStartPopup,
+  baseMarkerPosition,
+  pois,
+  radarLevel,
+  gameStore,
+  poiStore,
+  baseHealth,
+  autoAttackLevel,
   currentAttackOrigin,
   startAttack,
-  closeDialogsKeepAttack,
-  removeEnemy: enemyStore.removeEnemy,
+  markerRef,
+  closeDialog,
+  removeConnectionLine,
+  mapStore,
+});
+
+const {
+  isBaseHealOnCooldown,
+  baseHealProgress,
+  handleBaseHeal,
+  handleConfirmMarker,
+  handleMarkerClick,
+  handleMarkerDragEnd,
+  handleMarkerDrag,
+} = useBaseFeature({
+  mapStore,
+  poiStore,
+  gameStore,
+  markerRef,
+  baseConfirmed,
+  isBaseAttackOrigin,
+  selectedBarracksForAttack,
+  currentAttackOrigin,
+  selectedPOI,
+  showPOIDialog,
+  baseHealth,
+  disableDragging,
+  updateMarkerScreenPosition,
+  updateRadarPosition,
+  updateConnectionLine,
+  updateOwnedConnectionLines,
+  handleSelectBaseAsAttackOrigin,
+  closeEnemyDialog,
+  pois,
+  isBaseCaptured,
 });
 
 // Radio actual del radar según el tipo de centro de ataque
@@ -317,27 +309,6 @@ const updateCoverageMetrics = () => {
   });
   const { perimeterMeters, areaSquareMeters } = computeRadarsMetrics(radars);
   mapStore.setCoverageMetrics(perimeterMeters, areaSquareMeters);
-};
-
-const enemyMarkers = computed(() => {
-  mapViewVersion.value;
-  if (!mapRef.value || showStartPopup.value || !baseConfirmed.value) return [];
-
-  return enemies.value.map((enemy) => {
-    const point = mapRef.value.latLngToContainerPoint([enemy.lat, enemy.lng]);
-    return {
-      id: enemy.id,
-      x: point.x,
-      y: point.y,
-      rotation: enemy.heading ?? 0,
-    };
-  });
-});
-
-// Manejar confirmación del marcador
-const handleConfirmMarker = () => {
-  mapStore.confirmBase();
-  disableDragging();
 };
 
 // Manejar ataque al POI
@@ -396,8 +367,7 @@ const handleConvertToBarracks = () => {
 const handleClosePOIDialog = () => {
   closeDialog(removeConnectionLine);
   mapStore.closeAllDialogs();
-  selectedEnemyForAttack.value = null;
-  enemyDialogStyle.value = null;
+  closeEnemyDialog();
 };
 
 const handleScanFromBarracks = async () => {
@@ -452,84 +422,6 @@ const handleOpenUpgrades = () => {
   mapStore.openUpgradesPanel();
 };
 
-// Manejar clic en el marcador cuando está confirmado
-const handleMarkerClick = (e) => {
-  // Prevenir que el evento se propague al mapa
-  if (e) {
-    L.DomEvent.stopPropagation(e);
-  }
-  if (!baseConfirmed.value) return;
-
-  const baseAlreadySelected = isBaseAttackOrigin.value && !selectedBarracksForAttack.value;
-
-  // Cerrar diálogo de POI si está abierto
-  if (showPOIDialog.value) {
-    poiStore.closePOIDialog();
-  }
-  closeEnemyDialog();
-
-  if (baseAlreadySelected) {
-    mapStore.openBaseMarkerDialog();
-    updateMarkerScreenPosition();
-  } else {
-    mapStore.closeBaseMarkerDialog();
-    // Activar la base como origen de ataque en el primer clic
-    handleSelectBaseAsAttackOrigin();
-  }
-};
-
-// Manejar arrastre del marcador
-const handleMarkerDragEnd = () => {
-  const position = markerRef.value.getLatLng();
-  mapStore.updateMarkerPosition([position.lat, position.lng]);
-  updateMarkerScreenPosition();
-  
-  // Actualizar posición del radar solo si es la base la que está activa
-  if (baseConfirmed.value && !selectedBarracksForAttack.value) {
-    updateRadarPosition([position.lat, position.lng]);
-  }
-  
-  updateConnectionLine(selectedPOI.value, currentAttackOrigin.value);
-};
-
-const handleMarkerDrag = () => {
-  updateMarkerScreenPosition();
-  if (markerRef.value && baseConfirmed.value && !selectedBarracksForAttack.value) {
-    updateRadarPosition(markerRef.value.getLatLng());
-  }
-  updateConnectionLine(selectedPOI.value, currentAttackOrigin.value);
-  updateOwnedConnectionLines(pois.value);
-};
-
-// Watchers para actualizar el punto de ataque actual
-watch(selectedBarracksForAttack, (newBarracks) => {
-  currentAttackOrigin.value = newBarracks;
-});
-
-watch(isBaseAttackOrigin, (isBase) => {
-  if (isBase && markerRef.value) {
-    const latLng = markerRef.value.getLatLng();
-    currentAttackOrigin.value = {
-      lat: latLng.lat,
-      lng: latLng.lng,
-      type: 'base',
-      isEnemy: isBaseCaptured.value,
-    };
-  } else if (!isBase && !selectedBarracksForAttack.value) {
-    currentAttackOrigin.value = null;
-  }
-});
-
-watch(baseConfirmed, (confirmed) => {
-  if (confirmed) {
-    enemySpawner.startEnemySpawnLoop();
-    enemyMover.start();
-  } else {
-    enemySpawner.stopEnemySpawnLoop();
-    enemyMover.stop();
-  }
-}, { immediate: true });
-
 // Inicializar mapa
 onMounted(() => {
   initMap();
@@ -539,16 +431,6 @@ onMounted(() => {
   on('zoom', () => updatePOIScreenPosition(selectedPOI.value));
   on('move', updateAttackOriginScreenPosition);
   on('zoom', updateAttackOriginScreenPosition);
-  on('move', () => {
-    if (selectedEnemyForAttack.value) {
-      updateEnemyDialogPosition(selectedEnemyForAttack.value);
-    }
-  });
-  on('zoom', () => {
-    if (selectedEnemyForAttack.value) {
-      updateEnemyDialogPosition(selectedEnemyForAttack.value);
-    }
-  });
   on('move', () => updateConnectionLine(selectedPOI.value, currentAttackOrigin.value));
   on('zoom', () => updateConnectionLine(selectedPOI.value, currentAttackOrigin.value));
   on('move', () => updateOwnedConnectionLines(pois.value));
@@ -571,7 +453,6 @@ onMounted(() => {
       }
     });
     mapRef.value.on('click', handleMapClick);
-    mapRef.value.on('click', closeEnemyDialog);
   }
 });
 
