@@ -122,7 +122,6 @@ import { useConnectionLines } from '@/composables/useConnectionLines';
 import { useScreenPositions } from '@/composables/useScreenPositions';
 import { useMapDialogs } from '@/composables/useMapDialogs';
 import { getRadarConfig } from '@/services/mapService';
-import { BARRACKS_RADAR_RADIUS } from '@/constants/player';
 import { getPOIColor } from '@/constants/poiTypes';
 import { useEnemyStore } from '@/stores/enemyStore';
 import { useAutoAttack } from '@/composables/useAutoAttack';
@@ -136,7 +135,9 @@ import { useEnemySpawn } from '@/composables/useEnemySpawn';
 import { useEnemyMovement } from '@/composables/useEnemyMovement';
 import { useProgressTimer } from '@/composables/useProgressTimer';
 import { computeRadarsMetrics } from '@/utils/mathUtils';
+import { buildCoverageRadars, buildOwnedBarracksSignature } from '@/utils/mapCoverage';
 import { ENEMY_COLOR } from '@/constants/colors';
+import { useScanCoverage } from '@/composables/useScanCoverage';
 
 const mapStore = useMapStore();
 const enemyStore = useEnemyStore();
@@ -154,14 +155,8 @@ const selectedBarracksForAttack = ref(null); // Cuartel seleccionado para lanzar
 const isBaseAttackOrigin = ref(false); // Si la base está seleccionada como punto de ataque
 const currentAttackOrigin = ref(null); // Punto de ataque activo (se actualiza cuando cambia)
 const attackOriginScreenPosition = ref(null); // Posición en pantalla del punto de ataque
-const scanContexts = ref(new Map()); // key -> { id, type, position, radius }
-const scanAnimationTimeouts = ref(new Map());
-const activeScanContexts = computed(() => Array.from(scanContexts.value.values()));
-const isBaseScanActive = computed(() => scanContexts.value.has('base'));
-const isSelectedBarrackScanActive = computed(() => {
-  if (!selectedPOI.value || selectedPOI.value.type !== 'barrack') return false;
-  return scanContexts.value.has(`barrack-${selectedPOI.value.id}`);
-});
+
+const mapViewVersion = ref(0);
 
 // Inicializar composables principales
 // Usar refs reactivos para que el mapa se inicialice con los valores restaurados
@@ -190,6 +185,22 @@ const {
   poiDialogStyle 
 } = useScreenPositions(mapRef, markerRef);
 const { closePOIDialog: closeDialog, handleMapClick } = useMapDialogs();
+const {
+  isBaseScanActive,
+  isSelectedBarrackScanActive,
+  radarSweepStyles,
+  runScan,
+  stopScanForKey,
+  getScanKey,
+} = useScanCoverage({
+  mapRef,
+  selectedPOI,
+  mapViewVersion,
+  closeDialog,
+  removeConnectionLine,
+  poiStore,
+  mapStore,
+});
 useAutoAttack({
   markerRef,
   enemies,
@@ -316,42 +327,13 @@ const radarRadius = computed(() => {
 });
 
 
-// Solo cuenta radares aliados (base + barracas aliadas) para el HUD
-const getCoverageRadars = () => {
-  const list = [];
-
-  if (baseConfirmed.value && baseMarkerPosition.value) {
-    const baseConfig = getRadarConfig(radarLevel.value);
-    list.push({
-      id: 'base',
-      center: baseMarkerPosition.value,
-      radius: baseConfig.radius,
-    });
-  }
-
-  (pois.value || []).forEach((poi) => {
-    // Solo barracas aliadas (owned)
-    if (poi.type !== 'barrack' || !poi.owned) return;
-    list.push({
-      id: `barrack-${poi.id}`,
-      center: { lat: poi.lat, lng: poi.lng },
-      radius: BARRACKS_RADAR_RADIUS,
-    });
-  });
-
-  return list;
-};
-
-const getOwnedBarracksSignature = () => {
-  if (!Array.isArray(pois.value)) return [];
-  return pois.value
-    .filter((poi) => poi.type === 'barrack' && poi.owned)
-    .map((poi) => `${poi.id}:${poi.lat}:${poi.lng}`)
-    .sort();
-};
-
 const updateCoverageMetrics = () => {
-  const radars = getCoverageRadars();
+  const radars = buildCoverageRadars({
+    baseConfirmed: baseConfirmed.value,
+    basePosition: baseMarkerPosition.value,
+    radarLevel: radarLevel.value,
+    pois: pois.value,
+  });
   const { perimeterMeters, areaSquareMeters } = computeRadarsMetrics(radars);
   mapStore.setCoverageMetrics(perimeterMeters, areaSquareMeters);
 };
@@ -373,49 +355,6 @@ const updateAttackOriginScreenPosition = () => {
     y: point.y
   };
 };
-
-const mapViewVersion = ref(0);
-
-const radarSweepStyles = computed(() => {
-  // Dependencia para recalcular en cada movimiento/zoom
-  mapViewVersion.value;
-  if (!mapRef.value) return [];
-
-  const earthRadius = 6371000;
-
-  return activeScanContexts.value.map((ctx) => {
-    const originLatLng = ctx.position;
-    if (!originLatLng || !ctx.radius) return null;
-
-    const screenPosition = mapRef.value.latLngToContainerPoint([
-      originLatLng.lat,
-      originLatLng.lng,
-    ]);
-
-    const latOffset = (ctx.radius / earthRadius) * (180 / Math.PI);
-    const pointAtRadius = L.latLng(
-      originLatLng.lat + latOffset,
-      originLatLng.lng
-    );
-    const edgePoint = mapRef.value.latLngToContainerPoint(pointAtRadius);
-    const centerPoint = mapRef.value.latLngToContainerPoint([
-      originLatLng.lat,
-      originLatLng.lng
-    ]);
-    const radiusInPixels = Math.abs(edgePoint.y - centerPoint.y);
-
-    return {
-      id: ctx.id,
-      style: {
-        position: 'absolute',
-        left: `${screenPosition.x}px`,
-        top: `${screenPosition.y}px`,
-        zIndex: 999,
-        '--radar-radius': `${radiusInPixels}px`,
-      }
-    };
-  }).filter(Boolean);
-});
 
 const enemyMarkers = computed(() => {
   mapViewVersion.value;
@@ -450,67 +389,6 @@ const handleAttack = () => {
   }
   startAttack(selectedPOI.value, attackOrigin);
   closeEnemyDialog();
-};
-
-const getScanKey = (type, id = 'base') => {
-  return type === 'barrack' ? `barrack-${id}` : 'base';
-};
-
-const addScanContext = (key, context) => {
-  const mapCopy = new Map(scanContexts.value);
-  mapCopy.set(key, { ...context, id: key });
-  scanContexts.value = mapCopy;
-};
-
-const removeScanContext = (key) => {
-  if (!scanContexts.value.has(key)) return;
-  const mapCopy = new Map(scanContexts.value);
-  mapCopy.delete(key);
-  scanContexts.value = mapCopy;
-};
-
-const stopScanForKey = (key) => {
-  poiStore.stopScan(key);
-  const timeout = scanAnimationTimeouts.value.get(key);
-  if (timeout) {
-    clearTimeout(timeout);
-  }
-  const newTimeouts = new Map(scanAnimationTimeouts.value);
-  newTimeouts.delete(key);
-  scanAnimationTimeouts.value = newTimeouts;
-  removeScanContext(key);
-};
-
-const runScan = async ({ type, position, radius, closeDialogs = true, originId = null }) => {
-  const key = getScanKey(type, originId || 'base');
-
-  // Opcionalmente cerrar diálogos
-  if (closeDialogs) {
-    closeDialog(removeConnectionLine);
-    mapStore.closeAllDialogs();
-  }
-
-  // Registrar contexto de animación
-  addScanContext(key, { type, position, radius });
-  console.log(`[scan] start ${key}`, position, radius);
-
-  try {
-    const result = await poiStore.fetchPOIs(position, radius, { stagger: true, staggerDelay: 250, originKey: key });
-
-    if (result?.status === 'ok' || result?.status === 'stopped') {
-      const timeoutId = setTimeout(() => {
-        removeScanContext(key);
-        const newTimeouts = new Map(scanAnimationTimeouts.value);
-        newTimeouts.delete(key);
-        scanAnimationTimeouts.value = newTimeouts;
-      }, 300);
-      const newTimeouts = new Map(scanAnimationTimeouts.value);
-      newTimeouts.set(key, timeoutId);
-      scanAnimationTimeouts.value = newTimeouts;
-    }
-  } catch (err) {
-    console.error(`[scan] error ${key}`, err);
-  }
 };
 
 // Manejar extracción manual de recursos
@@ -1006,7 +884,12 @@ watch(radarLevel, (newLevel) => {
 });
 
 watch(
-  [baseMarkerPosition, radarLevel, getOwnedBarracksSignature, baseConfirmed],
+  [
+    baseMarkerPosition,
+    radarLevel,
+    () => buildOwnedBarracksSignature(pois.value),
+    baseConfirmed,
+  ],
   updateCoverageMetrics,
   { immediate: true, deep: true }
 );
