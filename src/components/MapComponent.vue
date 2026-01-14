@@ -1,6 +1,6 @@
 <template>
   <div class="w-full h-[100vh] overflow-hidden relative">
-    <div id="map" class="w-full h-[calc(100vh+30px)] z-0"></div>
+    <div id="map" class="w-full h-[calc(100vh+30px)] z-0 bg-black"></div>
     <MarkerConfirmDialog 
       v-if="activeDialog === 'markerConfirm' && markerScreenPosition" 
       :style="dialogStyle"
