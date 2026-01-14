@@ -212,8 +212,8 @@ export const usePoiStore = defineStore('poi', () => {
             ...poi,
             // Usar la categoría si existe, sino usar el tipo
             color: getPOIColor(poi.category || poi.type),
-          health: INITIAL_HEALTH,
-          maxHealth: INITIAL_HEALTH,
+            health: INITIAL_HEALTH,
+            maxHealth: INITIAL_HEALTH,
             owned: false,
             resourceAmount: DEFAULT_RESOURCE_CAPACITY,
             resourceCapacity: DEFAULT_RESOURCE_CAPACITY,
@@ -249,7 +249,6 @@ export const usePoiStore = defineStore('poi', () => {
         // Agregar máximo 2 POIs por categoría en este scan
         const poisToAdd = [];
         Object.keys(poisByCategory).forEach(category => {
-          const existingCount = categoryCounts[category] || 0;
           const availablePOIs = poisByCategory[category];
           // Agregar hasta 2 POIs nuevos de esta categoría
           const toAdd = availablePOIs.slice(0, 2);
