@@ -7,6 +7,7 @@ import { db } from '@/services/dbService';
 import { DEFAULT_RESOURCE_CAPACITY, DEFAULT_PRODUCTION_RATE, INITIAL_HEALTH } from '@/constants/pois';
 
 export const usePoiStore = defineStore('poi', () => {
+  const BARRACK_COLOR = getPOIColor('barrack');
 
   const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
