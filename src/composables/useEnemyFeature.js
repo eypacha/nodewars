@@ -4,6 +4,7 @@ import { useEnemyStore } from '@/stores/enemyStore';
 import { useEnemySpawn } from '@/composables/useEnemySpawn';
 import { useEnemyMovement } from '@/composables/useEnemyMovement';
 import { useAutoAttack } from '@/composables/useAutoAttack';
+import { useBarrackAutoAttack } from '@/composables/useBarrackAutoAttack';
 import { useEnemyDialog } from '@/composables/useEnemyDialog';
 
 export function useEnemyFeature({
@@ -85,6 +86,14 @@ export function useEnemyFeature({
     removeEnemy: enemyStore.removeEnemy,
   });
 
+  useBarrackAutoAttack({
+    pois,
+    enemies,
+    startAttack,
+    removeEnemy: enemyStore.removeEnemy,
+    getCooldownMsForLevel: (level) => gameStore.computeAutoAttackCooldownMs(level),
+  });
+
   const enemyMarkers = computed(() => {
     mapViewVersion.value;
     if (!mapRef.value || showStartPopup.value || !baseConfirmed.value) return [];
@@ -134,4 +143,3 @@ export function useEnemyFeature({
     closeEnemyDialog,
   };
 }
-

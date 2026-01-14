@@ -15,7 +15,7 @@
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-        <div class="border border-white p-4">
+        <div v-if="poi?.type !== 'barrack'" class="border border-white p-4">
           <div class="flex justify-between items-start mb-3">
             <div>
               <p class="text-white text-sm font-bold">{{ $t('poiUpgrades.autoExtract') }}</p>
@@ -43,6 +43,36 @@
             base-class="font-bold py-3 px-4 border-2 border-white text-sm relative overflow-hidden transition-all"
           />
         </div>
+
+        <div v-if="poi?.type === 'barrack'" class="border border-white p-4">
+          <div class="flex justify-between items-start mb-3">
+            <div>
+              <p class="text-white text-sm font-bold">{{ $t('poiUpgrades.barrackAutoAttack') }}</p>
+              <p class="text-gray-400 text-xs mt-1">{{ barrackAutoAttackLevel }} → {{ barrackAutoAttackNextLevel }}</p>
+            </div>
+            <div class="text-right">
+              <p class="text-base font-bold" :style="{ color: policeColor }">
+                {{ barrackAutoAttackCost ?? '—' }} ●
+              </p>
+            </div>
+          </div>
+
+          <div class="mb-4 text-gray-300 text-sm space-y-1">
+            <p>{{ $t('poiUpgrades.barrackAutoAttackDesc') }}</p>
+            <p class="text-gray-500" v-if="barrackAutoAttackLevel > 0">
+              {{ $t('poiUpgrades.currentCooldown') }} <span class="text-white font-bold">{{ barrackAutoAttackCooldownDisplay }}s</span>
+            </p>
+          </div>
+
+          <BaseButton
+            @click="handleBarrackAutoAttackUpgrade"
+            :disabled="!canUpgradeBarrackAutoAttack || !canAffordBarrackAutoAttack"
+            :label="!canUpgradeBarrackAutoAttack ? $t('poiUpgrades.unavailable') : !canAffordBarrackAutoAttack ? $t('poiUpgrades.insufficientFuel') : $t('poiUpgrades.upgradeButton')"
+            block
+            full-width
+            base-class="font-bold py-3 px-4 border-2 border-white text-sm relative overflow-hidden transition-all"
+          />
+        </div>
       </div>
     </div>
   </div>
@@ -53,6 +83,7 @@ import { computed } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useGameStore } from '@/stores/gameStore';
 import { usePoiStore } from '@/stores/poiStore';
+import { getPOIColor } from '@/constants/poiTypes';
 import BaseButton from '@/components/UI/BaseButton.vue';
 
 const emit = defineEmits(['close']);
@@ -68,6 +99,7 @@ const AUTO_EXTRACT_COST = 10;
 const gameStore = useGameStore();
 const poiStore = usePoiStore();
 const { resources } = storeToRefs(gameStore);
+const policeColor = getPOIColor('police');
 
 const hasAutoExtract = computed(() => !!props.poi?.autoExtract);
 const canUpgrade = computed(() => props.poi?.owned && props.poi?.type !== 'barrack');
@@ -79,6 +111,29 @@ const handleAutoExtractUpgrade = () => {
   const paid = gameStore.consumeResource('fuel', AUTO_EXTRACT_COST);
   if (!paid) return;
   poiStore.setAutoExtract(props.poi.id, true);
+};
+
+const barrackAutoAttackLevel = computed(() => props.poi?.barrackAutoAttackLevel ?? 0);
+const barrackAutoAttackNextLevel = computed(() => barrackAutoAttackLevel.value + 1);
+const barrackAutoAttackCost = computed(() => gameStore.getAutoAttackUpgradeCostForLevel(barrackAutoAttackNextLevel.value));
+const canUpgradeBarrackAutoAttack = computed(() => props.poi?.owned && props.poi?.type === 'barrack');
+const canAffordBarrackAutoAttack = computed(() => {
+  const cost = barrackAutoAttackCost.value ?? null;
+  return cost != null && resources.value.police >= cost;
+});
+const barrackAutoAttackCooldownDisplay = computed(() => {
+  const cooldown = gameStore.computeAutoAttackCooldownMs(barrackAutoAttackLevel.value);
+  if (!cooldown) return '—';
+  return (cooldown / 1000).toFixed(1);
+});
+
+const handleBarrackAutoAttackUpgrade = () => {
+  if (!canUpgradeBarrackAutoAttack.value) return;
+  const cost = barrackAutoAttackCost.value;
+  if (!cost) return;
+  const paid = gameStore.consumeResource('police', cost);
+  if (!paid) return;
+  poiStore.upgradeBarrackAutoAttack(props.poi.id);
 };
 
 const handleClose = () => {

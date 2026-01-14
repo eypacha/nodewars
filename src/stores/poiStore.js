@@ -69,6 +69,7 @@ export const usePoiStore = defineStore('poi', () => {
     const lastProducedAt = poi.lastProducedAt ?? Date.now();
     const autoExtract = poi.autoExtract ?? false;
     const color = poi.type === 'barrack' ? BARRACK_COLOR : poi.color;
+    const barrackAutoAttackLevel = poi.barrackAutoAttackLevel ?? 0;
 
     return {
       ...poi,
@@ -77,6 +78,7 @@ export const usePoiStore = defineStore('poi', () => {
       productionRate,
       lastProducedAt,
       autoExtract,
+      barrackAutoAttackLevel,
       resourceAmount: Math.min(poi.resourceAmount ?? capacity, capacity),
     };
   };
@@ -343,7 +345,8 @@ export const usePoiStore = defineStore('poi', () => {
     if (poi.type === 'barrack') return false;
     poi.type = 'barrack';
     poi.color = BARRACK_COLOR;
-    updatePOI(poiId, { type: 'barrack', color: BARRACK_COLOR });
+    poi.barrackAutoAttackLevel = 0;
+    updatePOI(poiId, { type: 'barrack', color: BARRACK_COLOR, barrackAutoAttackLevel: 0 });
     return true;
   };
 
@@ -452,6 +455,15 @@ export const usePoiStore = defineStore('poi', () => {
     return true;
   };
 
+  const upgradeBarrackAutoAttack = (poiId) => {
+    const poi = getPOIById(poiId);
+    if (!poi || poi.type !== 'barrack' || !poi.owned) return false;
+    const nextLevel = (poi.barrackAutoAttackLevel ?? 0) + 1;
+    poi.barrackAutoAttackLevel = nextLevel;
+    updatePOI(poiId, { barrackAutoAttackLevel: nextLevel });
+    return nextLevel;
+  };
+
   const damagePOI = (poiId, damage = 1, attackOriginId = null, { attackedByEnemy = false } = {}) => {
     const poi = getPOIById(poiId);
     if (poi) {
@@ -515,6 +527,7 @@ export const usePoiStore = defineStore('poi', () => {
     consumeResource,
     applyProductionForPOI,
     setAutoExtract,
+    upgradeBarrackAutoAttack,
     convertToBarracks,
     toggleBarracksRadar,
     resetPOIs,

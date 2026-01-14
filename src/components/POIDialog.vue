@@ -65,7 +65,7 @@
           @click="handleExtract"
         />
         <BaseButton
-          v-if="poi.type !== 'barrack' && !isBlockedByEnemyBarrack"
+          v-if="!isBlockedByEnemyBarrack"
           class="mx-auto mt-2"
           block
           full-width

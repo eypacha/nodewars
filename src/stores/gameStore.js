@@ -254,6 +254,11 @@ export const useGameStore = defineStore('game', () => {
     return calculateAutoAttackUpgradeCost(autoAttackLevel.value + 1);
   };
 
+  const getAutoAttackUpgradeCostForLevel = (level) => {
+    if (!Number.isFinite(level) || level <= 0) return null;
+    return calculateAutoAttackUpgradeCost(level);
+  };
+
   const computeAutoAttackCooldownMs = (level) => {
     if (!Number.isFinite(level) || level <= 0) return null;
     const cooldown = AUTO_ATTACK_BASE_COOLDOWN_MS * Math.pow(AUTO_ATTACK_COOLDOWN_REDUCTION_RATE, Math.max(0, level - 1));
@@ -324,6 +329,7 @@ export const useGameStore = defineStore('game', () => {
     upgradeAutoAttack,
     getRadarUpgradeCost,
     getAutoAttackUpgradeCost,
+    getAutoAttackUpgradeCostForLevel,
     computeAutoAttackCooldownMs,
     getAutoAttackCooldownMs,
     resetGame,
