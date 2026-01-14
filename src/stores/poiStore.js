@@ -5,9 +5,11 @@ import { getPOIColor } from '@/constants/poiTypes';
 import { calculateDistance } from '@/utils/mapHelpers';
 import { db } from '@/services/dbService';
 import { DEFAULT_RESOURCE_CAPACITY, DEFAULT_PRODUCTION_RATE, INITIAL_HEALTH, BASE_MAX_CONNECTIONS } from '@/constants/pois';
+import { useGameStore } from '@/stores/gameStore';
 
 export const usePoiStore = defineStore('poi', () => {
   const BARRACK_COLOR = getPOIColor('barrack');
+  const gameStore = useGameStore();
 
   const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -475,7 +477,8 @@ export const usePoiStore = defineStore('poi', () => {
         if (!poi.owned) {
           const baseConnections = pois.value.filter((p) => p.owned && !p.conqueredFrom).length;
           const isBaseOrigin = attackOriginId == null;
-          if (isBaseOrigin && baseConnections >= BASE_MAX_CONNECTIONS) {
+          const maxConnections = gameStore.getMaxBaseNodes?.() ?? BASE_MAX_CONNECTIONS;
+          if (isBaseOrigin && baseConnections >= maxConnections) {
             poi.owned = false;
             poi.conqueredFrom = null;
           } else {

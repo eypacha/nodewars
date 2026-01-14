@@ -53,6 +53,7 @@ export const useGameStore = defineStore('game', () => {
     5: 100,
   };
   const autoAttackLevel = ref(0);
+  const baseNodesLevel = ref(1);
   const autoAttackUpgradeCosts = {
     1: 10,
     2: 25,
@@ -169,6 +170,25 @@ export const useGameStore = defineStore('game', () => {
     }
   };
 
+  const persistBaseNodesLevel = async () => {
+    try {
+      await db.game.put({ key: 'baseNodesLevel', data: baseNodesLevel.value });
+    } catch (error) {
+      console.error('Error saving base nodes level to DB:', error);
+    }
+  };
+
+  const loadBaseNodesLevel = async () => {
+    try {
+      const saved = await db.game.get('baseNodesLevel');
+      if (saved?.data) {
+        baseNodesLevel.value = saved.data;
+      }
+    } catch (error) {
+      console.error('Error loading base nodes level from DB:', error);
+    }
+  };
+
   const persistBaseHealth = async () => {
     try {
       await db.game.put({ key: 'baseHealth', data: { health: baseHealth.value, maxHealth: baseMaxHealth.value } });
@@ -259,6 +279,25 @@ export const useGameStore = defineStore('game', () => {
     return calculateAutoAttackUpgradeCost(level);
   };
 
+  const getBaseNodesUpgradeCost = () => {
+    return calculateUpgradeCost(baseNodesLevel.value + 1);
+  };
+
+  const upgradeBaseNodes = () => {
+    const nextLevel = baseNodesLevel.value + 1;
+    const cost = calculateUpgradeCost(nextLevel);
+    if (resources.value.food < cost) return false;
+    resources.value.food -= cost;
+    baseNodesLevel.value = nextLevel;
+    persistResources();
+    persistBaseNodesLevel();
+    return true;
+  };
+
+  const getMaxBaseNodes = () => {
+    return baseNodesLevel.value * 10;
+  };
+
   const computeAutoAttackCooldownMs = (level) => {
     if (!Number.isFinite(level) || level <= 0) return null;
     const cooldown = AUTO_ATTACK_BASE_COOLDOWN_MS * Math.pow(AUTO_ATTACK_COOLDOWN_REDUCTION_RATE, Math.max(0, level - 1));
@@ -288,6 +327,7 @@ export const useGameStore = defineStore('game', () => {
     // Resetear upgrades
     radarLevel.value = 1;
     autoAttackLevel.value = 0;
+    baseNodesLevel.value = 1;
     
     // Resetear popups
     showStartPopup.value = false;
@@ -297,6 +337,7 @@ export const useGameStore = defineStore('game', () => {
     persistBaseHealth();
     persistRadarLevel();
     persistAutoAttackLevel();
+    persistBaseNodesLevel();
   };
 
   // Cargar recursos al inicializar el store
@@ -304,6 +345,7 @@ export const useGameStore = defineStore('game', () => {
   loadBaseHealth();
   loadRadarLevel();
   loadAutoAttackLevel();
+  loadBaseNodesLevel();
 
   return {
     // State
@@ -314,6 +356,7 @@ export const useGameStore = defineStore('game', () => {
     resources,
     radarLevel,
     autoAttackLevel,
+    baseNodesLevel,
     baseHealth,
     baseMaxHealth,
     isBaseCaptured,
@@ -327,9 +370,12 @@ export const useGameStore = defineStore('game', () => {
     addResource,
     upgradeRadar,
     upgradeAutoAttack,
+    upgradeBaseNodes,
     getRadarUpgradeCost,
     getAutoAttackUpgradeCost,
     getAutoAttackUpgradeCostForLevel,
+    getBaseNodesUpgradeCost,
+    getMaxBaseNodes,
     computeAutoAttackCooldownMs,
     getAutoAttackCooldownMs,
     resetGame,
@@ -339,6 +385,8 @@ export const useGameStore = defineStore('game', () => {
     loadRadarLevel,
     persistAutoAttackLevel,
     loadAutoAttackLevel,
+    persistBaseNodesLevel,
+    loadBaseNodesLevel,
     persistBaseHealth,
     loadBaseHealth,
     setBaseHealth,

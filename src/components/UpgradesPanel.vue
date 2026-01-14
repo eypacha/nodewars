@@ -65,6 +65,33 @@
             base-class="font-bold py-3 px-4 border-2 border-white text-sm relative overflow-hidden transition-all"
           />
         </div>
+
+        <!-- Base Nodes Upgrade -->
+        <div class="border border-white p-4">
+          <div class="flex justify-between items-start mb-3">
+            <div>
+              <p class="text-white text-sm font-bold">{{ $t('upgrades.baseNodes') }}</p>
+              <p class="text-gray-400 text-xs mt-1">{{ baseNodesLevel }} → {{ baseNodesLevel + 1 }}</p>
+            </div>
+            <div class="text-right">
+              <p class="text-base font-bold" :style="{ color: foodColor }">{{ nextBaseNodesCostDisplay }} ●</p>
+            </div>
+          </div>
+
+          <div class="mb-4 text-gray-300 text-sm space-y-1">
+            <p>{{ $t('upgrades.baseNodesDesc') }}</p>
+            <p class="text-gray-500">{{ $t('upgrades.currentNodes') }} <span class="text-white font-bold">{{ currentBaseNodes }}</span></p>
+          </div>
+
+          <BaseButton
+            @click="handleBaseNodesUpgrade"
+            :disabled="!canAffordBaseNodesUpgrade || baseNodesMaxLevelReached"
+            :label="baseNodesMaxLevelReached ? $t('upgrades.maxLevel') : canAffordBaseNodesUpgrade ? $t('upgrades.upgradeButton') : $t('upgrades.insufficientFunds')"
+            block
+            full-width
+            base-class="font-bold py-3 px-4 border-2 border-white text-sm relative overflow-hidden transition-all"
+          />
+        </div>
       </div>
     </div>
   </div>
@@ -76,10 +103,12 @@ import { storeToRefs } from 'pinia';
 import { useGameStore } from '@/stores/gameStore';
 import { getRadarConfig } from '@/services/mapService';
 import BaseButton from '@/components/UI/BaseButton.vue';
+import { getPOIColor } from '@/constants/poiTypes';
 const emit = defineEmits(['close']);
 
 const gameStore = useGameStore();
-const { resources, radarLevel, autoAttackLevel } = storeToRefs(gameStore);
+const { resources, radarLevel, autoAttackLevel, baseNodesLevel } = storeToRefs(gameStore);
+const foodColor = getPOIColor('food');
 
 const nextUpgradeCost = computed(() => gameStore.getRadarUpgradeCost());
 const nextUpgradeCostDisplay = computed(() => nextUpgradeCost.value ?? '—');
@@ -126,6 +155,22 @@ const nextAutoAttackCooldownDisplay = computed(() => {
 
 const handleAutoUpgrade = () => {
   const success = gameStore.upgradeAutoAttack();
+  if (success) {
+    // Upgrade realizado, el componente se actualizará automáticamente
+  }
+};
+
+const nextBaseNodesCost = computed(() => gameStore.getBaseNodesUpgradeCost());
+const nextBaseNodesCostDisplay = computed(() => nextBaseNodesCost.value ?? '—');
+const baseNodesMaxLevelReached = computed(() => nextBaseNodesCost.value == null);
+const canAffordBaseNodesUpgrade = computed(() => {
+  const cost = nextBaseNodesCost.value;
+  return cost != null && resources.value.food >= cost;
+});
+const currentBaseNodes = computed(() => gameStore.getMaxBaseNodes());
+
+const handleBaseNodesUpgrade = () => {
+  const success = gameStore.upgradeBaseNodes();
   if (success) {
     // Upgrade realizado, el componente se actualizará automáticamente
   }
