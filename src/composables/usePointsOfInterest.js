@@ -15,17 +15,39 @@ export const usePointsOfInterest = (mapRef) => {
   
   const poiMarkers = ref([]);
 
-  const applySelectionStyle = (marker, poi, isSelected) => {
-    if (!marker || !poi) return;
+  const getMarkerEntryById = (poiId) => poiMarkers.value.find(({ id }) => id === poiId);
+
+  const createAutoExtractRing = (poi, config) => {
+    if (!mapRef.value) return null;
+    return L.circleMarker([poi.lat, poi.lng], {
+      radius: config.radius + 4,
+      color: poi.color,
+      weight: 1,
+      opacity: 1,
+      fillOpacity: 0,
+      className: config.className,
+    }).addTo(mapRef.value);
+  };
+
+  const applyAutoExtractStyle = (entry, poi) => {
+    if (!entry || !poi) return;
 
     if (poi.type === 'barrack') return;
 
-    if (marker.setStyle) {
-      const config = getPOIConfig();
-      marker.setStyle({
-        weight: isSelected ? config.weight + 2 : config.weight,
-        color: isSelected ? '#ffffff' : poi.color,
+    const config = getPOIConfig();
+    if (entry.marker?.setStyle) {
+      entry.marker.setStyle({
+        weight: config.weight,
+        color: poi.color,
       });
+    }
+
+    const hasAutoExtract = !!poi.autoExtract;
+    if (hasAutoExtract && !entry.ringMarker) {
+      entry.ringMarker = createAutoExtractRing(poi, config);
+    } else if (!hasAutoExtract && entry.ringMarker) {
+      entry.ringMarker.remove();
+      entry.ringMarker = null;
     }
   };
 
@@ -101,16 +123,23 @@ export const usePointsOfInterest = (mapRef) => {
         poiStore.selectPOI(poi.id);
       });
 
-      poiMarkers.value.push({
+      const entry = {
         id: poi.id,
         marker,
-      });
+        ringMarker: null,
+      };
+
+      if (poi.type !== 'barrack' && poi.autoExtract) {
+        entry.ringMarker = createAutoExtractRing(poi, config);
+      }
+
+      poiMarkers.value.push(entry);
     });
 
     // Reaplicar estilo de selección al recrear marcadores
     if (selectedPOI.value) {
-      const marker = getMarkerById(selectedPOI.value.id);
-      applySelectionStyle(marker, selectedPOI.value, true);
+      const entry = getMarkerEntryById(selectedPOI.value.id);
+      applyAutoExtractStyle(entry, selectedPOI.value);
     }
     
     console.log('✅ Created', poiMarkers.value.length, 'POI markers on map');
@@ -120,8 +149,9 @@ export const usePointsOfInterest = (mapRef) => {
    * Elimina todos los marcadores POI del mapa
    */
   const clearPOIMarkers = () => {
-    poiMarkers.value.forEach(({ marker }) => {
+    poiMarkers.value.forEach(({ marker, ringMarker }) => {
       marker.remove();
+      if (ringMarker) ringMarker.remove();
     });
     poiMarkers.value = [];
   };
@@ -136,19 +166,19 @@ export const usePointsOfInterest = (mapRef) => {
 
   watch(selectedPOI, (poi, prevPoi) => {
     if (prevPoi) {
-      const prevMarker = getMarkerById(prevPoi.id);
-      applySelectionStyle(prevMarker, prevPoi, false);
+      const prevEntry = getMarkerEntryById(prevPoi.id);
+      applyAutoExtractStyle(prevEntry, prevPoi);
     }
     if (poi) {
-      const marker = getMarkerById(poi.id);
-      applySelectionStyle(marker, poi, true);
+      const entry = getMarkerEntryById(poi.id);
+      applyAutoExtractStyle(entry, poi);
     }
   });
 
   watch(showPOIDialog, (visible) => {
     if (!visible && selectedPOI.value) {
-      const marker = getMarkerById(selectedPOI.value.id);
-      applySelectionStyle(marker, selectedPOI.value, true);
+      const entry = getMarkerEntryById(selectedPOI.value.id);
+      applyAutoExtractStyle(entry, selectedPOI.value);
     }
   });
 
@@ -158,7 +188,7 @@ export const usePointsOfInterest = (mapRef) => {
    * @returns {Object} Marcador de Leaflet
    */
   const getMarkerById = (poiId) => {
-    const found = poiMarkers.value.find(({ id }) => id === poiId);
+    const found = getMarkerEntryById(poiId);
     return found?.marker;
   };
 
@@ -182,14 +212,25 @@ export const usePointsOfInterest = (mapRef) => {
    * @param {number} poiId - ID del POI
    */
   const unhighlightPOI = (poiId) => {
-    const marker = getMarkerById(poiId);
+    const entry = getMarkerEntryById(poiId);
     const config = getPOIConfig();
-    if (marker) {
-      marker.setStyle({
+    const poi = pois.value.find((item) => item.id === poiId);
+    if (entry?.marker) {
+      if (!poi) {
+        entry.marker.setStyle({
+          radius: config.radius,
+          weight: config.weight,
+        });
+        entry.marker.closeTooltip();
+        return;
+      }
+      entry.marker.setStyle({
         radius: config.radius,
         weight: config.weight,
+        color: poi.color,
       });
-      marker.closeTooltip();
+      entry.marker.closeTooltip();
+      applyAutoExtractStyle(entry, poi);
     }
   };
 
