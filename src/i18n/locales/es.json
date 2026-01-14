@@ -42,11 +42,24 @@
     "noResources": "Sin recursos",
     "autoExtract": "Autoextract",
     "autoExtractEnabled": "Autoextract activado",
+    "upgrades": "Mejoras",
     "heal": "Curar",
     "convertToBarracks": "Convertir en cuartel",
     "converting": "Convirtiendo...",
     "scan": "Escanear",
     "stopScan": "Detener Scan"
+  },
+  "poiUpgrades": {
+    "title": "Mejorar POI",
+    "close": "✕",
+    "autoExtract": "Autoextract",
+    "autoExtractDesc": "Extrae automáticamente cuando el recurso está lleno.",
+    "fuelUnit": "fuel",
+    "upgradeButton": "Mejorar",
+    "unlocked": "Desbloqueado",
+    "locked": "Bloqueado",
+    "unavailable": "No disponible",
+    "insufficientFuel": "Sin fuel"
   },
   "hud": {
     "wave": "Oleada",

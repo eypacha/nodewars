@@ -25,6 +25,9 @@ export const useMapDialogs = () => {
     if (poiStore.showPOIDialog) {
       poiStore.closePOIDialog();
     }
+    if (poiStore.showPoiUpgradesPanel) {
+      poiStore.closePoiUpgradesPanel();
+    }
     
     if (mapStore.activeDialog !== 'markerConfirm') {
       mapStore.closeAllDialogs();

@@ -35,10 +35,16 @@
       @attack="handleAttack"
       @extract="handleExtract"
       @autoextract="handleAutoExtract"
+      @open-poi-upgrades="handleOpenPoiUpgrades"
       @heal="handleHeal"
       @convertToBarracks="handleConvertToBarracks"
       @scan="handleScanFromBarracks"
       @stopScan="handleStopScan"
+    />
+    <UpgradePoiPanel
+      v-if="showPoiUpgradesPanel && selectedPOI"
+      :poi="selectedPOI"
+      @close="poiStore.closePoiUpgradesPanel"
     />
     <UpgradesPanel
       v-if="showUpgradesPanel"
@@ -129,6 +135,7 @@ import BaseMarkerDialog from './BaseMarkerDialog.vue';
 import POIDialog from './POIDialog.vue';
 import EnemyAttackDialog from './EnemyAttackDialog.vue';
 import UpgradesPanel from './UpgradesPanel.vue';
+import UpgradePoiPanel from './UpgradePoiPanel.vue';
 import { computeRadarsMetrics } from '@/utils/mathUtils';
 import { buildCoverageRadars, buildOwnedBarracksSignature } from '@/utils/mapCoverage';
 import { useScanCoverage } from '@/composables/useScanCoverage';
@@ -144,7 +151,7 @@ const poiStore = usePoiStore();
 const gameStore = useGameStore();
 const { center, zoom, marker, activeDialog, baseConfirmed, showUpgradesPanel } = storeToRefs(mapStore);
 const { radarLevel, resources, baseHealth, baseMaxHealth, showStartPopup, autoAttackLevel, isBaseCaptured } = storeToRefs(gameStore);
-const { selectedPOI, showPOIDialog, isLoading, pois } = storeToRefs(poiStore);
+const { selectedPOI, showPOIDialog, showPoiUpgradesPanel, isLoading, pois } = storeToRefs(poiStore);
 const selectedBarracksForAttack = ref(null); // Cuartel seleccionado para lanzar ataques
 const isBaseAttackOrigin = ref(false); // Si la base está seleccionada como punto de ataque
 const currentAttackOrigin = ref(null); // Punto de ataque activo (se actualiza cuando cambia)
@@ -423,8 +430,20 @@ const handleOpenUpgrades = () => {
   if (showPOIDialog.value) {
     poiStore.closePOIDialog();
   }
+  poiStore.closePoiUpgradesPanel();
   closeEnemyDialog();
   mapStore.openUpgradesPanel();
+};
+
+const handleOpenPoiUpgrades = () => {
+  if (showUpgradesPanel.value) {
+    mapStore.closeUpgradesPanel();
+  }
+  if (showPOIDialog.value) {
+    poiStore.hidePOIDialog();
+  }
+  closeEnemyDialog();
+  poiStore.openPoiUpgradesPanel();
 };
 
 // Inicializar mapa

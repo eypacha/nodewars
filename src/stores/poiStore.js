@@ -20,6 +20,7 @@ export const usePoiStore = defineStore('poi', () => {
   const lastFetchRadius = ref(new Map()); // key -> radius
   const selectedPOI = ref(null);
   const showPOIDialog = ref(false);
+  const showPoiUpgradesPanel = ref(false);
   
   const getScanState = (key = defaultScanKey) => {
     const mapCopy = new Map(scanStates.value);
@@ -363,6 +364,7 @@ export const usePoiStore = defineStore('poi', () => {
     error.value = null;
     selectedPOI.value = null;
     showPOIDialog.value = false;
+    showPoiUpgradesPanel.value = false;
 
     // Limpiar timers y estados de scan
     scanStates.value.forEach((state) => {
@@ -386,6 +388,7 @@ export const usePoiStore = defineStore('poi', () => {
     const wasSelected = selectedPOI.value && selectedPOI.value.id === poiId;
 
     selectedPOI.value = poi;
+    showPoiUpgradesPanel.value = false;
 
     if (poi) {
       const { useMapStore } = await import('./mapStore');
@@ -410,6 +413,19 @@ export const usePoiStore = defineStore('poi', () => {
   const closePOIDialog = () => {
     showPOIDialog.value = false;
     selectedPOI.value = null;
+    showPoiUpgradesPanel.value = false;
+  };
+
+  const hidePOIDialog = () => {
+    showPOIDialog.value = false;
+  };
+
+  const openPoiUpgradesPanel = () => {
+    showPoiUpgradesPanel.value = true;
+  };
+
+  const closePoiUpgradesPanel = () => {
+    showPoiUpgradesPanel.value = false;
   };
 
   const consumeResource = (poiId) => {
@@ -476,6 +492,7 @@ export const usePoiStore = defineStore('poi', () => {
     lastFetchRadius,
     selectedPOI,
     showPOIDialog,
+    showPoiUpgradesPanel,
 
     // Getters
     poisCount,
@@ -489,6 +506,9 @@ export const usePoiStore = defineStore('poi', () => {
     getPOIById,
     selectPOI,
     closePOIDialog,
+    hidePOIDialog,
+    openPoiUpgradesPanel,
+    closePoiUpgradesPanel,
     damagePOI,
     healPOI,
     consumeResource,

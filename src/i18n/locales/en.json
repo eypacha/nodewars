@@ -42,11 +42,24 @@
     "noResources": "No resources",
     "autoExtract": "Autoextract",
     "autoExtractEnabled": "Autoextract enabled",
+    "upgrades": "Upgrades",
     "heal": "Heal",
     "convertToBarracks": "Convert to barrack",
     "converting": "Converting...",
     "scan": "Scan",
     "stopScan": "Stop Scan"
+  },
+  "poiUpgrades": {
+    "title": "Upgrade POI",
+    "close": "✕",
+    "autoExtract": "Autoextract",
+    "autoExtractDesc": "Automatically extracts when the resource is full.",
+    "fuelUnit": "fuel",
+    "upgradeButton": "Upgrade",
+    "unlocked": "Unlocked",
+    "locked": "Locked",
+    "unavailable": "Unavailable",
+    "insufficientFuel": "Insufficient Fuel"
   },
   "hud": {
     "wave": "Wave",

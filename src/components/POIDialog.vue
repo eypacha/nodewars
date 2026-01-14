@@ -69,8 +69,8 @@
           class="mx-auto mt-2"
           block
           full-width
-          :label="poi.autoExtract ? $t('poi.autoExtractEnabled') : $t('poi.autoExtract')"
-          @click="handleToggleAutoExtract"
+          :label="$t('poi.upgrades')"
+          @click="$emit('open-poi-upgrades')"
         />
         <ProgressButton
           v-if="poi.type === 'barrack' && poi.owned && !isBlockedByEnemyBarrack"
@@ -150,7 +150,7 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['close', 'attack', 'extract', 'autoextract', 'convertToBarracks', 'scan', 'stopScan', 'selectAsAttackOrigin', 'heal']);
+const emit = defineEmits(['close', 'attack', 'extract', 'autoextract', 'convertToBarracks', 'scan', 'stopScan', 'selectAsAttackOrigin', 'heal', 'open-poi-upgrades']);
 const poiStore = usePoiStore();
 const productionProgress = ref(0);
 const timeToNextProduction = ref(0);
@@ -219,11 +219,6 @@ const handleHeal = () => {
   if (healCooldown.isRunning.value) return;
   emit('heal');
   healCooldown.start();
-};
-
-const handleToggleAutoExtract = () => {
-  if (!props.poi || props.poi.type === 'barrack') return;
-  poiStore.setAutoExtract(props.poi.id, !props.poi.autoExtract);
 };
 
 const updateProductionProgress = () => {
