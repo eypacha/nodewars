@@ -40,6 +40,8 @@
     "attack": "Atacar",
     "extract": "Extraer",
     "noResources": "Sin recursos",
+    "autoExtract": "Autoextract",
+    "autoExtractEnabled": "Autoextract activado",
     "heal": "Curar",
     "convertToBarracks": "Convertir en cuartel",
     "converting": "Convirtiendo...",

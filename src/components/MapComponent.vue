@@ -34,6 +34,7 @@
       @close="handleClosePOIDialog"
       @attack="handleAttack"
       @extract="handleExtract"
+      @autoextract="handleAutoExtract"
       @heal="handleHeal"
       @convertToBarracks="handleConvertToBarracks"
       @scan="handleScanFromBarracks"
@@ -333,6 +334,10 @@ const handleExtract = () => {
   const resourceType = selectedPOI.value.category || selectedPOI.value.type;
   const resourceColor = getPOIColor(resourceType);
   startResourceCollection(selectedPOI.value, resourceType, resourceColor, pois.value);
+};
+
+const handleAutoExtract = () => {
+  handleExtract();
 };
 
 const handleHeal = () => {

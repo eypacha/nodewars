@@ -4,11 +4,9 @@ import { fetchPointsOfInterest } from '@/services/overpassService';
 import { getPOIColor } from '@/constants/poiTypes';
 import { calculateDistance } from '@/utils/mapHelpers';
 import { db } from '@/services/dbService';
+import { DEFAULT_RESOURCE_CAPACITY, DEFAULT_PRODUCTION_RATE } from '@/constants/pois';
 
 export const usePoiStore = defineStore('poi', () => {
-  const DEFAULT_RESOURCE_CAPACITY = 5;
-  const DEFAULT_PRODUCTION_RATE = 60000; // 1 minuto en ms
-  const BARRACK_COLOR = getPOIColor('barrack');
 
   const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -67,6 +65,7 @@ export const usePoiStore = defineStore('poi', () => {
     const capacity = poi.resourceCapacity ?? DEFAULT_RESOURCE_CAPACITY;
     const productionRate = poi.productionRate ?? DEFAULT_PRODUCTION_RATE;
     const lastProducedAt = poi.lastProducedAt ?? Date.now();
+    const autoExtract = poi.autoExtract ?? false;
     const color = poi.type === 'barrack' ? BARRACK_COLOR : poi.color;
 
     return {
@@ -75,6 +74,7 @@ export const usePoiStore = defineStore('poi', () => {
       resourceCapacity: capacity,
       productionRate,
       lastProducedAt,
+      autoExtract,
       resourceAmount: Math.min(poi.resourceAmount ?? capacity, capacity),
     };
   };
@@ -427,6 +427,14 @@ export const usePoiStore = defineStore('poi', () => {
     return true;
   };
 
+  const setAutoExtract = (poiId, value) => {
+    const poi = getPOIById(poiId);
+    if (!poi || poi.type === 'barrack') return false;
+    poi.autoExtract = value;
+    updatePOI(poiId, { autoExtract: value });
+    return true;
+  };
+
   const damagePOI = (poiId, damage = 1, attackOriginId = null, { attackedByEnemy = false } = {}) => {
     const poi = getPOIById(poiId);
     if (poi) {
@@ -485,6 +493,7 @@ export const usePoiStore = defineStore('poi', () => {
     healPOI,
     consumeResource,
     applyProductionForPOI,
+    setAutoExtract,
     convertToBarracks,
     toggleBarracksRadar,
     resetPOIs,

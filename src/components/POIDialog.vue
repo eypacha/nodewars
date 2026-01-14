@@ -64,6 +64,14 @@
           :progress="extractCooldownProgress"
           @click="handleExtract"
         />
+        <BaseButton
+          v-if="poi.type !== 'barrack' && !isBlockedByEnemyBarrack"
+          class="mx-auto mt-2"
+          block
+          full-width
+          :label="poi.autoExtract ? $t('poi.autoExtractEnabled') : $t('poi.autoExtract')"
+          @click="handleToggleAutoExtract"
+        />
         <ProgressButton
           v-if="poi.type === 'barrack' && poi.owned && !isBlockedByEnemyBarrack"
           class="mt-2"
@@ -142,11 +150,12 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['close', 'attack', 'extract', 'convertToBarracks', 'scan', 'stopScan', 'selectAsAttackOrigin', 'heal']);
+const emit = defineEmits(['close', 'attack', 'extract', 'autoextract', 'convertToBarracks', 'scan', 'stopScan', 'selectAsAttackOrigin', 'heal']);
 const poiStore = usePoiStore();
 const productionProgress = ref(0);
 const timeToNextProduction = ref(0);
 const atCapacity = ref(false);
+const autoExtractRequested = ref(false);
 let productionInterval = null;
 const baseRadarColor = getRadarConfig().color;
 const dialogPOIColor = computed(() => {
@@ -212,11 +221,17 @@ const handleHeal = () => {
   healCooldown.start();
 };
 
+const handleToggleAutoExtract = () => {
+  if (!props.poi || props.poi.type === 'barrack') return;
+  poiStore.setAutoExtract(props.poi.id, !props.poi.autoExtract);
+};
+
 const updateProductionProgress = () => {
   if (!props.poi || props.poi.type === 'barrack') {
     productionProgress.value = 0;
     timeToNextProduction.value = 0;
     atCapacity.value = false;
+    autoExtractRequested.value = false;
     return;
   }
 
@@ -238,6 +253,17 @@ const updateProductionProgress = () => {
   atCapacity.value = isFull;
   productionProgress.value = isFull ? 0 : Math.min((elapsed / rate) * 100, 100);
   timeToNextProduction.value = isFull ? 0 : Math.max(rate - (elapsed % rate), 0);
+
+  if (
+    isFull &&
+    updatedPOI.autoExtract &&
+    updatedPOI.owned &&
+    !isBlockedByEnemyBarrack.value &&
+    !autoExtractRequested.value
+  ) {
+    autoExtractRequested.value = true;
+    emit('autoextract');
+  }
 };
 
 const startProductionInterval = () => {
@@ -355,5 +381,8 @@ watch(() => props.poi.id, () => {
 
 watch(() => props.poi.resourceAmount, () => {
   updateProductionProgress();
+  if (!props.poi || props.poi.resourceAmount < props.poi.resourceCapacity) {
+    autoExtractRequested.value = false;
+  }
 });
 </script>
