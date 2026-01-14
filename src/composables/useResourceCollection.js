@@ -10,6 +10,14 @@ export const useResourceCollection = (mapRef, markerRef) => {
   const resourceParticles = ref([]);
   let nextParticleId = 0;
   const gameStore = useGameStore();
+  const getRenderPoint = (latLng) => {
+    if (!mapRef.value) return null;
+    const pane = mapRef.value.getPane?.('resourceParticles');
+    if (pane) {
+      return mapRef.value.latLngToLayerPoint(latLng);
+    }
+    return mapRef.value.latLngToContainerPoint(latLng);
+  };
 
   /**
    * Construye la cadena de suministro desde un POI hasta la base
@@ -58,7 +66,7 @@ export const useResourceCollection = (mapRef, markerRef) => {
     const duration = (distanceInMeters / speed) * 1000; // Duración en milisegundos
     
     const startTime = performance.now();
-    const startPoint = mapRef.value.latLngToContainerPoint(startLatLng);
+    const startPoint = getRenderPoint(startLatLng);
     
     const particle = {
       id: particleId,
@@ -85,7 +93,7 @@ export const useResourceCollection = (mapRef, markerRef) => {
       const currentLng = startLatLng.lng + (endLatLng.lng - startLatLng.lng) * progress;
       
       // Convertir a coordenadas de pantalla
-      const currentPoint = mapRef.value.latLngToContainerPoint([currentLat, currentLng]);
+      const currentPoint = getRenderPoint([currentLat, currentLng]);
       
       // Actualizar posición de la partícula
       const particleIndex = resourceParticles.value.findIndex(p => p.id === particleId);
