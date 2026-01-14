@@ -96,19 +96,20 @@
         @attack="handleEnemyAttack"
       />
     </template>
-    <div 
-      v-for="particle in resourceParticles" 
-      :key="particle.id"
-      class="resource-particle"
-      :style="{
-        position: 'absolute',
-        left: `${particle.x}px`,
-        top: `${particle.y}px`,
-        transform: 'translate(-50%, -50%)',
-        backgroundColor: particle.resourceColor,
-        zIndex: 998,
-      }"
-    ></div>
+    <Teleport v-if="resourceParticlesPane" :to="resourceParticlesPane">
+      <div 
+        v-for="particle in resourceParticles" 
+        :key="particle.id"
+        class="resource-particle"
+        :style="{
+          position: 'absolute',
+          left: `${particle.x}px`,
+          top: `${particle.y}px`,
+          transform: 'translate(-50%, -50%)',
+          backgroundColor: particle.resourceColor,
+        }"
+      ></div>
+    </Teleport>
   </div>
 </template>
 
@@ -157,6 +158,7 @@ const selectedBarracksForAttack = ref(null); // Cuartel seleccionado para lanzar
 const isBaseAttackOrigin = ref(false); // Si la base está seleccionada como punto de ataque
 const currentAttackOrigin = ref(null); // Punto de ataque activo (se actualiza cuando cambia)
 const mapViewVersion = ref(0);
+const resourceParticlesPane = ref(null);
 
 // Inicializar composables principales
 // Usar refs reactivos para que el mapa se inicialice con los valores restaurados
@@ -461,6 +463,15 @@ const handleOpenPoiUpgrades = () => {
 // Inicializar mapa
 onMounted(() => {
   initMap();
+  const setupResourceParticlesPane = () => {
+    if (!mapRef.value || resourceParticlesPane.value) return;
+    const pane = mapRef.value.createPane('resourceParticles');
+    pane.style.zIndex = 450;
+    pane.style.pointerEvents = 'none';
+    resourceParticlesPane.value = pane;
+  };
+  setupResourceParticlesPane();
+  watch(mapRef, setupResourceParticlesPane);
   on('move', updateMarkerScreenPosition);
   on('zoom', updateMarkerScreenPosition);
   on('move', () => updatePOIScreenPosition(selectedPOI.value));
