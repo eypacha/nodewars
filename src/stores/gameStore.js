@@ -52,11 +52,12 @@ export const useGameStore = defineStore('game', () => {
     4: 50,
     5: 100,
   };
-  const autoAttackLevel = ref(1);
+  const autoAttackLevel = ref(0);
   const autoAttackUpgradeCosts = {
-    2: 10,
-    3: 25,
-    4: 50,
+    1: 10,
+    2: 25,
+    3: 50,
+    4: 100,
   };
   const maxPredefinedLevel = Math.max(...Object.keys(radarUpgradeCosts).map(Number));
   const maxPredefinedCost = radarUpgradeCosts[maxPredefinedLevel];
@@ -279,9 +280,9 @@ export const useGameStore = defineStore('game', () => {
     showGameOverPopup.value = false;
     clearGameOverTimer();
 
-    // Resetear nivel del radar
+    // Resetear upgrades
     radarLevel.value = 1;
-    autoAttackLevel.value = 1;
+    autoAttackLevel.value = 0;
     
     // Resetear popups
     showStartPopup.value = false;
