@@ -4,7 +4,7 @@ import { fetchPointsOfInterest } from '@/services/overpassService';
 import { getPOIColor } from '@/constants/poiTypes';
 import { calculateDistance } from '@/utils/mapHelpers';
 import { db } from '@/services/dbService';
-import { DEFAULT_RESOURCE_CAPACITY, DEFAULT_PRODUCTION_RATE, INITIAL_HEALTH } from '@/constants/pois';
+import { DEFAULT_RESOURCE_CAPACITY, DEFAULT_PRODUCTION_RATE, INITIAL_HEALTH, BASE_MAX_CONNECTIONS } from '@/constants/pois';
 
 export const usePoiStore = defineStore('poi', () => {
   const BARRACK_COLOR = getPOIColor('barrack');
@@ -473,8 +473,15 @@ export const usePoiStore = defineStore('poi', () => {
       // Si el health llega a 0 y no estaba owned, marcar como conquistado
       if (poi.health <= 0) {
         if (!poi.owned) {
-          poi.owned = true;
-          poi.conqueredFrom = attackOriginId;
+          const baseConnections = pois.value.filter((p) => p.owned && !p.conqueredFrom).length;
+          const isBaseOrigin = attackOriginId == null;
+          if (isBaseOrigin && baseConnections >= BASE_MAX_CONNECTIONS) {
+            poi.owned = false;
+            poi.conqueredFrom = null;
+          } else {
+            poi.owned = true;
+            poi.conqueredFrom = attackOriginId;
+          }
         } else if (poi.type === 'barrack' && attackedByEnemy) {
           const resetHealth = poi.maxHealth || 5;
           poi.owned = false;

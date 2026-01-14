@@ -8,6 +8,9 @@
         bar-color="#22c55e"
       />
     </div>
+    <p class="text-white text-xs mb-2 opacity-75">
+      {{ baseNodesUsed }} / {{ baseNodesMax }} {{ $t('baseMarker.nodes') }}
+    </p>
     <div class="flex flex-col gap-2 mb-2">
       <ProgressButton
         class="flex-1"
@@ -61,6 +64,14 @@ defineProps({
   canHeal: {
     type: Boolean,
     default: false,
+  },
+  baseNodesUsed: {
+    type: Number,
+    default: 0,
+  },
+  baseNodesMax: {
+    type: Number,
+    default: 0,
   },
 });
 

@@ -12,6 +12,8 @@
       :is-scanning="isBaseScanActive"
       :base-health="baseHealth"
       :base-max-health="baseMaxHealth"
+      :base-nodes-used="baseNodesUsed"
+      :base-nodes-max="BASE_MAX_CONNECTIONS"
       :is-heal-on-cooldown="isBaseHealOnCooldown"
       :heal-progress="baseHealProgress"
       :can-heal="resources.pharmacy > 0 && baseHealth < baseMaxHealth"
@@ -130,6 +132,7 @@ import { useScreenPositions } from '@/composables/useScreenPositions';
 import { useMapDialogs } from '@/composables/useMapDialogs';
 import { getRadarConfig } from '@/services/mapService';
 import { getPOIColor } from '@/constants/poiTypes';
+import { BASE_MAX_CONNECTIONS } from '@/constants/pois';
 import BaseMarker from './BaseMarker.vue';
 import MarkerConfirmDialog from './MarkerConfirmDialog.vue';
 import BaseMarkerDialog from './BaseMarkerDialog.vue';
@@ -153,6 +156,7 @@ const poiStore = usePoiStore();
 const gameStore = useGameStore();
 const { center, zoom, marker, activeDialog, baseConfirmed, showUpgradesPanel } = storeToRefs(mapStore);
 const { radarLevel, resources, baseHealth, baseMaxHealth, showStartPopup, autoAttackLevel, isBaseCaptured } = storeToRefs(gameStore);
+const baseNodesUsed = computed(() => (pois.value || []).filter((poi) => poi.owned && !poi.conqueredFrom).length);
 const { selectedPOI, showPOIDialog, showPoiUpgradesPanel, isLoading, pois } = storeToRefs(poiStore);
 const selectedBarracksForAttack = ref(null); // Cuartel seleccionado para lanzar ataques
 const isBaseAttackOrigin = ref(false); // Si la base está seleccionada como punto de ataque

@@ -29,6 +29,7 @@
     "scanning": "Scanning...",
     "stopScan": "Stop Scan",
     "upgrades": "Upgrades",
+    "nodes": "nodes",
     "health": "Base Health",
     "heal": "Heal"
   },
