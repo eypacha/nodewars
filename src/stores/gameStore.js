@@ -83,7 +83,7 @@ export const useGameStore = defineStore('game', () => {
 
     const extraLevels = nextLevel - autoAttackMaxPredefinedLevel;
     if (extraLevels <= 0) return autoAttackMaxPredefinedCost;
-    return autoAttackMaxPredefinedCost; // Coste constante 50 para niveles superiores
+    return Math.round(autoAttackMaxPredefinedCost * Math.pow(fallbackGrowthRate, extraLevels));
   };
 
   // Acciones

@@ -53,6 +53,7 @@ export const useAutoAttack = ({
         return { lat: liveEnemy.lat, lng: liveEnemy.lng };
       },
       interceptDistanceMeters: 5,
+      isAuto: true,
     });
   };
 

@@ -19,7 +19,7 @@ export const useAttackAnimation = (mapRef, markerRef) => {
   const startAttack = (target, attackOrigin = null, options = {}) => {
     if (!markerRef.value || !target || !mapRef.value) return;
 
-    const { onHit, trackTarget, interceptDistanceMeters = 30 } = options;
+    const { onHit, trackTarget, interceptDistanceMeters = 30, isAuto = false } = options;
 
     const attackId = nextAttackId++;
 
@@ -51,6 +51,7 @@ export const useAttackAnimation = (mapRef, markerRef) => {
       x: startPoint.x,
       y: startPoint.y,
       rotation: rotation,
+      isAuto,
       animationFrame: null,
       startLatLng,
       endLatLng,

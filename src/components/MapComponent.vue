@@ -70,7 +70,7 @@
         zIndex: 800,
       }"
     >
-      ▴
+      {{ triangle.isAuto ? '▴' : '▲' }}
     </div>
     <template v-if="!showStartPopup && baseConfirmed">
       <div 
