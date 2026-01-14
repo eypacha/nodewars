@@ -9,6 +9,8 @@ import { useGameStore } from '@/stores/gameStore';
 export const useResourceCollection = (mapRef, markerRef) => {
   const resourceParticles = ref([]);
   let nextParticleId = 0;
+  let nextSpawnId = 0;
+  const pendingSpawns = ref([]);
   const gameStore = useGameStore();
   const getRenderPoint = (latLng) => {
     if (!mapRef.value) return null;
@@ -27,16 +29,23 @@ export const useResourceCollection = (mapRef, markerRef) => {
    */
   const buildSupplyChain = (poi, allPois) => {
     const chain = [];
+    const chainIds = [];
     let current = poi;
     
     // Agregar el punto inicial (el POI)
     chain.push([current.lat, current.lng]);
+    if (current.id != null) {
+      chainIds.push(current.id);
+    }
     
     // Seguir la cadena hasta la base
     while (current.conqueredFrom) {
       const barracks = allPois.find(p => p.id === current.conqueredFrom);
       if (barracks) {
         chain.push([barracks.lat, barracks.lng]);
+        if (barracks.id != null) {
+          chainIds.push(barracks.id);
+        }
         current = barracks;
       } else {
         break;
@@ -44,7 +53,7 @@ export const useResourceCollection = (mapRef, markerRef) => {
     }
     
     // Agregar la base al final
-    return chain;
+    return { points: chain, ids: chainIds };
   };
 
   /**
@@ -55,7 +64,7 @@ export const useResourceCollection = (mapRef, markerRef) => {
    * @param {string} resourceColor - Color del recurso
    * @param {boolean} isLastLeg - Si es el último tramo hacia la base
    */
-  const createResourceParticle = (startLatLng, endLatLng, resourceType, resourceColor, isLastLeg = false, onArrive = null) => {
+  const createResourceParticle = (startLatLng, endLatLng, resourceType, resourceColor, isLastLeg = false, onArrive = null, pathIds = []) => {
     const particleId = nextParticleId++;
     
     // Calcular distancia real en metros
@@ -73,6 +82,7 @@ export const useResourceCollection = (mapRef, markerRef) => {
       x: startPoint.x,
       y: startPoint.y,
       animationFrame: null,
+      pathIds,
       startLatLng,
       endLatLng,
       startTime,
@@ -140,7 +150,7 @@ export const useResourceCollection = (mapRef, markerRef) => {
     const basePosition = markerRef.value.getLatLng();
     
     // Construir la cadena de suministro
-    const chain = buildSupplyChain(sourcePOI, allPois);
+    const { points: chain, ids: chainIds } = buildSupplyChain(sourcePOI, allPois);
     
     // Agregar la base al final si no está ya
     const lastPoint = chain[chain.length - 1];
@@ -156,16 +166,23 @@ export const useResourceCollection = (mapRef, markerRef) => {
       const isLastLeg = (i === chain.length - 2); // Es el último tramo si es el anterior a la base
       
       // Stagger las partículas para que salgan en cascada
-      setTimeout(() => {
+      const spawnId = nextSpawnId++;
+      const timeoutId = setTimeout(() => {
         createResourceParticle(
           L.latLng(startPoint),
           L.latLng(endPoint),
           resourceType,
           resourceColor,
           isLastLeg,
-          () => gameStore.addResource(resourceType)
+          () => gameStore.addResource(resourceType),
+          chainIds
         );
+        const pendingIndex = pendingSpawns.value.findIndex((spawn) => spawn.id === spawnId);
+        if (pendingIndex !== -1) {
+          pendingSpawns.value.splice(pendingIndex, 1);
+        }
       }, delay);
+      pendingSpawns.value.push({ id: spawnId, timeoutId, pathIds: chainIds });
       
       // Calcular el delay para el siguiente tramo
       const distanceInMeters = L.latLng(startPoint).distanceTo(L.latLng(endPoint));
@@ -179,12 +196,35 @@ export const useResourceCollection = (mapRef, markerRef) => {
    * Cancela todas las animaciones de recolección activas
    */
   const cancelResourceCollection = () => {
+    pendingSpawns.value.forEach((spawn) => clearTimeout(spawn.timeoutId));
+    pendingSpawns.value = [];
     resourceParticles.value.forEach(particle => {
       if (particle.animationFrame) {
         cancelAnimationFrame(particle.animationFrame);
       }
     });
     resourceParticles.value = [];
+  };
+
+  const cancelResourceCollectionForBarrack = (barrackId) => {
+    if (barrackId == null) return;
+    pendingSpawns.value = pendingSpawns.value.filter((spawn) => {
+      if (spawn.pathIds?.includes(barrackId)) {
+        clearTimeout(spawn.timeoutId);
+        return false;
+      }
+      return true;
+    });
+
+    resourceParticles.value = resourceParticles.value.filter((particle) => {
+      if (particle.pathIds?.includes(barrackId)) {
+        if (particle.animationFrame) {
+          cancelAnimationFrame(particle.animationFrame);
+        }
+        return false;
+      }
+      return true;
+    });
   };
 
   /**
@@ -200,6 +240,7 @@ export const useResourceCollection = (mapRef, markerRef) => {
 
     // Cadena desde el objetivo a la base y luego invertida (base -> objetivo)
     let chain = buildSupplyChain(targetPOI, allPois);
+    chain = chain.points;
     const lastPoint = chain[chain.length - 1];
     if (lastPoint[0] !== basePosition.lat || lastPoint[1] !== basePosition.lng) {
       chain.push([basePosition.lat, basePosition.lng]);
@@ -235,5 +276,6 @@ export const useResourceCollection = (mapRef, markerRef) => {
     startResourceCollection,
     startHealingDelivery,
     cancelResourceCollection,
+    cancelResourceCollectionForBarrack,
   };
 };

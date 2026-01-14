@@ -168,7 +168,7 @@ const { radarRef, createRadar, renderAllBarracksRadars, updatePosition: updateRa
 const { clearPOIMarkers } = usePointsOfInterest(mapRef);
 
 // Composables para funcionalidades específicas
-const { resourceParticles, startResourceCollection, startHealingDelivery } = useResourceCollection(mapRef, markerRef);
+const { resourceParticles, startResourceCollection, startHealingDelivery, cancelResourceCollectionForBarrack } = useResourceCollection(mapRef, markerRef);
 const { attackTriangles, startAttack } = useAttackAnimation(mapRef, markerRef);
 const { 
   createConnectionLine, 
@@ -178,6 +178,7 @@ const {
   updateOwnedConnectionLines,
   removeOwnedConnectionLines 
 } = useConnectionLines(mapRef, markerRef);
+const barrackOwnership = new Map();
 const { 
   markerScreenPosition, 
   poiScreenPosition, 
@@ -712,6 +713,15 @@ watch(pois, (newPois) => {
     activeId = 'base';
   }
   renderAllBarracksRadars(barracks, activeId, baseCenter);
+
+  newPois.forEach((poi) => {
+    if (poi.type !== 'barrack') return;
+    const prevOwned = barrackOwnership.get(poi.id);
+    if (prevOwned === true && poi.owned === false) {
+      cancelResourceCollectionForBarrack(poi.id);
+    }
+    barrackOwnership.set(poi.id, poi.owned);
+  });
 }, { deep: true });
 
 
