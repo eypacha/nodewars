@@ -95,7 +95,8 @@ export const usePoiStore = defineStore('poi', () => {
       const normalizedPOIs = loadedPOIs.map(poi => {
         const normalized = withProductionDefaults(poi);
         if (normalized.type !== 'barrack') {
-          normalized.lastProducedAt = now;
+          const staggerMs = Math.floor(Math.random() * DEFAULT_PRODUCTION_RATE);
+          normalized.lastProducedAt = now + staggerMs;
         }
         return normalized;
       });
@@ -103,7 +104,7 @@ export const usePoiStore = defineStore('poi', () => {
       await Promise.all(
         normalizedPOIs
           .filter(poi => poi.type !== 'barrack')
-          .map(poi => db.pois.update(poi.id, { lastProducedAt: now }))
+          .map(poi => db.pois.update(poi.id, { lastProducedAt: poi.lastProducedAt }))
       );
       console.log('POIs loaded from DB:', pois.value.length);
     } catch (error) {

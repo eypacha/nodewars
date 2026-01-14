@@ -26,6 +26,8 @@ export const usePointsOfInterest = (mapRef) => {
       opacity: 1,
       fillOpacity: 0,
       className: config.className,
+      interactive: false,
+      bubblingMouseEvents: false,
     }).addTo(mapRef.value);
   };
 
