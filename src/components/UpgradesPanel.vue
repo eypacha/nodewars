@@ -20,7 +20,7 @@
               <p class="text-gray-400 text-xs mt-1">{{ radarLevel }} → {{ radarLevel + 1 }}</p>
             </div>
             <div class="text-right">
-              <p class="text-yellow-400 text-base font-bold">{{ nextUpgradeCostDisplay }}</p>
+              <p class="text-yellow-400 text-base font-bold">{{ nextUpgradeCostDisplay }} ●</p>
             </div>
           </div>
 
@@ -47,7 +47,7 @@
               <p class="text-gray-400 text-xs mt-1">{{ autoAttackLevel }} → {{ autoAttackLevel + 1 }}</p>
             </div>
             <div class="text-right">
-              <p class="text-gray-400 text-base font-bold">{{ nextAutoUpgradeCostDisplay }}</p>
+              <p class="text-gray-400 text-base font-bold">{{ nextAutoUpgradeCostDisplay }} ●</p>
             </div>
           </div>
 
@@ -75,7 +75,6 @@ import { computed } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useGameStore } from '@/stores/gameStore';
 import { getRadarConfig } from '@/services/mapService';
-import { AUTO_ATTACK_BASE_COOLDOWN_MS, AUTO_ATTACK_COOLDOWN_REDUCTION_RATE, AUTO_ATTACK_MIN_COOLDOWN_MS } from '@/constants/player';
 import BaseButton from '@/components/UI/BaseButton.vue';
 const emit = defineEmits(['close']);
 
