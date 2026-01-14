@@ -55,14 +55,15 @@ export const useGameStore = defineStore('game', () => {
   const autoAttackLevel = ref(0);
   const baseNodesLevel = ref(1);
   const autoAttackUpgradeCosts = {
-    1: 10,
-    2: 25,
-    3: 50,
-    4: 100,
+    1: 5,
+    2: 20,
+    3: 60,
+    4: 140,
   };
   const maxPredefinedLevel = Math.max(...Object.keys(radarUpgradeCosts).map(Number));
   const maxPredefinedCost = radarUpgradeCosts[maxPredefinedLevel];
-  const fallbackGrowthRate = 2; // Multiplicador exponencial para niveles superiores
+  const fallbackGrowthRate = 1.5; // Multiplicador exponencial para niveles superiores
+  const autoAttackFallbackGrowthRate = 1.4; // Curva más suave para auto-attack
 
   const autoAttackMaxPredefinedLevel = Math.max(...Object.keys(autoAttackUpgradeCosts).map(Number));
   const autoAttackMaxPredefinedCost = autoAttackUpgradeCosts[autoAttackMaxPredefinedLevel];
@@ -89,7 +90,7 @@ export const useGameStore = defineStore('game', () => {
 
     const extraLevels = nextLevel - autoAttackMaxPredefinedLevel;
     if (extraLevels <= 0) return autoAttackMaxPredefinedCost;
-    return Math.round(autoAttackMaxPredefinedCost * Math.pow(fallbackGrowthRate, extraLevels));
+    return Math.round(autoAttackMaxPredefinedCost * Math.pow(autoAttackFallbackGrowthRate, extraLevels));
   };
 
   // Acciones
