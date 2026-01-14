@@ -83,7 +83,20 @@ export const usePoiStore = defineStore('poi', () => {
   const loadPOIs = async () => {
     try {
       const loadedPOIs = await db.pois.toArray();
-      pois.value = loadedPOIs.map(poi => withProductionDefaults(poi));
+      const now = Date.now();
+      const normalizedPOIs = loadedPOIs.map(poi => {
+        const normalized = withProductionDefaults(poi);
+        if (normalized.type !== 'barrack') {
+          normalized.lastProducedAt = now;
+        }
+        return normalized;
+      });
+      pois.value = normalizedPOIs;
+      await Promise.all(
+        normalizedPOIs
+          .filter(poi => poi.type !== 'barrack')
+          .map(poi => db.pois.update(poi.id, { lastProducedAt: now }))
+      );
       console.log('POIs loaded from DB:', pois.value.length);
     } catch (error) {
       console.error('Error loading POIs from DB:', error);
