@@ -123,6 +123,7 @@ const props = defineProps({
 });
 
 const AUTO_EXTRACT_COST = 10;
+const BARRACK_UPGRADE_COST_MULTIPLIER = 0.7;
 const gameStore = useGameStore();
 const poiStore = usePoiStore();
 const { resources } = storeToRefs(gameStore);
@@ -143,7 +144,11 @@ const handleAutoExtractUpgrade = () => {
 
 const barrackAutoAttackLevel = computed(() => props.poi?.barrackAutoAttackLevel ?? 0);
 const barrackAutoAttackNextLevel = computed(() => barrackAutoAttackLevel.value + 1);
-const barrackAutoAttackCost = computed(() => gameStore.getAutoAttackUpgradeCostForLevel(barrackAutoAttackNextLevel.value));
+const barrackAutoAttackCost = computed(() => {
+  const baseCost = gameStore.getAutoAttackUpgradeCostForLevel(barrackAutoAttackNextLevel.value);
+  if (baseCost == null) return baseCost;
+  return Math.max(1, Math.round(baseCost * BARRACK_UPGRADE_COST_MULTIPLIER));
+});
 const canUpgradeBarrackAutoAttack = computed(() => props.poi?.owned && props.poi?.type === 'barrack');
 const canAffordBarrackAutoAttack = computed(() => {
   const cost = barrackAutoAttackCost.value ?? null;
@@ -166,7 +171,11 @@ const handleBarrackAutoAttackUpgrade = () => {
 
 const barrackNodesLevel = computed(() => props.poi?.barrackNodesLevel ?? 1);
 const barrackNodesNextLevel = computed(() => barrackNodesLevel.value + 1);
-const barrackNodesCost = computed(() => gameStore.getUpgradeCostForLevel(barrackNodesNextLevel.value));
+const barrackNodesCost = computed(() => {
+  const baseCost = gameStore.getUpgradeCostForLevel(barrackNodesNextLevel.value);
+  if (baseCost == null) return baseCost;
+  return Math.max(1, Math.round(baseCost * BARRACK_UPGRADE_COST_MULTIPLIER));
+});
 const canAffordBarrackNodes = computed(() => {
   const cost = barrackNodesCost.value ?? null;
   return cost != null && resources.value.food >= cost;
