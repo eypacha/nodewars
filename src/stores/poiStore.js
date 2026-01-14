@@ -4,7 +4,7 @@ import { fetchPointsOfInterest } from '@/services/overpassService';
 import { getPOIColor } from '@/constants/poiTypes';
 import { calculateDistance } from '@/utils/mapHelpers';
 import { db } from '@/services/dbService';
-import { DEFAULT_RESOURCE_CAPACITY, DEFAULT_PRODUCTION_RATE } from '@/constants/pois';
+import { DEFAULT_RESOURCE_CAPACITY, DEFAULT_PRODUCTION_RATE, INITIAL_HEALTH } from '@/constants/pois';
 
 export const usePoiStore = defineStore('poi', () => {
 
@@ -207,8 +207,8 @@ export const usePoiStore = defineStore('poi', () => {
             ...poi,
             // Usar la categoría si existe, sino usar el tipo
             color: getPOIColor(poi.category || poi.type),
-          health: 5,
-          maxHealth: 5,
+          health: INITIAL_HEALTH,
+          maxHealth: INITIAL_HEALTH,
             owned: false,
             resourceAmount: DEFAULT_RESOURCE_CAPACITY,
             resourceCapacity: DEFAULT_RESOURCE_CAPACITY,
