@@ -41,12 +41,35 @@ export const useAutoAttack = ({
     return target;
   };
 
-  const scheduleAutoAttack = () => {
-    if (autoAttackTimeoutId.value) return;
+  const fireAutoAttack = () => {
+    const target = getNextAutoAttackTarget();
+    if (!target) return;
+    const enemyId = target.id;
+    startAttack({ lat: target.lat, lng: target.lng }, null, {
+      onHit: () => removeEnemy?.(enemyId),
+      trackTarget: () => {
+        const liveEnemy = enemies.value.find((e) => e.id === enemyId);
+        if (!liveEnemy) return null;
+        return { lat: liveEnemy.lat, lng: liveEnemy.lng };
+      },
+      interceptDistanceMeters: 5,
+    });
+  };
+
+  const scheduleAutoAttack = ({ immediate = false } = {}) => {
     if (!baseConfirmed.value || !enemies.value.length || !autoAttackUnlocked.value) return;
 
     const cooldown = autoAttackCooldownMs.value;
     if (!cooldown) return;
+
+    if (immediate) {
+      if (autoAttackTimeoutId.value) {
+        clearAutoAttackTimeout();
+      }
+      fireAutoAttack();
+    }
+
+    if (autoAttackTimeoutId.value) return;
 
     autoAttackTimeoutId.value = setTimeout(() => {
       autoAttackTimeoutId.value = null;
@@ -56,19 +79,7 @@ export const useAutoAttack = ({
         return;
       }
 
-      const target = getNextAutoAttackTarget();
-      if (target) {
-        const enemyId = target.id;
-        startAttack({ lat: target.lat, lng: target.lng }, null, {
-          onHit: () => removeEnemy?.(enemyId),
-          trackTarget: () => {
-            const liveEnemy = enemies.value.find((e) => e.id === enemyId);
-            if (!liveEnemy) return null;
-            return { lat: liveEnemy.lat, lng: liveEnemy.lng };
-          },
-          interceptDistanceMeters: 5,
-        });
-      }
+      fireAutoAttack();
 
       scheduleAutoAttack();
     }, cooldown);
@@ -76,7 +87,9 @@ export const useAutoAttack = ({
 
   watch(
     [() => enemies.value.length, baseConfirmed, autoAttackUnlocked],
-    ([count, confirmed, unlocked]) => {
+    ([count, confirmed, unlocked], prev = []) => {
+      const prevCount = prev[0] ?? 0;
+      const shouldFireImmediately = prevCount === 0 && count > 0;
       if (count <= 1) {
         autoAttackTargetIndex.value = 0;
       }
@@ -84,7 +97,7 @@ export const useAutoAttack = ({
         clearAutoAttackTimeout();
         return;
       }
-      scheduleAutoAttack();
+      scheduleAutoAttack({ immediate: shouldFireImmediately });
     }
   );
 
