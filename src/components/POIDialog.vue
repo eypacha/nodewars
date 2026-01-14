@@ -44,6 +44,9 @@
             bar-color="white"
           />
         </div>
+        <p v-if="poi.type === 'barrack' && poi.owned" class="text-white text-xs mb-2 opacity-75">
+          {{ barrackNodesUsed }} / {{ barrackNodesMax }} {{ $t('poi.nodes') }}
+        </p>
       </div>
       <ProgressButton
         v-if="!poi.owned"
@@ -106,6 +109,7 @@
 import { computed, ref, onMounted, onBeforeUnmount, watch } from 'vue';
 import { calculateDistance } from '@/utils/mapHelpers';
 import { BARRACKS_RADAR_RADIUS } from '@/constants/player';
+import { BARRACKS_MAX_CONNECTIONS, BARRACKS_MAX_CONNECTIONS_INCREMENT } from '@/constants/pois';
 import { getPOIEmoji, getPOIDisplayName } from '@/constants/poiTypes';
 import { getRadarConfig } from '@/services/mapService';
 import { usePoiStore } from '@/stores/poiStore';
@@ -302,6 +306,17 @@ const productionLabel = computed(() => {
   if (atCapacity.value) return '';
   const seconds = Math.max(0, Math.ceil(timeToNextProduction.value / 1000));
   return `${seconds}s`;
+});
+
+const barrackNodesUsed = computed(() => {
+  if (!props.poi || props.poi.type !== 'barrack') return 0;
+  return (props.allPois || []).filter((p) => p.owned && p.conqueredFrom === props.poi.id).length;
+});
+
+const barrackNodesMax = computed(() => {
+  if (!props.poi || props.poi.type !== 'barrack') return 0;
+  const level = props.poi.barrackNodesLevel ?? 1;
+  return BARRACKS_MAX_CONNECTIONS + (level - 1) * BARRACKS_MAX_CONNECTIONS_INCREMENT;
 });
 
 // Color de la barra de health según el porcentaje

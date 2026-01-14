@@ -67,7 +67,34 @@
           <BaseButton
             @click="handleBarrackAutoAttackUpgrade"
             :disabled="!canUpgradeBarrackAutoAttack || !canAffordBarrackAutoAttack"
-            :label="!canUpgradeBarrackAutoAttack ? $t('poiUpgrades.unavailable') : !canAffordBarrackAutoAttack ? $t('poiUpgrades.insufficientFuel') : $t('poiUpgrades.upgradeButton')"
+            :label="!canUpgradeBarrackAutoAttack ? $t('poiUpgrades.unavailable') : !canAffordBarrackAutoAttack ? $t('poiUpgrades.insufficientPolice') : $t('poiUpgrades.upgradeButton')"
+            block
+            full-width
+            base-class="font-bold py-3 px-4 border-2 border-white text-sm relative overflow-hidden transition-all"
+          />
+        </div>
+
+        <div v-if="poi?.type === 'barrack'" class="border border-white p-4">
+          <div class="flex justify-between items-start mb-3">
+            <div>
+              <p class="text-white text-sm font-bold">{{ $t('poiUpgrades.barrackNodes') }}</p>
+              <p class="text-gray-400 text-xs mt-1">{{ barrackNodesLevel }} → {{ barrackNodesNextLevel }}</p>
+            </div>
+            <div class="text-right">
+              <p class="text-base font-bold" :style="{ color: foodColor }">
+                {{ barrackNodesCost ?? '—' }} ●
+              </p>
+            </div>
+          </div>
+
+          <div class="mb-4 text-gray-300 text-sm space-y-1">
+            <p>{{ $t('poiUpgrades.barrackNodesDesc') }}</p>
+          </div>
+
+          <BaseButton
+            @click="handleBarrackNodesUpgrade"
+            :disabled="!canAffordBarrackNodes"
+            :label="!canAffordBarrackNodes ? $t('poiUpgrades.insufficientFood') : $t('poiUpgrades.upgradeButton')"
             block
             full-width
             base-class="font-bold py-3 px-4 border-2 border-white text-sm relative overflow-hidden transition-all"
@@ -100,6 +127,7 @@ const gameStore = useGameStore();
 const poiStore = usePoiStore();
 const { resources } = storeToRefs(gameStore);
 const policeColor = getPOIColor('police');
+const foodColor = getPOIColor('food');
 
 const hasAutoExtract = computed(() => !!props.poi?.autoExtract);
 const canUpgrade = computed(() => props.poi?.owned && props.poi?.type !== 'barrack');
@@ -134,6 +162,21 @@ const handleBarrackAutoAttackUpgrade = () => {
   const paid = gameStore.consumeResource('police', cost);
   if (!paid) return;
   poiStore.upgradeBarrackAutoAttack(props.poi.id);
+};
+
+const barrackNodesLevel = computed(() => props.poi?.barrackNodesLevel ?? 1);
+const barrackNodesNextLevel = computed(() => barrackNodesLevel.value + 1);
+const barrackNodesCost = computed(() => gameStore.getUpgradeCostForLevel(barrackNodesNextLevel.value));
+const canAffordBarrackNodes = computed(() => {
+  const cost = barrackNodesCost.value ?? null;
+  return cost != null && resources.value.food >= cost;
+});
+const handleBarrackNodesUpgrade = () => {
+  const cost = barrackNodesCost.value;
+  if (!cost) return;
+  const paid = gameStore.consumeResource('food', cost);
+  if (!paid) return;
+  poiStore.upgradeBarrackNodes(props.poi.id);
 };
 
 const handleClose = () => {

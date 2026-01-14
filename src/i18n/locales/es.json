@@ -38,6 +38,7 @@
     "health": "Salud",
     "resources": "Recursos",
     "production": "Producción",
+    "nodes": "nodos",
     "attack": "Atacar",
     "extract": "Extraer",
     "noResources": "Sin recursos",
@@ -57,13 +58,17 @@
     "autoExtractDesc": "Extrae automáticamente cuando el recurso está lleno.",
     "barrackAutoAttack": "Auto-ataque de barraca",
     "barrackAutoAttackDesc": "Ataca automáticamente enemigos dentro del radar de la barraca.",
+    "barrackNodes": "Nodos de barraca",
+    "barrackNodesDesc": "Aumenta el máximo de nodos conectados a esta barraca.",
     "currentCooldown": "Cooldown actual:",
     "fuelUnit": "fuel",
     "upgradeButton": "Mejorar",
     "unlocked": "Desbloqueado",
     "locked": "Bloqueado",
     "unavailable": "No disponible",
-    "insufficientFuel": "Sin fuel"
+    "insufficientFuel": "Sin fuel",
+    "insufficientPolice": "Sin police",
+    "insufficientFood": "Sin food"
   },
   "hud": {
     "wave": "Oleada",

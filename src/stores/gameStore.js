@@ -78,6 +78,11 @@ export const useGameStore = defineStore('game', () => {
     return Math.round(maxPredefinedCost * Math.pow(fallbackGrowthRate, extraLevels));
   };
 
+  const getUpgradeCostForLevel = (level) => {
+    if (!Number.isFinite(level) || level <= 0) return null;
+    return calculateUpgradeCost(level);
+  };
+
   const calculateAutoAttackUpgradeCost = (nextLevel) => {
     const predefined = autoAttackUpgradeCosts[nextLevel];
     if (predefined) return predefined;
@@ -374,6 +379,7 @@ export const useGameStore = defineStore('game', () => {
     getRadarUpgradeCost,
     getAutoAttackUpgradeCost,
     getAutoAttackUpgradeCostForLevel,
+    getUpgradeCostForLevel,
     getBaseNodesUpgradeCost,
     getMaxBaseNodes,
     computeAutoAttackCooldownMs,

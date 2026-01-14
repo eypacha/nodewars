@@ -38,6 +38,7 @@
     "health": "Health",
     "resources": "Resources",
     "production": "Production",
+    "nodes": "nodes",
     "attack": "Attack",
     "extract": "Extract",
     "noResources": "No resources",
@@ -57,13 +58,17 @@
     "autoExtractDesc": "Automatically extracts when the resource is full.",
     "barrackAutoAttack": "Barracks Auto-attack",
     "barrackAutoAttackDesc": "Auto-attacks enemies within the barracks radar.",
+    "barrackNodes": "Barracks Nodes",
+    "barrackNodesDesc": "Increases max nodes linked to this barracks.",
     "currentCooldown": "Current cooldown:",
     "fuelUnit": "fuel",
     "upgradeButton": "Upgrade",
     "unlocked": "Unlocked",
     "locked": "Locked",
     "unavailable": "Unavailable",
-    "insufficientFuel": "Insufficient Fuel"
+    "insufficientFuel": "Insufficient Fuel",
+    "insufficientPolice": "Insufficient Police",
+    "insufficientFood": "Insufficient Food"
   },
   "hud": {
     "wave": "Wave",

@@ -4,7 +4,7 @@ import { fetchPointsOfInterest } from '@/services/overpassService';
 import { getPOIColor } from '@/constants/poiTypes';
 import { calculateDistance } from '@/utils/mapHelpers';
 import { db } from '@/services/dbService';
-import { DEFAULT_RESOURCE_CAPACITY, DEFAULT_PRODUCTION_RATE, INITIAL_HEALTH, BASE_MAX_CONNECTIONS } from '@/constants/pois';
+import { DEFAULT_RESOURCE_CAPACITY, DEFAULT_PRODUCTION_RATE, INITIAL_HEALTH, BASE_MAX_CONNECTIONS, BARRACKS_MAX_CONNECTIONS, BARRACKS_MAX_CONNECTIONS_INCREMENT } from '@/constants/pois';
 import { useGameStore } from '@/stores/gameStore';
 
 export const usePoiStore = defineStore('poi', () => {
@@ -72,6 +72,7 @@ export const usePoiStore = defineStore('poi', () => {
     const autoExtract = poi.autoExtract ?? false;
     const color = poi.type === 'barrack' ? BARRACK_COLOR : poi.color;
     const barrackAutoAttackLevel = poi.barrackAutoAttackLevel ?? 0;
+    const barrackNodesLevel = poi.barrackNodesLevel ?? 1;
 
     return {
       ...poi,
@@ -81,6 +82,7 @@ export const usePoiStore = defineStore('poi', () => {
       lastProducedAt,
       autoExtract,
       barrackAutoAttackLevel,
+      barrackNodesLevel,
       resourceAmount: Math.min(poi.resourceAmount ?? capacity, capacity),
     };
   };
@@ -347,7 +349,8 @@ export const usePoiStore = defineStore('poi', () => {
     poi.type = 'barrack';
     poi.color = BARRACK_COLOR;
     poi.barrackAutoAttackLevel = 0;
-    updatePOI(poiId, { type: 'barrack', color: BARRACK_COLOR, barrackAutoAttackLevel: 0 });
+    poi.barrackNodesLevel = 1;
+    updatePOI(poiId, { type: 'barrack', color: BARRACK_COLOR, barrackAutoAttackLevel: 0, barrackNodesLevel: 1 });
     return true;
   };
 
@@ -465,6 +468,15 @@ export const usePoiStore = defineStore('poi', () => {
     return nextLevel;
   };
 
+  const upgradeBarrackNodes = (poiId) => {
+    const poi = getPOIById(poiId);
+    if (!poi || poi.type !== 'barrack' || !poi.owned) return false;
+    const nextLevel = (poi.barrackNodesLevel ?? 1) + 1;
+    poi.barrackNodesLevel = nextLevel;
+    updatePOI(poiId, { barrackNodesLevel: nextLevel });
+    return nextLevel;
+  };
+
   const damagePOI = (poiId, damage = 1, attackOriginId = null, { attackedByEnemy = false } = {}) => {
     const poi = getPOIById(poiId);
     if (poi) {
@@ -476,14 +488,27 @@ export const usePoiStore = defineStore('poi', () => {
         if (!poi.owned) {
           const baseConnections = pois.value.filter((p) => p.owned && !p.conqueredFrom).length;
           const isBaseOrigin = attackOriginId == null;
-          const maxConnections = gameStore.getMaxBaseNodes?.() ?? BASE_MAX_CONNECTIONS;
-          if (isBaseOrigin && baseConnections >= maxConnections) {
+          const maxBaseConnections = gameStore.getMaxBaseNodes?.() ?? BASE_MAX_CONNECTIONS;
+          if (isBaseOrigin && baseConnections >= maxBaseConnections) {
             poi.owned = false;
             poi.conqueredFrom = null;
-          } else {
-            poi.owned = true;
-            poi.conqueredFrom = attackOriginId;
+            return;
           }
+
+          if (!isBaseOrigin) {
+            const barrackConnections = pois.value.filter((p) => p.owned && p.conqueredFrom === attackOriginId).length;
+            const origin = getPOIById(attackOriginId);
+            const originLevel = origin?.barrackNodesLevel ?? 1;
+            const maxBarrackConnections = BARRACKS_MAX_CONNECTIONS + (originLevel - 1) * BARRACKS_MAX_CONNECTIONS_INCREMENT;
+            if (barrackConnections >= maxBarrackConnections) {
+              poi.owned = false;
+              poi.conqueredFrom = null;
+              return;
+            }
+          }
+
+          poi.owned = true;
+          poi.conqueredFrom = attackOriginId;
         } else if (poi.type === 'barrack' && attackedByEnemy) {
           const resetHealth = poi.maxHealth || 5;
           poi.owned = false;
@@ -537,6 +562,7 @@ export const usePoiStore = defineStore('poi', () => {
     applyProductionForPOI,
     setAutoExtract,
     upgradeBarrackAutoAttack,
+    upgradeBarrackNodes,
     convertToBarracks,
     toggleBarracksRadar,
     resetPOIs,
