@@ -295,7 +295,7 @@ export const useGameStore = defineStore('game', () => {
   };
 
   const getMaxBaseNodes = () => {
-    return baseNodesLevel.value * 10;
+    return 10 + (baseNodesLevel.value - 1) * 2;
   };
 
   const computeAutoAttackCooldownMs = (level) => {
