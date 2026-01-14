@@ -143,6 +143,7 @@ import { useAttackOrigin } from '@/composables/useAttackOrigin';
 import { provideMapContext } from '@/composables/useMapContext';
 import { useEnemyFeature } from '@/composables/useEnemyFeature';
 import { useBaseFeature } from '@/composables/useBaseFeature';
+import { useAutoExtract } from '@/composables/useAutoExtract';
 
 const mapStore = useMapStore();
 // Bandera global para evitar bucles watcher <-> eventos Leaflet
@@ -230,6 +231,17 @@ const {
   poiStore,
   mapStore,
 });
+
+useAutoExtract({
+  onAutoExtract: ({ poi, resourceType, resourceColor }) => {
+    if (!mapRef.value || !markerRef.value) {
+      gameStore.addResource(resourceType);
+      return;
+    }
+    startResourceCollection(poi, resourceType, resourceColor, pois.value);
+  },
+});
+
 provideMapContext({
   mapRef,
   markerRef,
@@ -646,6 +658,7 @@ watch(showPOIDialog, (visible) => {
     removeConnectionLine();
   }
 });
+
 
 // Observar cambios en el nivel del radar para actualizar su radio (solo si es base)
 watch(radarLevel, (newLevel) => {
