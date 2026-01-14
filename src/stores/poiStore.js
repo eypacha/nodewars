@@ -512,6 +512,7 @@ export const usePoiStore = defineStore('poi', () => {
         } else if (poi.type === 'barrack' && attackedByEnemy) {
           const resetHealth = poi.maxHealth || 5;
           poi.owned = false;
+          poi.conqueredFrom = null;
           poi.health = resetHealth;
           poi.radarActive = false;
         }

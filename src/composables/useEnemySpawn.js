@@ -69,6 +69,10 @@ export const useEnemySpawn = ({ baseMarkerPosition, pois, radarLevel }) => {
       return { type: 'barrack', id: target.id, position: { lat: target.lat, lng: target.lng } };
     }
 
+    if (baseMarkerPosition.value) {
+      return { type: 'base', id: 'base', position: baseMarkerPosition.value };
+    }
+
     return null;
   };
 
