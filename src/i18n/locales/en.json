@@ -5,7 +5,9 @@
   "gameStart": {
     "title": "NodeWars",
     "startButton": "Start",
-    "continueButton": "Continue"
+    "startNewButton": "Start New Game",
+    "continueButton": "Continue",
+    "overwriteWarning": "This will overwrite the previous game."
   },
   "baseLocation": {
     "title": "Choose Your Base Location",

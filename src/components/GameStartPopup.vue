@@ -21,9 +21,14 @@
         full-width
         block
         base-class="cursor-pointer font-bold py-4 px-6 border-1 text-xl mx-auto block w-full"
-        :label="$t('gameStart.startButton')"
+        :label="hasSavedGame ? $t('gameStart.startNewButton') : $t('gameStart.startButton')"
         @click="$emit('start-game')"
       />
+
+      <!-- Advertencia si hay juego previo -->
+      <p v-if="hasSavedGame" class="text-sm text-center mt-3 text-gray-300">
+        {{ $t('gameStart.overwriteWarning') }}
+      </p>
     </div>
   </div>
 </template>
