@@ -60,6 +60,21 @@
 
         <UpgradeCard
           v-if="poi?.type === 'barrack'"
+          :title="$t('poiUpgrades.barrackAutoHeal')"
+          :subtitle="`${barrackAutoHealLevel} → ${barrackAutoHealNextLevel}`"
+          :cost="barrackAutoHealCost ?? '—'"
+          :costColor="pharmacyColor"
+          :description="[
+            $t('poiUpgrades.barrackAutoHealDesc'),
+            barrackAutoHealLevel > 0 ? `${$t('poiUpgrades.currentCooldown')} ${barrackAutoHealCooldownDisplay}s` : ''
+          ].filter(Boolean)"
+          :buttonLabel="!canUpgradeBarrackAutoHeal ? $t('poiUpgrades.unavailable') : !canAffordBarrackAutoHeal ? $t('poiUpgrades.insufficientPharmacy') : $t('poiUpgrades.upgradeButton')"
+          :disabled="!canUpgradeBarrackAutoHeal || !canAffordBarrackAutoHeal"
+          :onClick="handleBarrackAutoHealUpgrade"
+        />
+
+        <UpgradeCard
+          v-if="poi?.type === 'barrack'"
           :title="$t('poiUpgrades.barrackNodes')"
           :subtitle="`${barrackNodesLevel} → ${barrackNodesNextLevel}`"
           :cost="barrackNodesCost ?? '—'"
@@ -100,6 +115,7 @@ const poiStore = usePoiStore();
 const { resources } = storeToRefs(gameStore);
 const policeColor = getPOIColor('police');
 const foodColor = getPOIColor('food');
+const pharmacyColor = getPOIColor('pharmacy');
 
 const hasAutoExtract = computed(() => !!props.poi?.autoExtract);
 const canUpgrade = computed(() => props.poi?.owned && props.poi?.type !== 'barrack');
@@ -170,6 +186,33 @@ const handleBarrackAutoAttackUpgrade = () => {
   const paid = gameStore.consumeResource('police', cost);
   if (!paid) return;
   poiStore.upgradeBarrackAutoAttack(props.poi.id);
+};
+
+const barrackAutoHealLevel = computed(() => props.poi?.barrackAutoHealLevel ?? 0);
+const barrackAutoHealNextLevel = computed(() => barrackAutoHealLevel.value + 1);
+const barrackAutoHealCost = computed(() => {
+  const baseCost = gameStore.getAutoHealUpgradeCostForLevel(barrackAutoHealNextLevel.value);
+  if (baseCost == null) return baseCost;
+  return Math.max(1, Math.round(baseCost * BARRACK_UPGRADE_COST_MULTIPLIER));
+});
+const canUpgradeBarrackAutoHeal = computed(() => props.poi?.owned && props.poi?.type === 'barrack');
+const canAffordBarrackAutoHeal = computed(() => {
+  const cost = barrackAutoHealCost.value ?? null;
+  return cost != null && resources.value.pharmacy >= cost;
+});
+const barrackAutoHealCooldownDisplay = computed(() => {
+  const cooldown = gameStore.getAutoHealCooldownMs(barrackAutoHealLevel.value);
+  if (!cooldown) return '—';
+  return (cooldown / 1000).toFixed(1);
+});
+
+const handleBarrackAutoHealUpgrade = () => {
+  if (!canUpgradeBarrackAutoHeal.value) return;
+  const cost = barrackAutoHealCost.value;
+  if (!cost) return;
+  const paid = gameStore.consumeResource('pharmacy', cost);
+  if (!paid) return;
+  poiStore.upgradeBarrackAutoHeal(props.poi.id);
 };
 
 const barrackNodesLevel = computed(() => props.poi?.barrackNodesLevel ?? 1);

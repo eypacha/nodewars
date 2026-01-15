@@ -42,6 +42,21 @@
           :onClick="handleAutoUpgrade"
         />
 
+        <!-- Auto-Heal Upgrade -->
+        <UpgradeCard
+          :title="$t('upgrades.autoHeal')"
+          :subtitle="`${autoHealLevel} → ${autoHealLevel + 1}`"
+          :cost="nextAutoHealUpgradeCostDisplay"
+          :costColor="pharmacyColor"
+          :description="[
+            $t('upgrades.autoHealDesc'),
+            autoHealLevel > 0 ? `${$t('upgrades.currentCooldown')} ${autoHealCooldownDisplay}s` : ''
+          ].filter(Boolean)"
+          :buttonLabel="autoHealMaxLevelReached ? $t('upgrades.maxLevel') : canAffordAutoHealUpgrade ? $t('upgrades.upgradeButton') : $t('upgrades.insufficientFunds')"
+          :disabled="!canAffordAutoHealUpgrade || autoHealMaxLevelReached"
+          :onClick="handleAutoHealUpgrade"
+        />
+
         <!-- Base Nodes Upgrade -->
         <UpgradeCard
           :title="$t('upgrades.baseNodes')"
@@ -72,8 +87,9 @@ import { getPOIColor } from '@/constants/poiTypes';
 const emit = defineEmits(['close']);
 
 const gameStore = useGameStore();
-const { resources, radarLevel, autoAttackLevel, baseNodesLevel } = storeToRefs(gameStore);
+const { resources, radarLevel, autoAttackLevel, autoHealLevel, baseNodesLevel } = storeToRefs(gameStore);
 const foodColor = getPOIColor('food');
+const pharmacyColor = getPOIColor('pharmacy');
 
 const nextUpgradeCost = computed(() => gameStore.getRadarUpgradeCost());
 const nextUpgradeCostDisplay = computed(() => nextUpgradeCost.value ?? '—');
@@ -111,15 +127,31 @@ const autoAttackCooldownDisplay = computed(() => {
   if (!value) return '—';
   return (value / 1000).toFixed(1);
 });
-const nextAutoAttackCooldownDisplay = computed(() => {
-  const nextLevel = autoAttackLevel.value + 1;
-  const cooldown = gameStore.computeAutoAttackCooldownMs(nextLevel);
-  if (!cooldown) return '—';
-  return (cooldown / 1000).toFixed(1);
-});
 
 const handleAutoUpgrade = () => {
   const success = gameStore.upgradeAutoAttack();
+  if (success) {
+    // Upgrade realizado, el componente se actualizará automáticamente
+  }
+};
+
+const nextAutoHealUpgradeCost = computed(() => gameStore.getAutoHealUpgradeCost());
+const nextAutoHealUpgradeCostDisplay = computed(() => nextAutoHealUpgradeCost.value ?? '—');
+const autoHealMaxLevelReached = computed(() => nextAutoHealUpgradeCost.value == null);
+const canAffordAutoHealUpgrade = computed(() => {
+  const cost = nextAutoHealUpgradeCost.value;
+  return cost != null && resources.value.pharmacy >= cost;
+});
+
+const autoHealCooldownMs = computed(() => gameStore.getAutoHealCooldownMs());
+const autoHealCooldownDisplay = computed(() => {
+  const value = autoHealCooldownMs.value;
+  if (!value) return '—';
+  return (value / 1000).toFixed(1);
+});
+
+const handleAutoHealUpgrade = () => {
+  const success = gameStore.upgradeAutoHeal();
   if (success) {
     // Upgrade realizado, el componente se actualizará automáticamente
   }

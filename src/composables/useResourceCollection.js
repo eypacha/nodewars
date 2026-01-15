@@ -144,7 +144,11 @@ export const useResourceCollection = (mapRef, markerRef) => {
    * @param {string} resourceColor - Color hex del recurso
    * @param {Array} allPois - Array de todos los POIs para resolver la cadena de suministro
    */
-  const startResourceCollection = (sourcePOI, resourceType, resourceColor, allPois = []) => {
+  // `onArriveOverride` allows callers to override the default behavior
+  // (which adds the resource to the gameStore). This is useful for
+  // cosmetic-only animations like auto-heal where the resource was
+  // already consumed and we don't want to add it back to the store.
+  const startResourceCollection = (sourcePOI, resourceType, resourceColor, allPois = [], onArriveOverride = null) => {
     if (!markerRef.value || !sourcePOI || !mapRef.value) return;
     
     const basePosition = markerRef.value.getLatLng();
@@ -174,7 +178,7 @@ export const useResourceCollection = (mapRef, markerRef) => {
           resourceType,
           resourceColor,
           isLastLeg,
-          () => gameStore.addResource(resourceType),
+          isLastLeg ? (onArriveOverride ?? (() => gameStore.addResource(resourceType))) : null,
           chainIds
         );
         const pendingIndex = pendingSpawns.value.findIndex((spawn) => spawn.id === spawnId);

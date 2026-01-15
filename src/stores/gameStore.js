@@ -1,7 +1,14 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { db } from '@/services/dbService';
-import { AUTO_ATTACK_BASE_COOLDOWN_MS, AUTO_ATTACK_COOLDOWN_REDUCTION_RATE, AUTO_ATTACK_MIN_COOLDOWN_MS } from '@/constants/player';
+import {
+  AUTO_ATTACK_BASE_COOLDOWN_MS,
+  AUTO_ATTACK_COOLDOWN_REDUCTION_RATE,
+  AUTO_ATTACK_MIN_COOLDOWN_MS,
+  AUTO_HEAL_BASE_COOLDOWN_MS,
+  AUTO_HEAL_COOLDOWN_REDUCTION_RATE,
+  AUTO_HEAL_MIN_COOLDOWN_MS,
+} from '@/constants/player';
 
 export const useGameStore = defineStore('game', () => {
   // Estado de los popups
@@ -53,6 +60,7 @@ export const useGameStore = defineStore('game', () => {
     5: 100,
   };
   const autoAttackLevel = ref(0);
+  const autoHealLevel = ref(0);
   const baseNodesLevel = ref(1);
   const autoAttackUpgradeCosts = {
     1: 5,
@@ -64,9 +72,18 @@ export const useGameStore = defineStore('game', () => {
   const maxPredefinedCost = radarUpgradeCosts[maxPredefinedLevel];
   const fallbackGrowthRate = 1.5; // Multiplicador exponencial para niveles superiores
   const autoAttackFallbackGrowthRate = 1.4; // Curva más suave para auto-attack
+  const autoHealFallbackGrowthRate = 1.5;
+  const autoHealUpgradeCosts = {
+    1: 10,
+    2: 25,
+    3: 50,
+    4: 100,
+  };
 
   const autoAttackMaxPredefinedLevel = Math.max(...Object.keys(autoAttackUpgradeCosts).map(Number));
   const autoAttackMaxPredefinedCost = autoAttackUpgradeCosts[autoAttackMaxPredefinedLevel];
+  const autoHealMaxPredefinedLevel = Math.max(...Object.keys(autoHealUpgradeCosts).map(Number));
+  const autoHealMaxPredefinedCost = autoHealUpgradeCosts[autoHealMaxPredefinedLevel];
 
   const calculateUpgradeCost = (nextLevel) => {
     if (nextLevel <= 1) return 0;
@@ -91,6 +108,15 @@ export const useGameStore = defineStore('game', () => {
     const extraLevels = nextLevel - autoAttackMaxPredefinedLevel;
     if (extraLevels <= 0) return autoAttackMaxPredefinedCost;
     return Math.round(autoAttackMaxPredefinedCost * Math.pow(autoAttackFallbackGrowthRate, extraLevels));
+  };
+
+  const calculateAutoHealUpgradeCost = (nextLevel) => {
+    const predefined = autoHealUpgradeCosts[nextLevel];
+    if (predefined) return predefined;
+
+    const extraLevels = nextLevel - autoHealMaxPredefinedLevel;
+    if (extraLevels <= 0) return autoHealMaxPredefinedCost;
+    return Math.round(autoHealMaxPredefinedCost * Math.pow(autoHealFallbackGrowthRate, extraLevels));
   };
 
   // Acciones
@@ -143,6 +169,14 @@ export const useGameStore = defineStore('game', () => {
     }
   };
 
+  const persistAutoHealLevel = async () => {
+    try {
+      await db.game.put({ key: 'autoHealLevel', data: autoHealLevel.value });
+    } catch (error) {
+      console.error('Error saving auto-heal level to DB:', error);
+    }
+  };
+
   const loadResources = async () => {
     try {
       const saved = await db.game.get('resources');
@@ -173,6 +207,17 @@ export const useGameStore = defineStore('game', () => {
       }
     } catch (error) {
       console.error('Error loading auto-attack level from DB:', error);
+    }
+  };
+
+  const loadAutoHealLevel = async () => {
+    try {
+      const saved = await db.game.get('autoHealLevel');
+      if (saved?.data) {
+        autoHealLevel.value = saved.data;
+      }
+    } catch (error) {
+      console.error('Error loading auto-heal level from DB:', error);
     }
   };
 
@@ -272,6 +317,18 @@ export const useGameStore = defineStore('game', () => {
     return true;
   };
 
+  const upgradeAutoHeal = () => {
+    const nextLevel = autoHealLevel.value + 1;
+    const cost = calculateAutoHealUpgradeCost(nextLevel);
+    if (resources.value.pharmacy < cost) return false;
+
+    resources.value.pharmacy -= cost;
+    autoHealLevel.value = nextLevel;
+    persistResources();
+    persistAutoHealLevel();
+    return true;
+  };
+
   const getRadarUpgradeCost = () => {
     return calculateUpgradeCost(radarLevel.value + 1);
   };
@@ -280,9 +337,18 @@ export const useGameStore = defineStore('game', () => {
     return calculateAutoAttackUpgradeCost(autoAttackLevel.value + 1);
   };
 
+  const getAutoHealUpgradeCost = () => {
+    return calculateAutoHealUpgradeCost(autoHealLevel.value + 1);
+  };
+
   const getAutoAttackUpgradeCostForLevel = (level) => {
     if (!Number.isFinite(level) || level <= 0) return null;
     return calculateAutoAttackUpgradeCost(level);
+  };
+
+  const getAutoHealUpgradeCostForLevel = (level) => {
+    if (!Number.isFinite(level) || level <= 0) return null;
+    return calculateAutoHealUpgradeCost(level);
   };
 
   const getBaseNodesUpgradeCost = () => {
@@ -310,8 +376,18 @@ export const useGameStore = defineStore('game', () => {
     return Math.max(AUTO_ATTACK_MIN_COOLDOWN_MS, Math.round(cooldown));
   };
 
+  const computeAutoHealCooldownMs = (level) => {
+    if (!Number.isFinite(level) || level <= 0) return null;
+    const cooldown = AUTO_HEAL_BASE_COOLDOWN_MS * Math.pow(AUTO_HEAL_COOLDOWN_REDUCTION_RATE, Math.max(0, level - 1));
+    return Math.max(AUTO_HEAL_MIN_COOLDOWN_MS, Math.round(cooldown));
+  };
+
   const getAutoAttackCooldownMs = () => {
     return computeAutoAttackCooldownMs(autoAttackLevel.value);
+  };
+
+  const getAutoHealCooldownMs = (level = autoHealLevel.value) => {
+    return computeAutoHealCooldownMs(level);
   };
 
   const resetGame = () => {
@@ -333,6 +409,7 @@ export const useGameStore = defineStore('game', () => {
     // Resetear upgrades
     radarLevel.value = 1;
     autoAttackLevel.value = 0;
+    autoHealLevel.value = 0;
     baseNodesLevel.value = 1;
     
     // Resetear popups
@@ -343,6 +420,7 @@ export const useGameStore = defineStore('game', () => {
     persistBaseHealth();
     persistRadarLevel();
     persistAutoAttackLevel();
+    persistAutoHealLevel();
     persistBaseNodesLevel();
   };
 
@@ -351,6 +429,7 @@ export const useGameStore = defineStore('game', () => {
   loadBaseHealth();
   loadRadarLevel();
   loadAutoAttackLevel();
+  loadAutoHealLevel();
   loadBaseNodesLevel();
 
   return {
@@ -362,6 +441,7 @@ export const useGameStore = defineStore('game', () => {
     resources,
     radarLevel,
     autoAttackLevel,
+    autoHealLevel,
     baseNodesLevel,
     baseHealth,
     baseMaxHealth,
@@ -376,15 +456,20 @@ export const useGameStore = defineStore('game', () => {
     addResource,
     upgradeRadar,
     upgradeAutoAttack,
+    upgradeAutoHeal,
     upgradeBaseNodes,
     getRadarUpgradeCost,
     getAutoAttackUpgradeCost,
+    getAutoHealUpgradeCost,
     getAutoAttackUpgradeCostForLevel,
+    getAutoHealUpgradeCostForLevel,
     getUpgradeCostForLevel,
     getBaseNodesUpgradeCost,
     getMaxBaseNodes,
     computeAutoAttackCooldownMs,
+    computeAutoHealCooldownMs,
     getAutoAttackCooldownMs,
+    getAutoHealCooldownMs,
     resetGame,
     consumeResource,
     loadResources,
@@ -392,6 +477,8 @@ export const useGameStore = defineStore('game', () => {
     loadRadarLevel,
     persistAutoAttackLevel,
     loadAutoAttackLevel,
+    persistAutoHealLevel,
+    loadAutoHealLevel,
     persistBaseNodesLevel,
     loadBaseNodesLevel,
     persistBaseHealth,

@@ -16,6 +16,9 @@
       :base-nodes-max="baseNodesMax"
       :is-heal-on-cooldown="isBaseHealOnCooldown"
       :heal-progress="baseHealProgress"
+      :show-auto-heal="autoHealLevel > 0"
+      :auto-heal-progress="autoHealProgress"
+      :auto-heal-label="autoHealTimeLabel"
       :can-heal="resources.pharmacy > 0 && baseHealth < baseMaxHealth"
       @scan="handleScan"
       @stopScan="handleStopScan"
@@ -72,7 +75,7 @@
         zIndex: 800,
       }"
     >
-      {{ triangle.isAuto ? '▴' : '▲' }}
+      {{ triangle.type === 'heal' ? '💊' : triangle.isAuto ? '▴' : '▲' }}
     </div>
     <Teleport v-if="enemyPane && !showStartPopup && baseConfirmed" :to="enemyPane">
       <div 
@@ -146,6 +149,7 @@ import { provideMapContext } from '@/composables/useMapContext';
 import { useEnemyFeature } from '@/composables/useEnemyFeature';
 import { useBaseFeature } from '@/composables/useBaseFeature';
 import { useAutoExtract } from '@/composables/useAutoExtract';
+import { useAutoHeal } from '@/composables/useAutoHeal';
 
 const mapStore = useMapStore();
 // Bandera global para evitar bucles watcher <-> eventos Leaflet
@@ -153,7 +157,7 @@ let isProgrammaticMapMove = false;
 const poiStore = usePoiStore();
 const gameStore = useGameStore();
 const { center, zoom, marker, activeDialog, baseConfirmed, showUpgradesPanel } = storeToRefs(mapStore);
-const { radarLevel, resources, baseHealth, baseMaxHealth, showStartPopup, autoAttackLevel, isBaseCaptured } = storeToRefs(gameStore);
+const { radarLevel, resources, baseHealth, baseMaxHealth, showStartPopup, autoAttackLevel, autoHealLevel, isBaseCaptured } = storeToRefs(gameStore);
 const baseNodesUsed = computed(() => (pois.value || []).filter((poi) => poi.owned && !poi.conqueredFrom).length);
 const baseNodesMax = computed(() => gameStore.getMaxBaseNodes());
 const { selectedPOI, showPOIDialog, showPoiUpgradesPanel, isLoading, pois } = storeToRefs(poiStore);
@@ -249,6 +253,30 @@ useAutoExtract({
   },
 });
 
+const { autoHealProgress, timeToNextHeal } = useAutoHeal({
+  baseConfirmed,
+  autoHealLevel,
+  baseHealth,
+  baseMaxHealth,
+  resources,
+  isBaseCaptured,
+  getCooldownMs: () => gameStore.getAutoHealCooldownMs(),
+  onHeal: () => {
+    if (!gameStore.consumeResource('pharmacy', 1)) return;
+    gameStore.setBaseHealth(baseHealth.value + 1);
+    const pharmacyPoi = pois.value.find(p => p.type === 'pharmacy' && p.conquered);
+    if (pharmacyPoi) {
+      startResourceCollection(pharmacyPoi, 'pharmacy', getPOIColor('pharmacy'), pois.value, () => {});
+    }
+  },
+});
+
+const autoHealTimeLabel = computed(() => {
+  if (autoHealLevel.value <= 0) return '';
+  const seconds = Math.max(0, Math.ceil(timeToNextHeal.value / 1000));
+  return `${seconds}s`;
+});
+
 provideMapContext({
   mapRef,
   markerRef,
@@ -282,6 +310,7 @@ const {
   autoAttackLevel,
   currentAttackOrigin,
   startAttack,
+  startHealAnimation: (target, onHit) => startHealingDelivery(target, getPOIColor('pharmacy'), pois.value, onHit),
   markerRef,
   closeDialog,
   removeConnectionLine,

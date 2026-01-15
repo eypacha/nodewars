@@ -5,6 +5,8 @@ import { useEnemySpawn } from '@/composables/useEnemySpawn';
 import { useEnemyMovement } from '@/composables/useEnemyMovement';
 import { useAutoAttack } from '@/composables/useAutoAttack';
 import { useBarrackAutoAttack } from '@/composables/useBarrackAutoAttack';
+import { useBarrackAutoHeal } from '@/composables/useBarrackAutoHeal';
+import { usePoiStore } from '@/stores/poiStore';
 import { useEnemyDialog } from '@/composables/useEnemyDialog';
 
 export function useEnemyFeature({
@@ -22,6 +24,7 @@ export function useEnemyFeature({
   autoAttackLevel,
   currentAttackOrigin,
   startAttack,
+  startHealAnimation,
   markerRef,
   closeDialog,
   removeConnectionLine,
@@ -93,6 +96,14 @@ export function useEnemyFeature({
     startAttack,
     removeEnemy: enemyStore.removeEnemy,
     getCooldownMsForLevel: (level) => gameStore.computeAutoAttackCooldownMs(level),
+  });
+
+  useBarrackAutoHeal({
+    pois,
+    startHealAnimation: startHealAnimation ?? ((target, onHit) => startAttack(target, null, { type: 'heal', onHit, interceptDistanceMeters: 5 })),
+    healPOI: poiStore.healPOI,
+    getCooldownMsForLevel: (level) => gameStore.getAutoHealCooldownMs(level),
+    gameStore,
   });
 
   const enemyMarkers = computed(() => {

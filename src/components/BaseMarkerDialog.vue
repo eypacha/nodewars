@@ -8,8 +8,16 @@
         bar-color="#22c55e"
       />
     </div>
+    <div v-if="showAutoHeal" class="mb-2">
+      <LabeledProgressBar
+        :left-label="$t('baseMarker.autoHeal')"
+        :right-label="autoHealLabel"
+        :progress="autoHealProgress"
+        bar-color="white"
+      />
+    </div>
     <p class="text-white text-xs mb-2 opacity-75">
-      {{ baseNodesUsed }} / {{ baseNodesMax }} {{ $t('baseMarker.nodes') }}
+      {{ baseNodesUsed }} / {{ baseNodesMax }} {{ $t('baseMarker.nodesConnected') }}
     </p>
     <div class="flex flex-col gap-2 mb-2">
       <ProgressButton
@@ -72,6 +80,18 @@ defineProps({
   baseNodesMax: {
     type: Number,
     default: 0,
+  },
+  showAutoHeal: {
+    type: Boolean,
+    default: false,
+  },
+  autoHealProgress: {
+    type: Number,
+    default: 0,
+  },
+  autoHealLabel: {
+    type: String,
+    default: '',
   },
 });
 

@@ -36,6 +36,17 @@
           :bar-color="healthBarColor"
         />
 
+        <!-- Auto Heal bar for barrack -->
+        <LabeledProgressBar
+          v-if="poi.type === 'barrack' && poi.owned && poi.barrackAutoHealLevel > 0"
+          class="mb-2"
+          :left-label="$t('poi.autoHeal')"
+          :right-label="barrackAutoHealCooldownDisplay"
+          :progress="0"
+          bar-color="#4CAF50"
+          size="large"
+        />
+
         <div v-if="poi.type !== 'barrack' && poi.owned" class="mb-2">
           <LabeledProgressBar
             :left-label="$t('poi.production')"
@@ -45,7 +56,7 @@
           />
         </div>
         <p v-if="poi.type === 'barrack' && poi.owned" class="text-white text-xs mb-2 opacity-75">
-          {{ barrackNodesUsed }} / {{ barrackNodesMax }} {{ $t('poi.nodes') }}
+          {{ barrackNodesUsed }} / {{ barrackNodesMax }} {{ $t('poi.nodesConnected') }}
         </p>
       </div>
       <ProgressButton
@@ -113,6 +124,7 @@ import { BARRACKS_RADIUS_RATIO } from '@/constants/player';
 import { getPOIEmoji, getPOIDisplayName } from '@/constants/poiTypes';
 import { getRadarConfig } from '@/services/mapService';
 import { usePoiStore } from '@/stores/poiStore';
+import { useGameStore } from '@/stores/gameStore';
 import LabeledProgressBar from '@/components/UI/LabeledProgressBar.vue';
 import ProgressButton from '@/components/UI/ProgressButton.vue';
 import DialogShell from '@/components/UI/DialogShell.vue';
@@ -156,6 +168,7 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'attack', 'extract', 'autoextract', 'convertToBarracks', 'scan', 'stopScan', 'selectAsAttackOrigin', 'heal', 'open-poi-upgrades']);
 const poiStore = usePoiStore();
+const gameStore = useGameStore();
 const productionProgress = ref(0);
 const timeToNextProduction = ref(0);
 const atCapacity = ref(false);
@@ -317,6 +330,15 @@ const barrackNodesMax = computed(() => {
   if (!props.poi || props.poi.type !== 'barrack') return 0;
   const level = props.poi.barrackNodesLevel ?? 1;
   return BARRACKS_MAX_CONNECTIONS + (level - 1) * BARRACKS_MAX_CONNECTIONS_INCREMENT;
+});
+
+const barrackAutoHealCooldownDisplay = computed(() => {
+  if (!props.poi || props.poi.type !== 'barrack') return '';
+  const level = props.poi.barrackAutoHealLevel ?? 0;
+  if (level <= 0) return '';
+  const cooldown = gameStore.getAutoHealCooldownMs(level);
+  if (!cooldown) return '—';
+  return (cooldown / 1000).toFixed(1);
 });
 
 // Color de la barra de health según el porcentaje

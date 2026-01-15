@@ -111,6 +111,7 @@ export const usePoiStore = defineStore('poi', () => {
     const autoExtract = poi.autoExtract ?? false;
     const color = poi.type === 'barrack' ? BARRACK_COLOR : poi.color;
     const barrackAutoAttackLevel = poi.barrackAutoAttackLevel ?? 0;
+    const barrackAutoHealLevel = poi.barrackAutoHealLevel ?? 0;
     const barrackNodesLevel = poi.barrackNodesLevel ?? 1;
     const barrackRadarRadius = poi.barrackRadarRadius ?? null;
 
@@ -124,6 +125,7 @@ export const usePoiStore = defineStore('poi', () => {
       lastProducedAt,
       autoExtract,
       barrackAutoAttackLevel,
+      barrackAutoHealLevel,
       barrackNodesLevel,
       barrackRadarRadius,
       resourceAmount: Math.min(poi.resourceAmount ?? capacity, capacity),
@@ -421,10 +423,11 @@ export const usePoiStore = defineStore('poi', () => {
     poi.type = 'barrack';
     poi.color = BARRACK_COLOR;
     poi.barrackAutoAttackLevel = 0;
+    poi.barrackAutoHealLevel = 0;
     poi.barrackNodesLevel = 1;
     const poiById = new Map(pois.value.map((entry) => [String(entry.id), entry]));
     poi.barrackRadarRadius = getBarrackRadarRadiusFor(poi, poiById);
-    updatePOI(poiId, { type: 'barrack', color: BARRACK_COLOR, barrackAutoAttackLevel: 0, barrackNodesLevel: 1, barrackRadarRadius: poi.barrackRadarRadius });
+    updatePOI(poiId, { type: 'barrack', color: BARRACK_COLOR, barrackAutoAttackLevel: 0, barrackAutoHealLevel: 0, barrackNodesLevel: 1, barrackRadarRadius: poi.barrackRadarRadius });
     return true;
   };
 
@@ -566,6 +569,15 @@ export const usePoiStore = defineStore('poi', () => {
     return nextLevel;
   };
 
+  const upgradeBarrackAutoHeal = (poiId) => {
+    const poi = getPOIById(poiId);
+    if (!poi || poi.type !== 'barrack' || !poi.owned) return false;
+    const nextLevel = (poi.barrackAutoHealLevel ?? 0) + 1;
+    poi.barrackAutoHealLevel = nextLevel;
+    updatePOI(poiId, { barrackAutoHealLevel: nextLevel });
+    return nextLevel;
+  };
+
   const upgradeBarrackNodes = (poiId) => {
     const poi = getPOIById(poiId);
     if (!poi || poi.type !== 'barrack' || !poi.owned) return false;
@@ -661,6 +673,7 @@ export const usePoiStore = defineStore('poi', () => {
     applyProductionForPOI,
     setAutoExtract,
     upgradeBarrackAutoAttack,
+    upgradeBarrackAutoHeal,
     upgradeBarrackNodes,
     convertToBarracks,
     toggleBarracksRadar,
