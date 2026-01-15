@@ -1,6 +1,6 @@
 import { ref, onBeforeUnmount, watch } from 'vue';
 import { ENEMY_SPAWN_INTERVAL_MS, ENEMY_WAVE_BASE_SIZE, ENEMY_WAVE_GROWTH_RATE, ENEMY_PROJECTILE_STAGGER_MS } from '@/constants/enemies';
-import { BARRACKS_RADAR_RADIUS } from '@/constants/player';
+import { BARRACKS_RADIUS_RATIO } from '@/constants/player';
 import { useEnemyStore } from '@/stores/enemyStore';
 import { getRadarConfig } from '@/services/mapService';
 import { computeBearingRadians, createUniformSpawnOnUnionBoundarySelector } from '@/utils/mathUtils';
@@ -17,12 +17,12 @@ export const useEnemySpawn = ({ baseMarkerPosition, pois, radarLevel }) => {
   const getRadarsForSpawn = () => {
     const list = [];
 
+    const baseRadius = getRadarConfig(radarLevel.value).radius;
     if (baseMarkerPosition.value) {
-      const baseConfig = getRadarConfig(radarLevel.value);
       list.push({
         id: 'base',
         center: baseMarkerPosition.value,
-        radius: baseConfig.radius,
+        radius: baseRadius,
         owner: 'player',
         kind: 'base',
         poiId: 'base',
@@ -33,11 +33,12 @@ export const useEnemySpawn = ({ baseMarkerPosition, pois, radarLevel }) => {
       if (poi.type !== 'barrack') return;
 
       const isOwned = !!poi.owned;
+      const barrackRadius = poi.barrackRadarRadius ?? (baseRadius * BARRACKS_RADIUS_RATIO);
 
       list.push({
         id: `${isOwned ? 'barrack' : 'enemy-barrack'}-${poi.id}`,
         center: { lat: poi.lat, lng: poi.lng },
-        radius: BARRACKS_RADAR_RADIUS,
+        radius: barrackRadius,
         owner: isOwned ? 'player' : 'enemy',
         kind: 'barrack',
         poiId: poi.id,

@@ -132,6 +132,7 @@ import { useScreenPositions } from '@/composables/useScreenPositions';
 import { useMapDialogs } from '@/composables/useMapDialogs';
 import { getRadarConfig } from '@/services/mapService';
 import { getPOIColor } from '@/constants/poiTypes';
+import { BARRACKS_RADIUS_RATIO } from '@/constants/player';
 import BaseMarker from './BaseMarker.vue';
 import MarkerConfirmDialog from './MarkerConfirmDialog.vue';
 import BaseMarkerDialog from './BaseMarkerDialog.vue';
@@ -405,7 +406,8 @@ const handleScanFromBarracks = async () => {
   if (!selectedPOI.value || selectedPOI.value.type !== 'barrack') return;
   const barrackPOI = selectedPOI.value;
   const position = { lat: barrackPOI.lat, lng: barrackPOI.lng };
-  const radarRadius = 500;
+  const baseRadius = getRadarConfig(gameStore.radarLevel).radius;
+  const radarRadius = barrackPOI.barrackRadarRadius ?? (baseRadius * BARRACKS_RADIUS_RATIO);
 
   await runScan({
     type: 'barrack',

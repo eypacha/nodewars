@@ -5,6 +5,8 @@ import { getPOIColor } from '@/constants/poiTypes';
 import { calculateDistance } from '@/utils/mapHelpers';
 import { db } from '@/services/dbService';
 import { DEFAULT_RESOURCE_CAPACITY, DEFAULT_PRODUCTION_RATE, INITIAL_HEALTH, BASE_MAX_CONNECTIONS, BARRACKS_MAX_CONNECTIONS, BARRACKS_MAX_CONNECTIONS_INCREMENT } from '@/constants/pois';
+import { BARRACKS_RADIUS_RATIO } from '@/constants/player';
+import { getRadarConfig } from '@/services/mapService';
 import { useGameStore } from '@/stores/gameStore';
 
 export const usePoiStore = defineStore('poi', () => {
@@ -12,6 +14,11 @@ export const usePoiStore = defineStore('poi', () => {
   const gameStore = useGameStore();
 
   const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+  const getBarrackRadarRadius = () => {
+    const baseConfig = getRadarConfig(gameStore.radarLevel);
+    return baseConfig.radius * BARRACKS_RADIUS_RATIO;
+  };
 
   // Estado
   const pois = ref([]);
@@ -73,6 +80,7 @@ export const usePoiStore = defineStore('poi', () => {
     const color = poi.type === 'barrack' ? BARRACK_COLOR : poi.color;
     const barrackAutoAttackLevel = poi.barrackAutoAttackLevel ?? 0;
     const barrackNodesLevel = poi.barrackNodesLevel ?? 1;
+    const barrackRadarRadius = poi.barrackRadarRadius ?? (poi.type === 'barrack' ? getBarrackRadarRadius() : null);
 
     return {
       ...poi,
@@ -83,6 +91,7 @@ export const usePoiStore = defineStore('poi', () => {
       autoExtract,
       barrackAutoAttackLevel,
       barrackNodesLevel,
+      barrackRadarRadius,
       resourceAmount: Math.min(poi.resourceAmount ?? capacity, capacity),
     };
   };
@@ -92,8 +101,12 @@ export const usePoiStore = defineStore('poi', () => {
     try {
       const loadedPOIs = await db.pois.toArray();
       const now = Date.now();
+      const barrackRadiusUpdates = [];
       const normalizedPOIs = loadedPOIs.map(poi => {
         const normalized = withProductionDefaults(poi);
+        if (normalized.type === 'barrack' && (poi.barrackRadarRadius === undefined || poi.barrackRadarRadius === null)) {
+          barrackRadiusUpdates.push({ id: normalized.id, barrackRadarRadius: normalized.barrackRadarRadius });
+        }
         if (normalized.type !== 'barrack') {
           const staggerMs = Math.floor(Math.random() * DEFAULT_PRODUCTION_RATE);
           normalized.lastProducedAt = now + staggerMs;
@@ -106,6 +119,11 @@ export const usePoiStore = defineStore('poi', () => {
           .filter(poi => poi.type !== 'barrack')
           .map(poi => db.pois.update(poi.id, { lastProducedAt: poi.lastProducedAt }))
       );
+      if (barrackRadiusUpdates.length) {
+        await Promise.all(
+          barrackRadiusUpdates.map((entry) => db.pois.update(entry.id, { barrackRadarRadius: entry.barrackRadarRadius }))
+        );
+      }
       console.log('POIs loaded from DB:', pois.value.length);
     } catch (error) {
       console.error('Error loading POIs from DB:', error);
@@ -351,7 +369,8 @@ export const usePoiStore = defineStore('poi', () => {
     poi.color = BARRACK_COLOR;
     poi.barrackAutoAttackLevel = 0;
     poi.barrackNodesLevel = 1;
-    updatePOI(poiId, { type: 'barrack', color: BARRACK_COLOR, barrackAutoAttackLevel: 0, barrackNodesLevel: 1 });
+    poi.barrackRadarRadius = getBarrackRadarRadius();
+    updatePOI(poiId, { type: 'barrack', color: BARRACK_COLOR, barrackAutoAttackLevel: 0, barrackNodesLevel: 1, barrackRadarRadius: poi.barrackRadarRadius });
     return true;
   };
 

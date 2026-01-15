@@ -7,7 +7,7 @@
 import { ref } from 'vue';
 import L from 'leaflet';
 import { getRadarConfig } from '@/services/mapService';
-import { BARRACKS_RADAR_RADIUS } from '@/constants/player';
+import { BARRACKS_RADIUS_RATIO } from '@/constants/player';
 import { computePointOnEdge } from '@/utils/mathUtils';
 import { ENEMY_COLOR } from '@/constants/colors';
 
@@ -32,13 +32,15 @@ export const useAttackRadar = (mapRef) => {
 
     if (center.type === 'barrack') {
       const color = center.isEnemy ? ENEMY_RADAR_COLOR : BASE_RADAR_COLOR;
+      const defaultRadius = getRadarConfig().radius * BARRACKS_RADIUS_RATIO;
+      const radarRadius = center.radarRadius ?? center.barrackRadarRadius ?? defaultRadius;
       if (isActive) {
         // Radar de cuartel ACTIVO (más sólido)
         return {
           color,
           fillColor: color,
           fillOpacity: 0.2,
-          radius: BARRACKS_RADAR_RADIUS,
+          radius: radarRadius,
           weight: 2,
         };
       } else {
@@ -47,7 +49,7 @@ export const useAttackRadar = (mapRef) => {
           color,
           fillColor: color,
           fillOpacity: 0.08,
-          radius: BARRACKS_RADAR_RADIUS,
+          radius: radarRadius,
           weight: 1,
         };
       }

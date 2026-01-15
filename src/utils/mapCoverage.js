@@ -1,5 +1,5 @@
 import { getRadarConfig } from '../services/mapService.js';
-import { BARRACKS_RADAR_RADIUS } from '../constants/player.js';
+import { BARRACKS_RADIUS_RATIO } from '../constants/player.js';
 
 /**
  * Construye la lista de radares activos (base + barracas aliadas)
@@ -12,8 +12,8 @@ import { BARRACKS_RADAR_RADIUS } from '../constants/player.js';
 export function buildCoverageRadars({ baseConfirmed, basePosition, radarLevel, pois }) {
   const list = [];
 
+  const baseConfig = getRadarConfig(radarLevel);
   if (baseConfirmed && basePosition) {
-    const baseConfig = getRadarConfig(radarLevel);
     list.push({
       id: 'base',
       center: basePosition,
@@ -23,10 +23,11 @@ export function buildCoverageRadars({ baseConfirmed, basePosition, radarLevel, p
 
   (pois ?? []).forEach((poi) => {
     if (poi.type !== 'barrack' || !poi.owned) return;
+    const barrackRadius = poi.barrackRadarRadius ?? (baseConfig.radius * BARRACKS_RADIUS_RATIO);
     list.push({
       id: `barrack-${poi.id}`,
       center: { lat: poi.lat, lng: poi.lng },
-      radius: BARRACKS_RADAR_RADIUS,
+      radius: barrackRadius,
     });
   });
 

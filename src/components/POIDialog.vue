@@ -108,8 +108,8 @@
 <script setup>
 import { computed, ref, onMounted, onBeforeUnmount, watch } from 'vue';
 import { calculateDistance } from '@/utils/mapHelpers';
-import { BARRACKS_RADAR_RADIUS } from '@/constants/player';
 import { BARRACKS_MAX_CONNECTIONS, BARRACKS_MAX_CONNECTIONS_INCREMENT } from '@/constants/pois';
+import { BARRACKS_RADIUS_RATIO } from '@/constants/player';
 import { getPOIEmoji, getPOIDisplayName } from '@/constants/poiTypes';
 import { getRadarConfig } from '@/services/mapService';
 import { usePoiStore } from '@/stores/poiStore';
@@ -353,7 +353,9 @@ const isInRange = computed(() => {
       [props.selectedBarracksForAttack.lat, props.selectedBarracksForAttack.lng],
       [props.poi.lat, props.poi.lng]
     );
-    return distanceFromBarrack <= BARRACKS_RADAR_RADIUS;
+    const barrackRadius = props.selectedBarracksForAttack.barrackRadarRadius
+      ?? (props.radarRadius * BARRACKS_RADIUS_RATIO);
+    return distanceFromBarrack <= barrackRadius;
   }
   
   // Si la base está seleccionada como punto de ataque, verificar desde la base

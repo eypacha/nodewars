@@ -1,6 +1,7 @@
 import { onBeforeUnmount } from 'vue';
 import L from 'leaflet';
-import { BARRACKS_RADAR_RADIUS } from '@/constants/player';
+import { BARRACKS_RADIUS_RATIO } from '@/constants/player';
+import { getRadarConfig } from '@/services/mapService';
 
 export const useBarrackAutoAttack = ({
   pois,
@@ -20,7 +21,9 @@ export const useBarrackAutoAttack = ({
     let bestDistance = Infinity;
     enemyList.forEach((enemy) => {
       const dist = origin.distanceTo(L.latLng([enemy.lat, enemy.lng]));
-      if (dist <= BARRACKS_RADAR_RADIUS && dist < bestDistance) {
+      const baseRadius = getRadarConfig().radius;
+      const radarRadius = barrack.barrackRadarRadius ?? (baseRadius * BARRACKS_RADIUS_RATIO);
+      if (dist <= radarRadius && dist < bestDistance) {
         best = enemy;
         bestDistance = dist;
       }

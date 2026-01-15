@@ -45,7 +45,7 @@ export function useAttackOrigin({
   const getBarracksForRadar = () =>
     (pois.value || [])
       .filter((p) => p.type === 'barrack')
-      .map((p) => ({ ...p, isEnemy: !p.owned }));
+      .map((p) => ({ ...p, isEnemy: !p.owned, radarRadius: p.barrackRadarRadius }));
 
   const refreshBaseCaptureVisuals = () => {
     const captured = isBaseCaptured.value;
@@ -88,7 +88,7 @@ export function useAttackOrigin({
     if (origin.type === 'barrack') {
       isBaseAttackOrigin.value = false;
       selectedBarracksForAttack.value = origin;
-      createRadar({ lat: origin.lat, lng: origin.lng, type: 'barrack' });
+      createRadar({ lat: origin.lat, lng: origin.lng, type: 'barrack', radarRadius: origin.barrackRadarRadius });
       renderAllBarracksRadars(barracksForRadar, origin.id, baseCenter);
     } else if (origin.type === 'base') {
       selectedBarracksForAttack.value = null;
