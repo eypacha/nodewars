@@ -1,9 +1,9 @@
 <template>
   <div class="next-wave-timer px-2 py-1 text-white flex items-center gap-2">
-    <span>{{ $t('hud.wave') }} {{ waveNumber }}</span>
+    <span>{{ $t('hud.wave') }} {{ displayedWaveNumber }}</span>
     <template v-if="showCountdown">
       <span>→</span>
-      <span class="font-mono font-bold" :class="{ 'text-red-400': remainingSeconds <= 10 }">{{ formattedTime }}</span>
+      <span class="font-mono font-bold" :class="{ 'text-red-600': remainingSeconds <= 10 }">{{ formattedTime }}</span>
     </template>
   </div>
 </template>
@@ -49,6 +49,10 @@ const formattedTime = computed(() => {
   const min = Math.floor(secs / 60);
   const sec = secs % 60;
   return `${min}:${sec.toString().padStart(2, '0')}`;
+});
+
+const displayedWaveNumber = computed(() => {
+  return showCountdown.value ? Math.max(1, waveNumber.value - 1) : waveNumber.value;
 });
 </script>
 
