@@ -15,9 +15,30 @@ export const usePoiStore = defineStore('poi', () => {
 
   const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-  const getBarrackRadarRadius = () => {
+  const getBaseRadarRadius = () => {
     const baseConfig = getRadarConfig(gameStore.radarLevel);
-    return baseConfig.radius * BARRACKS_RADIUS_RATIO;
+    return baseConfig.radius;
+  };
+
+  const getBarrackRadarRadiusFor = (barrack, poiById = null) => {
+    if (!barrack || barrack.type !== 'barrack') {
+      return getBaseRadarRadius() * BARRACKS_RADIUS_RATIO;
+    }
+    if (Number.isFinite(barrack.barrackRadarRadius)) return barrack.barrackRadarRadius;
+
+    if (!barrack.conqueredFrom) {
+      return getBaseRadarRadius() * BARRACKS_RADIUS_RATIO;
+    }
+
+    const mapRef = poiById ?? new Map(pois.value.map((poi) => [String(poi.id), poi]));
+    const parent = mapRef.get(String(barrack.conqueredFrom));
+    if (!parent || parent.type !== 'barrack') {
+      return getBaseRadarRadius() * BARRACKS_RADIUS_RATIO;
+    }
+
+    const parentRadius = parent.barrackRadarRadius ?? (getBaseRadarRadius() * BARRACKS_RADIUS_RATIO);
+    barrack.barrackRadarRadius = parentRadius;
+    return parentRadius;
   };
 
   // Estado
@@ -80,7 +101,7 @@ export const usePoiStore = defineStore('poi', () => {
     const color = poi.type === 'barrack' ? BARRACK_COLOR : poi.color;
     const barrackAutoAttackLevel = poi.barrackAutoAttackLevel ?? 0;
     const barrackNodesLevel = poi.barrackNodesLevel ?? 1;
-    const barrackRadarRadius = poi.barrackRadarRadius ?? (poi.type === 'barrack' ? getBarrackRadarRadius() : null);
+    const barrackRadarRadius = poi.barrackRadarRadius ?? null;
 
     return {
       ...poi,
@@ -105,7 +126,7 @@ export const usePoiStore = defineStore('poi', () => {
       const normalizedPOIs = loadedPOIs.map(poi => {
         const normalized = withProductionDefaults(poi);
         if (normalized.type === 'barrack' && (poi.barrackRadarRadius === undefined || poi.barrackRadarRadius === null)) {
-          barrackRadiusUpdates.push({ id: normalized.id, barrackRadarRadius: normalized.barrackRadarRadius });
+          barrackRadiusUpdates.push(normalized);
         }
         if (normalized.type !== 'barrack') {
           const staggerMs = Math.floor(Math.random() * DEFAULT_PRODUCTION_RATE);
@@ -113,6 +134,12 @@ export const usePoiStore = defineStore('poi', () => {
         }
         return normalized;
       });
+      if (barrackRadiusUpdates.length) {
+        const poiById = new Map(normalizedPOIs.map((poi) => [String(poi.id), poi]));
+        barrackRadiusUpdates.forEach((poi) => {
+          poi.barrackRadarRadius = getBarrackRadarRadiusFor(poi, poiById);
+        });
+      }
       pois.value = normalizedPOIs;
       await Promise.all(
         normalizedPOIs
@@ -369,7 +396,8 @@ export const usePoiStore = defineStore('poi', () => {
     poi.color = BARRACK_COLOR;
     poi.barrackAutoAttackLevel = 0;
     poi.barrackNodesLevel = 1;
-    poi.barrackRadarRadius = getBarrackRadarRadius();
+    const poiById = new Map(pois.value.map((entry) => [String(entry.id), entry]));
+    poi.barrackRadarRadius = getBarrackRadarRadiusFor(poi, poiById);
     updatePOI(poiId, { type: 'barrack', color: BARRACK_COLOR, barrackAutoAttackLevel: 0, barrackNodesLevel: 1, barrackRadarRadius: poi.barrackRadarRadius });
     return true;
   };

@@ -1,6 +1,6 @@
 import { onBeforeUnmount } from 'vue';
 import { useEnemyStore } from '@/stores/enemyStore';
-import { ENEMY_SPEED_MPS } from '@/constants/enemies';
+import { ENEMY_SPEED_MPS, ENEMY_SPEED_RATIO } from '@/constants/enemies';
 import { getRadarConfig } from '@/services/mapService';
 
 export const useEnemyMovement = ({ getTargetPosition, onBaseHit, onBarrackHit, radarLevel }) => {
@@ -14,7 +14,7 @@ export const useEnemyMovement = ({ getTargetPosition, onBaseHit, onBarrackHit, r
     const level = radarLevel?.value ?? 1;
     const baseRadius = getRadarConfig(1).radius;
     const currentRadius = getRadarConfig(level).radius;
-    return ENEMY_SPEED_MPS * (currentRadius / baseRadius);
+    return ENEMY_SPEED_MPS * (currentRadius / baseRadius) * ENEMY_SPEED_RATIO;
   };
 
   const step = (ts) => {

@@ -34,9 +34,10 @@ export const useAttackAnimation = (mapRef, markerRef, { radarLevel } = {}) => {
     const distanceInMeters = L.latLng(startLatLng).distanceTo(L.latLng(endLatLng));
     
     const baseSpeed = 100; // m/s
-    const level = radarLevel?.value ?? 1;
     const baseRadius = getRadarConfig(1).radius;
-    const currentRadius = getRadarConfig(level).radius;
+    const barrackRadius = attackOrigin?.barrackRadarRadius ?? attackOrigin?.radarRadius ?? null;
+    const level = radarLevel?.value ?? 1;
+    const currentRadius = barrackRadius ?? getRadarConfig(level).radius;
     const speed = baseSpeed * (currentRadius / baseRadius);
     const duration = (distanceInMeters / speed) * 1000; // Duración en milisegundos
     
