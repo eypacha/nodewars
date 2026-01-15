@@ -1,4 +1,8 @@
-import { onBeforeUnmount } from 'vue';
+import { onBeforeUnmount, reactive } from 'vue';
+
+// Expose reactive maps so UI components can show per-barrack progress
+export const barrackAutoHealProgress = reactive({});
+export const barrackTimeToNextHeal = reactive({});
 
 export const useBarrackAutoHeal = ({
   pois,
@@ -24,6 +28,12 @@ export const useBarrackAutoHeal = ({
       if (!cooldown) return;
 
       const lastHealAt = lastHealAtByBarrack.get(poi.id) ?? 0;
+      // Update progress map for UI
+      const last = lastHealAtByBarrack.get(poi.id) ?? now;
+      const elapsedSinceLast = now - last;
+      barrackAutoHealProgress[poi.id] = Math.min((elapsedSinceLast / cooldown) * 100, 100);
+      barrackTimeToNextHeal[poi.id] = Math.max(cooldown - (elapsedSinceLast % cooldown), 0);
+
       if (now - lastHealAt < cooldown) return;
 
       // Check if barrack needs healing

@@ -6,6 +6,7 @@
         :right-label="`${baseHealth} / ${baseMaxHealth}`"
         :progress="baseMaxHealth ? (baseHealth / baseMaxHealth) * 100 : 0"
         bar-color="#22c55e"
+        size="large"
       />
     </div>
     <div v-if="showAutoHeal" class="mb-2">

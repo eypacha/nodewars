@@ -34,6 +34,7 @@
           :right-label="`${poi.health} / ${poi.maxHealth}`"
           :progress="healthPercentage"
           :bar-color="healthBarColor"
+          size="large"
         />
 
         <!-- Auto Heal bar for barrack -->
@@ -42,9 +43,8 @@
           class="mb-2"
           :left-label="$t('poi.autoHeal')"
           :right-label="barrackAutoHealCooldownDisplay"
-          :progress="0"
+          :progress="barrackAutoHealProgressForPoi"
           bar-color="#4CAF50"
-          size="large"
         />
 
         <div v-if="poi.type !== 'barrack' && poi.owned" class="mb-2">
@@ -130,6 +130,7 @@ import ProgressButton from '@/components/UI/ProgressButton.vue';
 import DialogShell from '@/components/UI/DialogShell.vue';
 import BaseButton from '@/components/UI/BaseButton.vue';
 import { useProgressTimer } from '@/composables/useProgressTimer';
+import { barrackAutoHealProgress, barrackTimeToNextHeal } from '@/composables/useBarrackAutoHeal';
 
 const props = defineProps({
   poi: {
@@ -338,7 +339,13 @@ const barrackAutoHealCooldownDisplay = computed(() => {
   if (level <= 0) return '';
   const cooldown = gameStore.getAutoHealCooldownMs(level);
   if (!cooldown) return '—';
-  return (cooldown / 1000).toFixed(1);
+  const remaining = Math.max(0, Math.ceil((barrackTimeToNextHeal[props.poi.id] ?? cooldown) / 1000));
+  return `${remaining}s`;
+});
+
+const barrackAutoHealProgressForPoi = computed(() => {
+  if (!props.poi) return 0;
+  return Math.min(Math.max(barrackAutoHealProgress[props.poi.id] ?? 0, 0), 100);
 });
 
 // Color de la barra de health según el porcentaje
