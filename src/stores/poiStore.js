@@ -5,6 +5,7 @@ import { getPOIColor } from '@/constants/poiTypes';
 import { calculateDistance } from '@/utils/mapHelpers';
 import { db } from '@/services/dbService';
 import { DEFAULT_RESOURCE_CAPACITY, DEFAULT_PRODUCTION_RATE, INITIAL_HEALTH, BASE_MAX_CONNECTIONS, BARRACKS_MAX_CONNECTIONS, BARRACKS_MAX_CONNECTIONS_INCREMENT } from '@/constants/pois';
+import { PRODUCTION_UPGRADE_BASE_COST, PRODUCTION_UPGRADE_COST_GROWTH, PRODUCTION_RATE_MULTIPLIER, PRODUCTION_RATE_MIN_MS } from '@/constants/poiUpgrades';
 import { BARRACKS_RADIUS_RATIO } from '@/constants/player';
 import { getRadarConfig } from '@/services/mapService';
 import { useGameStore } from '@/stores/gameStore';
@@ -14,6 +15,14 @@ export const usePoiStore = defineStore('poi', () => {
   const gameStore = useGameStore();
 
   const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+  const computeProductionRate = (baseRate, level) => {
+    const safeBaseRate = Number.isFinite(baseRate) ? baseRate : DEFAULT_PRODUCTION_RATE;
+    const safeLevel = Number.isFinite(level) ? level : 0;
+    return Math.max(
+      PRODUCTION_RATE_MIN_MS,
+      Math.round(safeBaseRate * Math.pow(PRODUCTION_RATE_MULTIPLIER, safeLevel))
+    );
+  };
 
   const getBaseRadarRadius = () => {
     const baseConfig = getRadarConfig(gameStore.radarLevel);
@@ -95,7 +104,9 @@ export const usePoiStore = defineStore('poi', () => {
 
   const withProductionDefaults = (poi) => {
     const capacity = poi.resourceCapacity ?? DEFAULT_RESOURCE_CAPACITY;
-    const productionRate = poi.productionRate ?? DEFAULT_PRODUCTION_RATE;
+    const productionBaseRate = poi.productionBaseRate ?? poi.productionRate ?? DEFAULT_PRODUCTION_RATE;
+    const productionUpgradeLevel = poi.productionUpgradeLevel ?? 0;
+    const productionRate = computeProductionRate(productionBaseRate, productionUpgradeLevel);
     const lastProducedAt = poi.lastProducedAt ?? Date.now();
     const autoExtract = poi.autoExtract ?? false;
     const color = poi.type === 'barrack' ? BARRACK_COLOR : poi.color;
@@ -107,6 +118,8 @@ export const usePoiStore = defineStore('poi', () => {
       ...poi,
       color,
       resourceCapacity: capacity,
+      productionBaseRate,
+      productionUpgradeLevel,
       productionRate,
       lastProducedAt,
       autoExtract,
@@ -130,7 +143,10 @@ export const usePoiStore = defineStore('poi', () => {
         }
         if (normalized.type !== 'barrack') {
           const staggerMs = Math.floor(Math.random() * DEFAULT_PRODUCTION_RATE);
-          normalized.lastProducedAt = now + staggerMs;
+          normalized.lastProducedAt = now - staggerMs;
+        }
+        if (normalized.lastProducedAt > now) {
+          normalized.lastProducedAt = now;
         }
         return normalized;
       });
@@ -179,15 +195,23 @@ export const usePoiStore = defineStore('poi', () => {
     const poi = getPOIById(poiId);
     if (!poi || poi.type === 'barrack') return poi;
 
+    const effectiveRate = computeProductionRate(
+      poi.productionBaseRate ?? poi.productionRate ?? DEFAULT_PRODUCTION_RATE,
+      poi.productionUpgradeLevel ?? 0
+    );
+    if (poi.productionRate !== effectiveRate) {
+      poi.productionRate = effectiveRate;
+    }
+
     const now = Date.now();
     const lastTick = poi.lastProducedAt ?? now;
     const elapsed = now - lastTick;
 
-    if (elapsed < poi.productionRate) {
+    if (elapsed < effectiveRate) {
       return poi;
     }
 
-    const producedCycles = Math.floor(elapsed / poi.productionRate);
+    const producedCycles = Math.floor(elapsed / effectiveRate);
     if (producedCycles <= 0) return poi;
 
     const maxAddable = poi.resourceCapacity - poi.resourceAmount;
@@ -197,7 +221,7 @@ export const usePoiStore = defineStore('poi', () => {
 
     const effectiveProduction = Math.min(producedCycles, maxAddable);
     const newAmount = poi.resourceAmount + effectiveProduction;
-    const newTimestamp = lastTick + effectiveProduction * poi.productionRate;
+    const newTimestamp = lastTick + effectiveProduction * effectiveRate;
 
     poi.resourceAmount = newAmount;
     poi.lastProducedAt = newTimestamp;
@@ -265,6 +289,8 @@ export const usePoiStore = defineStore('poi', () => {
             owned: false,
             resourceAmount: DEFAULT_RESOURCE_CAPACITY,
             resourceCapacity: DEFAULT_RESOURCE_CAPACITY,
+            productionBaseRate: DEFAULT_PRODUCTION_RATE,
+            productionUpgradeLevel: 0,
             productionRate: DEFAULT_PRODUCTION_RATE,
             lastProducedAt: now,
             radarActive: false,
@@ -507,6 +533,30 @@ export const usePoiStore = defineStore('poi', () => {
     return true;
   };
 
+  const getProductionUpgradeCostForLevel = (level) => {
+    if (!Number.isFinite(level) || level <= 0) return null;
+    return Math.max(1, Math.round(PRODUCTION_UPGRADE_BASE_COST * Math.pow(PRODUCTION_UPGRADE_COST_GROWTH, level - 1)));
+  };
+
+  const upgradeProductionRate = (poiId) => {
+    const poi = getPOIById(poiId);
+    if (!poi || poi.type === 'barrack' || !poi.owned) return false;
+
+    const nextLevel = (poi.productionUpgradeLevel ?? 0) + 1;
+    const baseRate = poi.productionBaseRate ?? poi.productionRate ?? DEFAULT_PRODUCTION_RATE;
+    const nextRate = computeProductionRate(baseRate, nextLevel);
+
+    poi.productionUpgradeLevel = nextLevel;
+    poi.productionBaseRate = baseRate;
+    poi.productionRate = nextRate;
+    updatePOI(poiId, {
+      productionUpgradeLevel: nextLevel,
+      productionBaseRate: baseRate,
+      productionRate: nextRate,
+    });
+    return nextLevel;
+  };
+
   const upgradeBarrackAutoAttack = (poiId) => {
     const poi = getPOIById(poiId);
     if (!poi || poi.type !== 'barrack' || !poi.owned) return false;
@@ -614,6 +664,8 @@ export const usePoiStore = defineStore('poi', () => {
     upgradeBarrackNodes,
     convertToBarracks,
     toggleBarracksRadar,
+    getProductionUpgradeCostForLevel,
+    upgradeProductionRate,
     resetPOIs,
     loadPOIs,
   };

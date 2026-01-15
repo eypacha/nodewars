@@ -44,6 +44,39 @@
           />
         </div>
 
+        <div v-if="poi?.type !== 'barrack'" class="border border-white p-4">
+          <div class="flex justify-between items-start mb-3">
+            <div>
+              <p class="text-white text-sm font-bold">{{ $t('poiUpgrades.productionRate') }}</p>
+              <p class="text-gray-400 text-xs mt-1">{{ productionUpgradeLevel }} → {{ productionUpgradeNextLevel }}</p>
+            </div>
+            <div class="text-right">
+              <p class="text-base font-bold" :style="{ color: '#cd23e8ff' }">
+                {{ productionUpgradeCost ?? '—' }} ●
+              </p>
+            </div>
+          </div>
+
+          <div class="mb-4 text-gray-300 text-sm space-y-1">
+            <p>{{ $t('poiUpgrades.productionRateDesc') }}</p>
+            <p class="text-gray-500">
+              {{ $t('poiUpgrades.currentRate') }} <span class="text-white font-bold">{{ productionRateSeconds }}s</span>
+            </p>
+            <p class="text-gray-500">
+              {{ $t('poiUpgrades.nextRate') }} <span class="text-white font-bold">{{ nextProductionRateSeconds }}s</span>
+            </p>
+          </div>
+
+          <BaseButton
+            @click="handleProductionRateUpgrade"
+            :disabled="!canUpgradeProduction || !canAffordProduction"
+            :label="!canUpgradeProduction ? $t('poiUpgrades.unavailable') : !canAffordProduction ? $t('poiUpgrades.insufficientFuel') : $t('poiUpgrades.upgradeButton')"
+            block
+            full-width
+            base-class="font-bold py-3 px-4 border-2 border-white text-sm relative overflow-hidden transition-all"
+          />
+        </div>
+
         <div v-if="poi?.type === 'barrack'" class="border border-white p-4">
           <div class="flex justify-between items-start mb-3">
             <div>
@@ -112,6 +145,7 @@ import { useGameStore } from '@/stores/gameStore';
 import { usePoiStore } from '@/stores/poiStore';
 import { getPOIColor } from '@/constants/poiTypes';
 import BaseButton from '@/components/UI/BaseButton.vue';
+import { PRODUCTION_RATE_MIN_MS, PRODUCTION_RATE_MULTIPLIER } from '@/constants/poiUpgrades';
 
 const emit = defineEmits(['close']);
 
@@ -140,6 +174,38 @@ const handleAutoExtractUpgrade = () => {
   const paid = gameStore.consumeResource('fuel', AUTO_EXTRACT_COST);
   if (!paid) return;
   poiStore.setAutoExtract(props.poi.id, true);
+};
+
+const productionUpgradeLevel = computed(() => props.poi?.productionUpgradeLevel ?? 0);
+const productionUpgradeNextLevel = computed(() => productionUpgradeLevel.value + 1);
+const productionUpgradeCost = computed(() => poiStore.getProductionUpgradeCostForLevel(productionUpgradeNextLevel.value));
+const canUpgradeProduction = computed(() => props.poi?.owned && props.poi?.type !== 'barrack');
+const canAffordProduction = computed(() => {
+  const cost = productionUpgradeCost.value ?? null;
+  return cost != null && resources.value.fuel >= cost;
+});
+const productionRateSeconds = computed(() => {
+  const rate = props.poi?.productionRate ?? null;
+  if (!rate) return '—';
+  return (rate / 1000).toFixed(1);
+});
+const nextProductionRateSeconds = computed(() => {
+  const baseRate = props.poi?.productionBaseRate ?? props.poi?.productionRate ?? null;
+  if (!baseRate) return '—';
+  const nextRate = Math.max(
+    PRODUCTION_RATE_MIN_MS,
+    Math.round(baseRate * Math.pow(PRODUCTION_RATE_MULTIPLIER, productionUpgradeNextLevel.value))
+  );
+  return (nextRate / 1000).toFixed(1);
+});
+
+const handleProductionRateUpgrade = () => {
+  if (!canUpgradeProduction.value) return;
+  const cost = productionUpgradeCost.value;
+  if (!cost) return;
+  const paid = gameStore.consumeResource('fuel', cost);
+  if (!paid) return;
+  poiStore.upgradeProductionRate(props.poi.id);
 };
 
 const barrackAutoAttackLevel = computed(() => props.poi?.barrackAutoAttackLevel ?? 0);
