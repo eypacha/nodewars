@@ -1,6 +1,6 @@
 {
-    "name": "Nodewars",
-    "short_name": "Nodewars",
+    "name": "NodeWars",
+    "short_name": "NodeWars",
     "icons": [
         {
             "src": "/android-chrome-192x192.png",
