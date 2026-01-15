@@ -14,125 +14,61 @@
         </button>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-        <div v-if="poi?.type !== 'barrack'" class="border border-white p-4">
-          <div class="flex justify-between items-start mb-3">
-            <div>
-              <p class="text-white text-sm font-bold">{{ $t('poiUpgrades.autoExtract') }}</p>
-              <p class="text-gray-400 text-xs mt-1">
-                {{ hasAutoExtract ? $t('poiUpgrades.unlocked') : $t('poiUpgrades.locked') }}
-              </p>
-            </div>
-            <div class="text-right">
-              <p class="text-base font-bold" :style="{ color: '#cd23e8ff' }">
-                {{ autoExtractCost }} ●
-              </p>
-            </div>
-          </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 items-stretch">
+        <UpgradeCard
+          v-if="poi?.type !== 'barrack'"
+          :title="$t('poiUpgrades.autoExtract')"
+          :subtitle="hasAutoExtract ? $t('poiUpgrades.unlocked') : $t('poiUpgrades.locked')"
+          :cost="autoExtractCost"
+          :costColor="'#cd23e8ff'"
+          :description="$t('poiUpgrades.autoExtractDesc')"
+          :buttonLabel="hasAutoExtract ? $t('poiUpgrades.unlocked') : !canUpgrade ? $t('poiUpgrades.unavailable') : !canAfford ? $t('poiUpgrades.insufficientFuel') : $t('poiUpgrades.upgradeButton')"
+          :disabled="hasAutoExtract || !canUpgrade || !canAfford"
+          :onClick="handleAutoExtractUpgrade"
+        />
 
-          <div class="mb-4 text-gray-300 text-sm space-y-1">
-            <p>{{ $t('poiUpgrades.autoExtractDesc') }}</p>
-          </div>
+        <UpgradeCard
+          v-if="poi?.type !== 'barrack'"
+          :title="$t('poiUpgrades.productionRate')"
+          :subtitle="`${productionUpgradeLevel} → ${productionUpgradeNextLevel}`"
+          :cost="productionUpgradeCost ?? '—'"
+          :costColor="'#cd23e8ff'"
+          :description="[
+            $t('poiUpgrades.productionRateDesc'),
+            `${$t('poiUpgrades.currentRate')} ${productionRateSeconds}s`,
+            `${$t('poiUpgrades.nextRate')} ${nextProductionRateSeconds}s`
+          ]"
+          :buttonLabel="!canUpgradeProduction ? $t('poiUpgrades.unavailable') : !canAffordProduction ? $t('poiUpgrades.insufficientFuel') : $t('poiUpgrades.upgradeButton')"
+          :disabled="!canUpgradeProduction || !canAffordProduction"
+          :onClick="handleProductionRateUpgrade"
+        />
 
-          <BaseButton
-            @click="handleAutoExtractUpgrade"
-            :disabled="hasAutoExtract || !canUpgrade || !canAfford"
-            :label="hasAutoExtract ? $t('poiUpgrades.unlocked') : !canUpgrade ? $t('poiUpgrades.unavailable') : !canAfford ? $t('poiUpgrades.insufficientFuel') : $t('poiUpgrades.upgradeButton')"
-            block
-            full-width
-            base-class="font-bold py-3 px-4 border-2 border-white text-sm relative overflow-hidden transition-all"
-          />
-        </div>
+        <UpgradeCard
+          v-if="poi?.type === 'barrack'"
+          :title="$t('poiUpgrades.barrackAutoAttack')"
+          :subtitle="`${barrackAutoAttackLevel} → ${barrackAutoAttackNextLevel}`"
+          :cost="barrackAutoAttackCost ?? '—'"
+          :costColor="policeColor"
+          :description="[
+            $t('poiUpgrades.barrackAutoAttackDesc'),
+            barrackAutoAttackLevel > 0 ? `${$t('poiUpgrades.currentCooldown')} ${barrackAutoAttackCooldownDisplay}s` : ''
+          ].filter(Boolean)"
+          :buttonLabel="!canUpgradeBarrackAutoAttack ? $t('poiUpgrades.unavailable') : !canAffordBarrackAutoAttack ? $t('poiUpgrades.insufficientPolice') : $t('poiUpgrades.upgradeButton')"
+          :disabled="!canUpgradeBarrackAutoAttack || !canAffordBarrackAutoAttack"
+          :onClick="handleBarrackAutoAttackUpgrade"
+        />
 
-        <div v-if="poi?.type !== 'barrack'" class="border border-white p-4">
-          <div class="flex justify-between items-start mb-3">
-            <div>
-              <p class="text-white text-sm font-bold">{{ $t('poiUpgrades.productionRate') }}</p>
-              <p class="text-gray-400 text-xs mt-1">{{ productionUpgradeLevel }} → {{ productionUpgradeNextLevel }}</p>
-            </div>
-            <div class="text-right">
-              <p class="text-base font-bold" :style="{ color: '#cd23e8ff' }">
-                {{ productionUpgradeCost ?? '—' }} ●
-              </p>
-            </div>
-          </div>
-
-          <div class="mb-4 text-gray-300 text-sm space-y-1">
-            <p>{{ $t('poiUpgrades.productionRateDesc') }}</p>
-            <p class="text-gray-500">
-              {{ $t('poiUpgrades.currentRate') }} <span class="text-white font-bold">{{ productionRateSeconds }}s</span>
-            </p>
-            <p class="text-gray-500">
-              {{ $t('poiUpgrades.nextRate') }} <span class="text-white font-bold">{{ nextProductionRateSeconds }}s</span>
-            </p>
-          </div>
-
-          <BaseButton
-            @click="handleProductionRateUpgrade"
-            :disabled="!canUpgradeProduction || !canAffordProduction"
-            :label="!canUpgradeProduction ? $t('poiUpgrades.unavailable') : !canAffordProduction ? $t('poiUpgrades.insufficientFuel') : $t('poiUpgrades.upgradeButton')"
-            block
-            full-width
-            base-class="font-bold py-3 px-4 border-2 border-white text-sm relative overflow-hidden transition-all"
-          />
-        </div>
-
-        <div v-if="poi?.type === 'barrack'" class="border border-white p-4">
-          <div class="flex justify-between items-start mb-3">
-            <div>
-              <p class="text-white text-sm font-bold">{{ $t('poiUpgrades.barrackAutoAttack') }}</p>
-              <p class="text-gray-400 text-xs mt-1">{{ barrackAutoAttackLevel }} → {{ barrackAutoAttackNextLevel }}</p>
-            </div>
-            <div class="text-right">
-              <p class="text-base font-bold" :style="{ color: policeColor }">
-                {{ barrackAutoAttackCost ?? '—' }} ●
-              </p>
-            </div>
-          </div>
-
-          <div class="mb-4 text-gray-300 text-sm space-y-1">
-            <p>{{ $t('poiUpgrades.barrackAutoAttackDesc') }}</p>
-            <p class="text-gray-500" v-if="barrackAutoAttackLevel > 0">
-              {{ $t('poiUpgrades.currentCooldown') }} <span class="text-white font-bold">{{ barrackAutoAttackCooldownDisplay }}s</span>
-            </p>
-          </div>
-
-          <BaseButton
-            @click="handleBarrackAutoAttackUpgrade"
-            :disabled="!canUpgradeBarrackAutoAttack || !canAffordBarrackAutoAttack"
-            :label="!canUpgradeBarrackAutoAttack ? $t('poiUpgrades.unavailable') : !canAffordBarrackAutoAttack ? $t('poiUpgrades.insufficientPolice') : $t('poiUpgrades.upgradeButton')"
-            block
-            full-width
-            base-class="font-bold py-3 px-4 border-2 border-white text-sm relative overflow-hidden transition-all"
-          />
-        </div>
-
-        <div v-if="poi?.type === 'barrack'" class="border border-white p-4">
-          <div class="flex justify-between items-start mb-3">
-            <div>
-              <p class="text-white text-sm font-bold">{{ $t('poiUpgrades.barrackNodes') }}</p>
-              <p class="text-gray-400 text-xs mt-1">{{ barrackNodesLevel }} → {{ barrackNodesNextLevel }}</p>
-            </div>
-            <div class="text-right">
-              <p class="text-base font-bold" :style="{ color: foodColor }">
-                {{ barrackNodesCost ?? '—' }} ●
-              </p>
-            </div>
-          </div>
-
-          <div class="mb-4 text-gray-300 text-sm space-y-1">
-            <p>{{ $t('poiUpgrades.barrackNodesDesc') }}</p>
-          </div>
-
-          <BaseButton
-            @click="handleBarrackNodesUpgrade"
-            :disabled="!canAffordBarrackNodes"
-            :label="!canAffordBarrackNodes ? $t('poiUpgrades.insufficientFood') : $t('poiUpgrades.upgradeButton')"
-            block
-            full-width
-            base-class="font-bold py-3 px-4 border-2 border-white text-sm relative overflow-hidden transition-all"
-          />
-        </div>
+        <UpgradeCard
+          v-if="poi?.type === 'barrack'"
+          :title="$t('poiUpgrades.barrackNodes')"
+          :subtitle="`${barrackNodesLevel} → ${barrackNodesNextLevel}`"
+          :cost="barrackNodesCost ?? '—'"
+          :costColor="foodColor"
+          :description="$t('poiUpgrades.barrackNodesDesc')"
+          :buttonLabel="!canAffordBarrackNodes ? $t('poiUpgrades.insufficientFood') : $t('poiUpgrades.upgradeButton')"
+          :disabled="!canAffordBarrackNodes"
+          :onClick="handleBarrackNodesUpgrade"
+        />
       </div>
     </div>
   </div>
@@ -145,6 +81,7 @@ import { useGameStore } from '@/stores/gameStore';
 import { usePoiStore } from '@/stores/poiStore';
 import { getPOIColor } from '@/constants/poiTypes';
 import BaseButton from '@/components/UI/BaseButton.vue';
+import UpgradeCard from '@/components/UpgradeCard.vue';
 import { PRODUCTION_RATE_MIN_MS, PRODUCTION_RATE_MULTIPLIER } from '@/constants/poiUpgrades';
 
 const emit = defineEmits(['close']);

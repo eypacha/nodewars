@@ -11,87 +11,51 @@
         </button>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 items-stretch">
         <!-- Radar Level Upgrade -->
-        <div class="border border-white p-4">
-          <div class="flex justify-between items-start mb-3">
-            <div>
-              <p class="text-white text-sm font-bold">{{ $t('upgrades.radar') }}</p>
-              <p class="text-gray-400 text-xs mt-1">{{ radarLevel }} → {{ radarLevel + 1 }}</p>
-            </div>
-            <div class="text-right">
-              <p class="text-yellow-400 text-base font-bold">{{ nextUpgradeCostDisplay }} ●</p>
-            </div>
-          </div>
-
-          <div class="mb-4 text-gray-300 text-sm space-y-1">
-            <p>{{ $t('upgrades.increaseRange') }}</p>
-            <p class="text-gray-500">{{ $t('upgrades.currentRadius') }} <span class="text-white font-bold">{{ currentRadarRadius }}m</span></p>
-          </div>
-
-          <BaseButton
-            @click="handleUpgrade"
-            :disabled="!canAffordUpgrade || maxLevelReached"
-            :label="maxLevelReached ? $t('upgrades.maxLevel') : canAffordUpgrade ? $t('upgrades.upgradeButton') : $t('upgrades.insufficientFunds')"
-            block
-            full-width
-            base-class="font-bold py-3 px-4 border-2 border-white text-sm relative overflow-hidden transition-all"
-          />
-        </div>
+        <UpgradeCard
+          :title="$t('upgrades.radar')"
+          :subtitle="`${radarLevel} → ${radarLevel + 1}`"
+          :cost="nextUpgradeCostDisplay"
+          :costColor="'#fbbf24'"
+          :description="[
+            $t('upgrades.increaseRange'),
+            `${$t('upgrades.currentRadius')} ${currentRadarRadius}m`
+          ]"
+          :buttonLabel="maxLevelReached ? $t('upgrades.maxLevel') : canAffordUpgrade ? $t('upgrades.upgradeButton') : $t('upgrades.insufficientFunds')"
+          :disabled="!canAffordUpgrade || maxLevelReached"
+          :onClick="handleUpgrade"
+        />
 
         <!-- Auto-Attack Upgrade -->
-        <div class="border border-white p-4">
-          <div class="flex justify-between items-start mb-3">
-            <div>
-              <p class="text-white text-sm font-bold">{{ $t('upgrades.autoAttack') }}</p>
-              <p class="text-gray-400 text-xs mt-1">{{ autoAttackLevel }} → {{ autoAttackLevel + 1 }}</p>
-            </div>
-            <div class="text-right">
-              <p class="text-gray-400 text-base font-bold">{{ nextAutoUpgradeCostDisplay }} ●</p>
-            </div>
-          </div>
-
-          <div class="mb-4 text-gray-300 text-sm space-y-1">
-            <p>{{ $t('upgrades.autoAttackDesc') }}</p>
-            <p class="text-gray-500" v-if="autoAttackLevel > 0">{{ $t('upgrades.currentCooldown') }} <span class="text-white font-bold">{{ autoAttackCooldownDisplay }}s</span></p>
-          </div>
-
-          <BaseButton
-            @click="handleAutoUpgrade"
-            :disabled="!canAffordAutoUpgrade || autoMaxLevelReached"
-            :label="autoMaxLevelReached ? $t('upgrades.maxLevel') : canAffordAutoUpgrade ? $t('upgrades.upgradeButton') : $t('upgrades.insufficientFunds')"
-            block
-            full-width
-            base-class="font-bold py-3 px-4 border-2 border-white text-sm relative overflow-hidden transition-all"
-          />
-        </div>
+        <UpgradeCard
+          :title="$t('upgrades.autoAttack')"
+          :subtitle="`${autoAttackLevel} → ${autoAttackLevel + 1}`"
+          :cost="nextAutoUpgradeCostDisplay"
+          :costColor="'#9ca3af'"
+          :description="[
+            $t('upgrades.autoAttackDesc'),
+            autoAttackLevel > 0 ? `${$t('upgrades.currentCooldown')} ${autoAttackCooldownDisplay}s` : ''
+          ].filter(Boolean)"
+          :buttonLabel="autoMaxLevelReached ? $t('upgrades.maxLevel') : canAffordAutoUpgrade ? $t('upgrades.upgradeButton') : $t('upgrades.insufficientFunds')"
+          :disabled="!canAffordAutoUpgrade || autoMaxLevelReached"
+          :onClick="handleAutoUpgrade"
+        />
 
         <!-- Base Nodes Upgrade -->
-        <div class="border border-white p-4">
-          <div class="flex justify-between items-start mb-3">
-            <div>
-              <p class="text-white text-sm font-bold">{{ $t('upgrades.baseNodes') }}</p>
-              <p class="text-gray-400 text-xs mt-1">{{ baseNodesLevel }} → {{ baseNodesLevel + 1 }}</p>
-            </div>
-            <div class="text-right">
-              <p class="text-base font-bold" :style="{ color: foodColor }">{{ nextBaseNodesCostDisplay }} ●</p>
-            </div>
-          </div>
-
-          <div class="mb-4 text-gray-300 text-sm space-y-1">
-            <p>{{ $t('upgrades.baseNodesDesc') }}</p>
-            <p class="text-gray-500">{{ $t('upgrades.currentNodes') }} <span class="text-white font-bold">{{ currentBaseNodes }}</span></p>
-          </div>
-
-          <BaseButton
-            @click="handleBaseNodesUpgrade"
-            :disabled="!canAffordBaseNodesUpgrade || baseNodesMaxLevelReached"
-            :label="baseNodesMaxLevelReached ? $t('upgrades.maxLevel') : canAffordBaseNodesUpgrade ? $t('upgrades.upgradeButton') : $t('upgrades.insufficientFunds')"
-            block
-            full-width
-            base-class="font-bold py-3 px-4 border-2 border-white text-sm relative overflow-hidden transition-all"
-          />
-        </div>
+        <UpgradeCard
+          :title="$t('upgrades.baseNodes')"
+          :subtitle="`${baseNodesLevel} → ${baseNodesLevel + 1}`"
+          :cost="nextBaseNodesCostDisplay"
+          :costColor="foodColor"
+          :description="[
+            $t('upgrades.baseNodesDesc'),
+            `${$t('upgrades.currentNodes')} ${currentBaseNodes}`
+          ]"
+          :buttonLabel="baseNodesMaxLevelReached ? $t('upgrades.maxLevel') : canAffordBaseNodesUpgrade ? $t('upgrades.upgradeButton') : $t('upgrades.insufficientFunds')"
+          :disabled="!canAffordBaseNodesUpgrade || baseNodesMaxLevelReached"
+          :onClick="handleBaseNodesUpgrade"
+        />
       </div>
     </div>
   </div>
@@ -103,6 +67,7 @@ import { storeToRefs } from 'pinia';
 import { useGameStore } from '@/stores/gameStore';
 import { getRadarConfig } from '@/services/mapService';
 import BaseButton from '@/components/UI/BaseButton.vue';
+import UpgradeCard from '@/components/UpgradeCard.vue';
 import { getPOIColor } from '@/constants/poiTypes';
 const emit = defineEmits(['close']);
 
