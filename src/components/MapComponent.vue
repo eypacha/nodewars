@@ -173,7 +173,7 @@ const { clearPOIMarkers } = usePointsOfInterest(mapRef);
 
 // Composables para funcionalidades específicas
 const { resourceParticles, startResourceCollection, startHealingDelivery, cancelResourceCollectionForBarrack } = useResourceCollection(mapRef, markerRef);
-const { attackTriangles, startAttack } = useAttackAnimation(mapRef, markerRef);
+const { attackTriangles, startAttack } = useAttackAnimation(mapRef, markerRef, { radarLevel });
 const { 
   createConnectionLine, 
   removeConnectionLine, 

@@ -107,13 +107,14 @@ export const useEnemyStore = defineStore('enemy', () => {
     return enemy;
   };
 
-  const moveEnemies = (deltaSeconds, { getTargetPosition, onBaseHit, onBarrackHit }) => {
+  const moveEnemies = (deltaSeconds, { getTargetPosition, onBaseHit, onBarrackHit, speedMps }) => {
     enemies.value = enemies.value.filter((enemy) => {
       const targetPos = getTargetPosition(enemy.targetType, enemy.targetId);
       if (!targetPos) return false;
 
       const distanceToTarget = calculateDistance([enemy.lat, enemy.lng], [targetPos.lat, targetPos.lng]);
-      const stepDistance = ENEMY_SPEED_MPS * deltaSeconds;
+      const speed = Number.isFinite(speedMps) ? speedMps : ENEMY_SPEED_MPS;
+      const stepDistance = speed * deltaSeconds;
 
       if (distanceToTarget <= stepDistance) {
         if (enemy.targetType === 'base') {

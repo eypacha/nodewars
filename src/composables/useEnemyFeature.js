@@ -56,6 +56,7 @@ export function useEnemyFeature({
     onBarrackHit: (poiId) => {
       poiStore.damagePOI(poiId, 1, null, { attackedByEnemy: true });
     },
+    radarLevel,
   });
 
   const {

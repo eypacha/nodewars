@@ -5,8 +5,9 @@
 import { ref } from 'vue';
 import L from 'leaflet';
 import { usePoiStore } from '@/stores/poiStore';
+import { getRadarConfig } from '@/services/mapService';
 
-export const useAttackAnimation = (mapRef, markerRef) => {
+export const useAttackAnimation = (mapRef, markerRef, { radarLevel } = {}) => {
   const attackTriangles = ref([]);
   let nextAttackId = 0;
   const poiStore = usePoiStore();
@@ -32,8 +33,11 @@ export const useAttackAnimation = (mapRef, markerRef) => {
     // Calcular distancia real en metros
     const distanceInMeters = L.latLng(startLatLng).distanceTo(L.latLng(endLatLng));
     
-    // Velocidad constante: 100 metros por segundo
-    const speed = 100; // m/s
+    const baseSpeed = 100; // m/s
+    const level = radarLevel?.value ?? 1;
+    const baseRadius = getRadarConfig(1).radius;
+    const currentRadius = getRadarConfig(level).radius;
+    const speed = baseSpeed * (currentRadius / baseRadius);
     const duration = (distanceInMeters / speed) * 1000; // Duración en milisegundos
     
     // Calcular ángulo de rotación
