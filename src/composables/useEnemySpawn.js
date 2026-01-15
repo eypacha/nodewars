@@ -81,28 +81,32 @@ export const useEnemySpawn = ({ baseMarkerPosition, pois, radarLevel }) => {
     if (!Array.isArray(pois.value)) return;
     
     const enemyBarracks = pois.value.filter((poi) => poi.type === 'barrack' && !poi.owned);
+    const extraShotsPerBarrack = Math.max(1, Math.floor(1 + enemyStore.waveNumber / 2));
 
-    enemyBarracks.forEach((barrack, index) => {
+    enemyBarracks.forEach((barrack, barrackIndex) => {
       const target = getTargetForEnemyBarrack(barrack);
       if (!target) return;
 
-      setTimeout(() => {
-        const angle = computeBearingRadians({ lat: barrack.lat, lng: barrack.lng }, target.position);
+      for (let shotIndex = 0; shotIndex < extraShotsPerBarrack; shotIndex += 1) {
+        const delayMs = (barrackIndex * extraShotsPerBarrack + shotIndex) * ENEMY_PROJECTILE_STAGGER_MS;
+        setTimeout(() => {
+          const angle = computeBearingRadians({ lat: barrack.lat, lng: barrack.lng }, target.position);
 
-        const earthRadius = 6371000; // metros
-        const deltaLat = (1 * Math.cos(angle)) / earthRadius * (180 / Math.PI);
-        const deltaLng = (1 * Math.sin(angle)) / (earthRadius * Math.cos((barrack.lat * Math.PI) / 180)) * (180 / Math.PI);
-        const spawnLat = barrack.lat + deltaLat;
-        const spawnLng = barrack.lng + deltaLng;
+          const earthRadius = 6371000; // metros
+          const deltaLat = (1 * Math.cos(angle)) / earthRadius * (180 / Math.PI);
+          const deltaLng = (1 * Math.sin(angle)) / (earthRadius * Math.cos((barrack.lat * Math.PI) / 180)) * (180 / Math.PI);
+          const spawnLat = barrack.lat + deltaLat;
+          const spawnLng = barrack.lng + deltaLng;
 
-        enemyStore.spawnEnemy({
-          center: { lat: spawnLat, lng: spawnLng },
-          radius: 0,
-          angle,
-          targetType: target.type,
-          targetId: target.id,
-        });
-      }, index * ENEMY_PROJECTILE_STAGGER_MS);
+          enemyStore.spawnEnemy({
+            center: { lat: spawnLat, lng: spawnLng },
+            radius: 0,
+            angle,
+            targetType: target.type,
+            targetId: target.id,
+          });
+        }, delayMs);
+      }
     });
   };
 
