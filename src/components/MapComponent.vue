@@ -74,7 +74,7 @@
     >
       {{ triangle.isAuto ? '▴' : '▲' }}
     </div>
-    <template v-if="!showStartPopup && baseConfirmed">
+    <Teleport v-if="enemyPane && !showStartPopup && baseConfirmed" :to="enemyPane">
       <div 
         v-for="enemy in enemyMarkers" 
         :key="enemy.id"
@@ -84,20 +84,18 @@
           left: `${enemy.x}px`,
           top: `${enemy.y}px`,
           transform: `translate(-50%, -50%) rotate(${enemy.rotation}deg)`,
-          zIndex: 800,
         }"
-        @click.stop="handleEnemyClick(enemy.id)"
       >
         ▲
       </div>
-      <EnemyAttackDialog
-        v-if="selectedEnemyForAttack && enemyDialogStyle"
-        :style="enemyDialogStyle"
-        :is-on-cooldown="isEnemyAttackOnCooldown"
-        :cooldown-progress="enemyAttackCooldownProgress"
-        @attack="handleEnemyAttack"
-      />
-    </template>
+    </Teleport>
+    <EnemyAttackDialog
+      v-if="selectedEnemyForAttack && enemyDialogStyle"
+      :style="enemyDialogStyle"
+      :is-on-cooldown="isEnemyAttackOnCooldown"
+      :cooldown-progress="enemyAttackCooldownProgress"
+      @attack="handleEnemyAttack"
+    />
     <Teleport v-if="resourceParticlesPane" :to="resourceParticlesPane">
       <div 
         v-for="particle in resourceParticles" 
@@ -164,6 +162,7 @@ const isBaseAttackOrigin = ref(false); // Si la base está seleccionada como pun
 const currentAttackOrigin = ref(null); // Punto de ataque activo (se actualiza cuando cambia)
 const mapViewVersion = ref(0);
 const resourceParticlesPane = ref(null);
+const enemyPane = ref(null);
 
 // Inicializar composables principales
 // Usar refs reactivos para que el mapa se inicialice con los valores restaurados
@@ -402,6 +401,38 @@ const handleClosePOIDialog = () => {
   closeEnemyDialog();
 };
 
+const findEnemyMarkerAtPoint = (point) => {
+  const maxDistance = 14;
+  const maxDistanceSq = maxDistance * maxDistance;
+  let closest = null;
+  let closestSq = maxDistanceSq;
+
+  enemyMarkers.value.forEach((enemy) => {
+    const dx = enemy.x - point.x;
+    const dy = enemy.y - point.y;
+    const distSq = dx * dx + dy * dy;
+    if (distSq <= closestSq) {
+      closestSq = distSq;
+      closest = enemy;
+    }
+  });
+
+  return closest;
+};
+
+const handleMapClickWithEnemy = (event) => {
+  if (mapRef.value && baseConfirmed.value && !showStartPopup.value) {
+    const point = mapRef.value.latLngToLayerPoint(event.latlng);
+    const enemy = findEnemyMarkerAtPoint(point);
+    if (enemy) {
+      handleEnemyClick(enemy.id);
+      return;
+    }
+  }
+  closeEnemyDialog();
+  handleMapClick();
+};
+
 const handleScanFromBarracks = async () => {
   if (!selectedPOI.value || selectedPOI.value.type !== 'barrack') return;
   const barrackPOI = selectedPOI.value;
@@ -477,8 +508,17 @@ onMounted(() => {
     pane.style.pointerEvents = 'none';
     resourceParticlesPane.value = pane;
   };
+  const setupEnemyPane = () => {
+    if (!mapRef.value || enemyPane.value) return;
+    const pane = mapRef.value.createPane('enemyPane');
+    pane.style.zIndex = 550;
+    pane.style.pointerEvents = 'none';
+    enemyPane.value = pane;
+  };
   setupResourceParticlesPane();
+  setupEnemyPane();
   watch(mapRef, setupResourceParticlesPane);
+  watch(mapRef, setupEnemyPane);
   on('move', updateMarkerScreenPosition);
   on('zoom', updateMarkerScreenPosition);
   on('move', () => updatePOIScreenPosition(selectedPOI.value));
@@ -506,7 +546,7 @@ onMounted(() => {
         mapStore.saveMapState();
       }
     });
-    mapRef.value.on('click', handleMapClick);
+    mapRef.value.on('click', handleMapClickWithEnemy);
   }
 });
 
@@ -543,6 +583,7 @@ watch(marker, async (newMarker) => {
     createMarker(newMarker, BaseMarker, {
       draggable: !baseConfirmed.value,
       componentProps: { isEnemy: isBaseCaptured.value },
+      zIndexOffset: 1000,
     });
     
     // Añadir eventos al marcador solo si no está confirmado

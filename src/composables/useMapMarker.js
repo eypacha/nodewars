@@ -43,6 +43,7 @@ export const useMapMarker = (mapRef) => {
     markerRef.value = L.marker(position, {
       icon: customIcon,
       draggable: options.draggable !== undefined ? options.draggable : true,
+      zIndexOffset: options.zIndexOffset ?? 0,
     }).addTo(mapRef.value);
 
     // Desmontar la app temporal

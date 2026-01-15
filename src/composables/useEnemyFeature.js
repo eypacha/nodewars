@@ -99,7 +99,7 @@ export function useEnemyFeature({
     if (!mapRef.value || showStartPopup.value || !baseConfirmed.value) return [];
 
     return enemies.value.map((enemy) => {
-      const point = mapRef.value.latLngToContainerPoint([enemy.lat, enemy.lng]);
+      const point = mapRef.value.latLngToLayerPoint([enemy.lat, enemy.lng]);
       return {
         id: enemy.id,
         x: point.x,

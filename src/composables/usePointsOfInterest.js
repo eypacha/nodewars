@@ -87,6 +87,7 @@ export const usePointsOfInterest = (mapRef) => {
 
         marker = L.marker([poi.lat, poi.lng], {
           icon: customIcon,
+          zIndexOffset: 100,
         }).addTo(mapRef.value);
 
         app.unmount();
