@@ -52,7 +52,7 @@ const formattedTime = computed(() => {
 });
 
 const displayedWaveNumber = computed(() => {
-  return showCountdown.value ? waveNumber.value : Math.max(1, waveNumber.value - 1) ;
+  return showCountdown.value ? waveNumber.value : (waveNumber.value - 1);
 });
 </script>
 
