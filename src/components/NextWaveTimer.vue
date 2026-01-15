@@ -1,8 +1,8 @@
 <template>
-  <div class="next-wave-timer px-2 py-1 text-white flex items-center gap-2">
+  <div class="next-wave-timer px-2 py-1 text-white flex flex-col sm:flex-row items-center gap-0 sm:gap-2">
     <span>{{ $t('hud.wave') }} {{ displayedWaveNumber }}</span>
     <template v-if="showCountdown">
-      <span>→</span>
+      <span class="hidden sm:inline">→</span>
       <span class="font-mono font-bold" :class="{ 'text-red-600': remainingSeconds <= 10 }">{{ formattedTime }}</span>
     </template>
   </div>
