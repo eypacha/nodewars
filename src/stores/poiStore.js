@@ -9,6 +9,7 @@ import { PRODUCTION_UPGRADE_BASE_COST, PRODUCTION_UPGRADE_COST_GROWTH, PRODUCTIO
 import { BARRACKS_RADIUS_RATIO } from '@/constants/player';
 import { getRadarConfig } from '@/services/mapService';
 import { useGameStore } from '@/stores/gameStore';
+import { useMapStore } from '@/stores/mapStore';
 
 export const usePoiStore = defineStore('poi', () => {
   const BARRACK_COLOR = getPOIColor('barrack');
@@ -476,7 +477,6 @@ export const usePoiStore = defineStore('poi', () => {
     showPoiUpgradesPanel.value = false;
 
     if (poi) {
-      const { useMapStore } = await import('./mapStore');
       const mapStore = useMapStore();
 
       if (poi.type === 'barrack') {
