@@ -3,7 +3,7 @@
     <span>{{ $t('hud.wave') }} {{ waveNumber }}</span>
     <template v-if="showCountdown">
       <span>→</span>
-      <span class="font-mono font-bold">{{ formattedTime }}</span>
+      <span class="font-mono font-bold" :class="{ 'text-red-400': remainingSeconds <= 10 }">{{ formattedTime }}</span>
     </template>
   </div>
 </template>
@@ -37,12 +37,17 @@ const showCountdown = computed(() => {
   return target > now.value;
 });
 
-const formattedTime = computed(() => {
+const remainingSeconds = computed(() => {
   const target = Number.isFinite(nextWaveTimestamp.value) ? nextWaveTimestamp.value : 0;
-  if (!target || target <= now.value) return '';
-  const diff = Math.max(0, Math.floor((target - now.value) / 1000));
-  const min = Math.floor(diff / 60);
-  const sec = diff % 60;
+  if (!target || target <= now.value) return 0;
+  return Math.max(0, Math.ceil((target - now.value) / 1000));
+});
+
+const formattedTime = computed(() => {
+  const secs = remainingSeconds.value;
+  if (!secs) return '';
+  const min = Math.floor(secs / 60);
+  const sec = secs % 60;
   return `${min}:${sec.toString().padStart(2, '0')}`;
 });
 </script>
