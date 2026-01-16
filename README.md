@@ -26,23 +26,44 @@
 - IA enemiga compleja (los enemigos solo se mueven hacia el objetivo más cercano).
 - Personalización de estructuras o unidades.
 
-## 🛠️ Tecnologías
+# 🗺️ NodeWars
 
+Juego de estrategia territorial basado en geolocalización — estado actual del proyecto
+
+## Estado real (implementado)
+- Mapa interactivo con geolocalización (Leaflet + OSM) y confirmación de la posición de la base.
+- Radar expandible desde la base; el radio afecta qué POIs se pueden escanear y controlar.
+- POIs reales detectados por escaneo: cada POI tiene recursos acumulables con una tasa de producción y capacidad.
+- Extracción manual y automática (`autoExtract`) de recursos; los recursos se usan por tipo (food, pharmacy, fuel, bank, police).
+- Conversión de POIs a `barrack` (cuartel) para extender cobertura, habilitar radares locales y nodos de ataque.
+- Mejoras: radar, auto-attack, auto-heal, nodos de base y mejoras de producción en POIs.
+- Oleadas de enemigos: spawn, movimiento hacia `base` o `barrack`, daño a estructuras y mecánicas de captura.
+- Sistema de ataques y curaciones (manuales y automáticas), animaciones y feedback visual en el mapa.
+- Persistencia local via IndexedDB (Dexie) para enemigos, POIs y estado de juego.
+
+## Comportamientos y límites importantes
+- Escaneos añaden POIs filtrados y limitados por categoría (máx. por scan). Los POIs tienen `productionRate`, `resourceAmount` y pueden auto-extraerse.
+- Las conexiones desde la base o un cuartel limitan cuántos nodos pueden ser conquistados.
+- Enemigos se generan por oleadas y se mueven hacia objetivos; al llegar, dañan o conquistan.
+- El juego es actualmente single-player y offline (persistencia local); no hay servidor multijugador.
+
+## No implementado / por mejorar
+- IA enemiga avanzada (por ahora siguen objetivos directos y reglas simples de spawn).
+
+## Tecnologías
 - Vue 3 (Composition API)
 - Leaflet + OpenStreetMap
-- Pinia (estado)
-- PrimeVue (UI)
-- TailwindCSS (estilos)
+- Pinia
+- TailwindCSS + PrimeVue
 - Dexie.js (IndexedDB)
-- i18n (multi-idioma)
+- i18n
 
-## 💻 Instalación y uso
-
+## Ejecutar localmente
 ```bash
-npm install
-npm run dev
+yarn
+yarn dev
 ```
 
 ---
 
-**NodeWars**: Conquista tu ciudad, domina el territorio. El mundo real es tu campo de batalla. 🗺️⚔️
+NodeWars — Conquista y controla puntos en el mundo real. El prototipo ya soporta escaneo, control de POIs, oleadas enemigas y mejoras persistentes.
