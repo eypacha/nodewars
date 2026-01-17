@@ -1,5 +1,5 @@
 <template>
-  <div class="fixed inset-0 z-[2600] flex items-center justify-center bg-black/70 text-white">
+  <div class="fixed inset-0 z-[2600] flex items-center justify-center bg-black/50 text-white">
     <div class="w-full max-w-sm border border-white/60 bg-black/90 p-6 text-center">
       <h2 class="text-2xl font-bold mb-3">{{ t('settings.title') }}</h2>
       <div class="border border-white/40 p-4 text-left">

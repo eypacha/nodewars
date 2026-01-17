@@ -3,9 +3,10 @@
     <GameHUD v-if="baseConfirmed" />
     <MapComponent />
     <GameStartPopup 
-      v-if="gameStore.showStartPopup" 
+      v-if="gameStore.showStartPopup && !showStartSettingsOverlay" 
       @start-game="handleStartGame"
       @continue-game="handleContinueGame"
+      @settings="showStartSettingsOverlay = true"
     />
     <GameOverPopup
       v-if="gameStore.showGameOverPopup"
@@ -24,6 +25,10 @@
     <SettingsOverlay
       v-if="isPaused && showSettingsOverlay"
       @back="showSettingsOverlay = false"
+    />
+    <SettingsOverlay
+      v-if="showStartSettingsOverlay"
+      @back="showStartSettingsOverlay = false"
     />
     <BaseLocationPopup 
       v-if="gameStore.showBaseLocationPopup" 
@@ -63,9 +68,11 @@ const { baseConfirmed } = storeToRefs(mapStore);
 const { isPaused } = storeToRefs(gameClockStore);
 const showStatsOverlay = ref(false);
 const showSettingsOverlay = ref(false);
+const showStartSettingsOverlay = ref(false);
 const { requestLocation } = useGeolocation();
 
 const handleStartGame = async () => {
+  showStartSettingsOverlay.value = false;
   // Resetear el estado del juego, mapa y POIs
   gameStore.resetGame();
   mapStore.resetMap();
@@ -82,6 +89,7 @@ const handleGameOverRestart = async () => {
 };
 
 const handleContinueGame = async () => {
+  showStartSettingsOverlay.value = false;
   // Cargar el estado guardado del mapa
   const savedState = mapStore.loadMapState();
   if (savedState) {

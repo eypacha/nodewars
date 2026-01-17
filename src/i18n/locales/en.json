@@ -7,7 +7,8 @@
     "startButton": "Start",
     "startNewButton": "Start New Game",
     "continueButton": "Continue",
-    "overwriteWarning": "This will overwrite the previous game."
+    "overwriteWarning": "This will overwrite the previous game.",
+    "settingsButton": "Settings"
   },
   "baseLocation": {
     "title": "Choose Your Base Location",

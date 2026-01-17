@@ -7,7 +7,8 @@
     "startButton": "Iniciar",
     "startNewButton": "Iniciar nueva partida",
     "continueButton": "Continuar",
-    "overwriteWarning": "Se borrará la partida anterior."
+    "overwriteWarning": "Se borrará la partida anterior.",
+    "settingsButton": "Configuración"
   },
   "baseLocation": {
     "title": "Elige la Ubicación de tu Base",

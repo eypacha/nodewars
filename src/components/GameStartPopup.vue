@@ -29,6 +29,15 @@
       <p v-if="hasSavedGame" class="text-sm text-center mt-3 text-gray-300">
         {{ $t('gameStart.overwriteWarning') }}
       </p>
+
+      <BaseButton
+        class="mt-6"
+        full-width
+        block
+        base-class="cursor-pointer font-bold py-3 px-6 border-1 text-lg mx-auto block w-full"
+        :label="$t('gameStart.settingsButton')"
+        @click="$emit('settings')"
+      />
     </div>
   </div>
 </template>
@@ -38,7 +47,7 @@ import { computed } from 'vue';
 import { useMapStore } from '@/stores/mapStore';
 import BaseButton from '@/components/UI/BaseButton.vue';
 
-defineEmits(['start-game', 'continue-game']);
+defineEmits(['start-game', 'continue-game', 'settings']);
 
 const mapStore = useMapStore();
 const hasSavedGame = computed(() => mapStore.hasSavedGame());
