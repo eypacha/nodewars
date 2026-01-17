@@ -63,14 +63,11 @@ export function useEnemyFeature({
   });
 
   const {
-    selectedEnemyForAttack,
-    enemyDialogStyle,
+    selectedEnemyId,
     isEnemyAttackOnCooldown,
     enemyAttackCooldownProgress,
     closeEnemyDialog,
-    updateEnemyDialogPosition,
     handleEnemyClick,
-    handleEnemyAttack,
   } = useEnemyDialog({
     mapRef,
     enemies,
@@ -132,26 +129,15 @@ export function useEnemyFeature({
   }, { immediate: true });
 
   onMounted(() => {
-    const syncDialogPosition = () => {
-      if (selectedEnemyForAttack.value) {
-        updateEnemyDialogPosition(selectedEnemyForAttack.value);
-      }
-    };
-
-    onMapEvent('move', syncDialogPosition);
-    onMapEvent('zoom', syncDialogPosition);
-    onMapEvent('click', closeEnemyDialog);
   });
 
   return {
     enemies,
     enemyMarkers,
-    selectedEnemyForAttack,
-    enemyDialogStyle,
+    selectedEnemyId,
     isEnemyAttackOnCooldown,
     enemyAttackCooldownProgress,
     handleEnemyClick,
-    handleEnemyAttack,
     closeEnemyDialog,
   };
 }

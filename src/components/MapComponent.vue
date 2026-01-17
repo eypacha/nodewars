@@ -81,7 +81,8 @@
       <div 
         v-for="enemy in enemyMarkers" 
         :key="enemy.id"
-        class="cursor-pointer pointer-events-auto cursor-pointer text-[#ff0000] text-[24px] filter drop-shadow-[0_0_10px_rgba(255,0,0,0.9)]"
+        class="enemy-marker cursor-pointer pointer-events-auto text-[#ff0000] text-[24px] filter drop-shadow-[0_0_10px_rgba(255,0,0,0.9)] rounded-full w-8 h-8 flex items-center justify-center relative"
+        :class="enemy.id === selectedEnemyId ? 'is-selected' : ''"
         :style="{
           position: 'absolute',
           left: `${enemy.x}px`,
@@ -89,16 +90,19 @@
           transform: `translate(-50%, -50%) rotate(${enemy.rotation}deg)`,
         }"
       >
+        <svg class="enemy-ring" viewBox="0 0 36 36" aria-hidden="true">
+          <circle class="enemy-ring-bg" cx="18" cy="18" r="16"></circle>
+          <circle
+            class="enemy-ring-progress"
+            cx="18"
+            cy="18"
+            r="16"
+            :style="enemy.id === selectedEnemyId ? { strokeDashoffset: enemyRingOffset } : null"
+          ></circle>
+        </svg>
         ▲
       </div>
     </Teleport>
-    <EnemyAttackDialog
-      v-if="selectedEnemyForAttack && enemyDialogStyle"
-      :style="enemyDialogStyle"
-      :is-on-cooldown="isEnemyAttackOnCooldown"
-      :cooldown-progress="enemyAttackCooldownProgress"
-      @attack="handleEnemyAttack"
-    />
     <Teleport v-if="resourceParticlesPane" :to="resourceParticlesPane">
       <div 
         v-for="particle in resourceParticles" 
@@ -138,7 +142,6 @@ import BaseMarker from './BaseMarker.vue';
 import MarkerConfirmDialog from './MarkerConfirmDialog.vue';
 import BaseMarkerDialog from './BaseMarkerDialog.vue';
 import POIDialog from './POIDialog.vue';
-import EnemyAttackDialog from './EnemyAttackDialog.vue';
 import UpgradesPanel from './UpgradesPanel.vue';
 import UpgradePoiPanel from './UpgradePoiPanel.vue';
 import { computeRadarsMetrics } from '@/utils/mathUtils';
@@ -288,12 +291,10 @@ provideMapContext({
 
 const {
   enemyMarkers,
-  selectedEnemyForAttack,
-  enemyDialogStyle,
+  selectedEnemyId,
   isEnemyAttackOnCooldown,
   enemyAttackCooldownProgress,
   handleEnemyClick,
-  handleEnemyAttack,
   closeEnemyDialog,
 } = useEnemyFeature({
   mapRef,
@@ -315,6 +316,14 @@ const {
   closeDialog,
   removeConnectionLine,
   mapStore,
+});
+
+const enemyRingOffset = computed(() => {
+  if (!selectedEnemyId.value) return 100;
+  if (isEnemyAttackOnCooldown.value) {
+    return 100 - enemyAttackCooldownProgress.value;
+  }
+  return 0;
 });
 
 const {
@@ -889,6 +898,33 @@ watch(selectedBarracksForAttack, (newBarrack) => {
   box-shadow: 0 0 10px rgba(0, 188, 255, 0.5);
   left: -1.5px;
   bottom: 0;
+}
+
+.enemy-ring {
+  position: absolute;
+  inset: -6px;
+  transform: rotate(-90deg);
+  opacity: 0;
+}
+
+.enemy-ring-bg {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.15);
+  stroke-width: 2;
+}
+
+.enemy-ring-progress {
+  fill: none;
+  stroke: white;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-dasharray: 100 100;
+  stroke-dashoffset: 100;
+  transition: stroke-dashoffset 0.1s linear;
+}
+
+.enemy-marker.is-selected .enemy-ring {
+  opacity: 1;
 }
 
 @keyframes sweep {
