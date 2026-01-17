@@ -3,7 +3,7 @@
  * Contiene constantes y configuraciones centralizadas
  */
 
-const BASE_RADAR_RADIUS = 700; // Radio base en metros
+import { BASE_RADAR_RADIUS } from '@/constants/player';
 
 export const MAP_CONFIG = {
   // Configuración de tiles
