@@ -81,7 +81,7 @@
       <div 
         v-for="enemy in enemyMarkers" 
         :key="enemy.id"
-        class="enemy-triangle cursor-pointer"
+        class="cursor-pointer pointer-events-auto cursor-pointer text-[#ff0000] text-[24px] filter drop-shadow-[0_0_10px_rgba(255,0,0,0.9)]"
         :style="{
           position: 'absolute',
           left: `${enemy.x}px`,
@@ -865,14 +865,6 @@ watch(selectedBarracksForAttack, (newBarrack) => {
   font-size: 24px;
   text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
   filter: drop-shadow(0 0 5px white);
-}
-
-.enemy-triangle {
-  pointer-events: auto;
-  cursor: pointer;
-  color: #ff0000;
-  font-size: 24px;
-  filter: drop-shadow(0 0 10px rgba(255, 0, 0, 0.9));
 }
 
 .resource-particle {
