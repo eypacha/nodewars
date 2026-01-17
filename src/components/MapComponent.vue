@@ -368,6 +368,8 @@ const radarRadius = computed(() => {
   return radarData.radius;
 });
 
+const isPausedBlocker = () => isPaused.value || gameStore.showGameOverPopup || gameStore.showStartPopup;
+
 
 const updateCoverageMetrics = () => {
   const radars = buildCoverageRadars({
@@ -382,6 +384,7 @@ const updateCoverageMetrics = () => {
 
 // Manejar ataque al POI
 const handleAttack = () => {
+  if (isPausedBlocker()) return;
   // Determinar el origen del ataque
   let attackOrigin = null;
   if (isBaseAttackOrigin.value && markerRef.value) {
@@ -396,6 +399,7 @@ const handleAttack = () => {
 
 // Manejar extracción manual de recursos
 const handleExtract = () => {
+  if (isPausedBlocker()) return;
   if (!selectedPOI.value || !selectedPOI.value.owned) return;
   const consumed = poiStore.consumeResource(selectedPOI.value.id);
   if (!consumed) return;
@@ -405,10 +409,12 @@ const handleExtract = () => {
 };
 
 const handleAutoExtract = () => {
+  if (isPausedBlocker()) return;
   handleExtract();
 };
 
 const handleHeal = () => {
+  if (isPausedBlocker()) return;
   if (!selectedPOI.value || !selectedPOI.value.owned) return;
   const target = selectedPOI.value;
   if (target.health >= target.maxHealth) return;
@@ -429,6 +435,7 @@ const handleHeal = () => {
 
 // Manejar conversión a barrack
 const handleConvertToBarracks = () => {
+  if (isPausedBlocker()) return;
   if (!selectedPOI.value) return;
   poiStore.convertToBarracks(selectedPOI.value.id);
   // Seleccionar la barraca como punto de ataque para mostrar el botón de scan
@@ -476,6 +483,7 @@ const handleMapClickWithEnemy = (event) => {
 };
 
 const handleScanFromBarracks = async () => {
+  if (isPausedBlocker()) return;
   if (!selectedPOI.value || selectedPOI.value.type !== 'barrack') return;
   const barrackPOI = selectedPOI.value;
   const position = { lat: barrackPOI.lat, lng: barrackPOI.lng };
@@ -493,6 +501,7 @@ const handleScanFromBarracks = async () => {
 
 // Manejar scan desde el diálogo del marcador
 const handleScan = async () => {
+  if (isPausedBlocker()) return;
   if (!markerRef.value) return;
 
   // Cerrar el diálogo de la base al INICIAR el escaneo

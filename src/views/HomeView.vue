@@ -11,6 +11,10 @@
       v-if="gameStore.showGameOverPopup"
       @restart="handleGameOverRestart"
     />
+    <PauseOverlay
+      v-if="isPaused"
+      @resume="gameClockStore.resume()"
+    />
     <BaseLocationPopup 
       v-if="gameStore.showBaseLocationPopup" 
       @location-selected="handleLocationSelected" 
@@ -28,10 +32,12 @@ import GameStartPopup from '../components/GameStartPopup.vue';
 import GameOverPopup from '../components/GameOverPopup.vue';
 import BaseLocationPopup from '../components/BaseLocationPopup.vue';
 import LocationRequiredPopup from '../components/LocationRequiredPopup.vue';
+import PauseOverlay from '../components/PauseOverlay.vue';
 import { useGameStore } from '@/stores/gameStore';
 import { useMapStore } from '@/stores/mapStore';
 import { usePoiStore } from '@/stores/poiStore';
 import { useEnemyStore } from '@/stores/enemyStore';
+import { useGameClockStore } from '@/stores/gameClockStore';
 import { useGeolocation } from '@/composables/useGeolocation';
 import { wipeDatabase } from '@/services/dbService';
 
@@ -39,7 +45,9 @@ const gameStore = useGameStore();
 const mapStore = useMapStore();
 const poiStore = usePoiStore();
 const enemyStore = useEnemyStore();
+const gameClockStore = useGameClockStore();
 const { baseConfirmed } = storeToRefs(mapStore);
+const { isPaused } = storeToRefs(gameClockStore);
 const { requestLocation } = useGeolocation();
 
 const handleStartGame = async () => {
