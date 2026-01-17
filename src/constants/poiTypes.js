@@ -1,3 +1,5 @@
+import i18n from '@/i18n';
+
 export const POI_TYPES = {
   food: {
     displayName: 'Supply Node',
@@ -61,7 +63,15 @@ const getPOITypeConfig = (type) => {
 
 export const getPOIColor = (type) => getPOITypeConfig(type).color;
 
-export const getPOIDisplayName = (type) => getPOITypeConfig(type).displayName || type;
+export const getPOIDisplayName = (type) => {
+  const normalized = normalizePOICategory(type);
+  const key = `poiTypes.${normalized}`;
+  const translated = i18n?.global?.t ? i18n.global.t(key) : null;
+  if (translated && translated !== key) {
+    return translated;
+  }
+  return getPOITypeConfig(type).displayName || type;
+};
 
 export const getPOIEmoji = (type) => getPOITypeConfig(type).emoji;
 

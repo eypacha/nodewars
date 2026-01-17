@@ -12,13 +12,18 @@
       @restart="handleGameOverRestart"
     />
     <PauseOverlay
-      v-if="isPaused && !showStatsOverlay"
+      v-if="isPaused && !showStatsOverlay && !showSettingsOverlay"
       @resume="handleResume"
       @stats="showStatsOverlay = true"
+      @settings="showSettingsOverlay = true"
     />
     <StatsOverlay
       v-if="isPaused && showStatsOverlay"
       @back="showStatsOverlay = false"
+    />
+    <SettingsOverlay
+      v-if="isPaused && showSettingsOverlay"
+      @back="showSettingsOverlay = false"
     />
     <BaseLocationPopup 
       v-if="gameStore.showBaseLocationPopup" 
@@ -39,6 +44,7 @@ import BaseLocationPopup from '../components/BaseLocationPopup.vue';
 import LocationRequiredPopup from '../components/LocationRequiredPopup.vue';
 import PauseOverlay from '../components/PauseOverlay.vue';
 import StatsOverlay from '../components/StatsOverlay.vue';
+import SettingsOverlay from '../components/SettingsOverlay.vue';
 import { useGameStore } from '@/stores/gameStore';
 import { useMapStore } from '@/stores/mapStore';
 import { usePoiStore } from '@/stores/poiStore';
@@ -56,6 +62,7 @@ const gameClockStore = useGameClockStore();
 const { baseConfirmed } = storeToRefs(mapStore);
 const { isPaused } = storeToRefs(gameClockStore);
 const showStatsOverlay = ref(false);
+const showSettingsOverlay = ref(false);
 const { requestLocation } = useGeolocation();
 
 const handleStartGame = async () => {
@@ -128,12 +135,14 @@ const handleUseGPS = async () => {
 
 const handleResume = () => {
   showStatsOverlay.value = false;
+  showSettingsOverlay.value = false;
   gameClockStore.resume();
 };
 
 watch(isPaused, (paused) => {
   if (!paused) {
     showStatsOverlay.value = false;
+    showSettingsOverlay.value = false;
   }
 });
 </script>

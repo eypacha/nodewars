@@ -1,31 +1,36 @@
 <template>
   <div class="fixed inset-0 z-[2600] flex items-center justify-center bg-black/70 text-white">
     <div class="w-full max-w-sm border border-white/60 bg-black/90 p-6 text-center">
-      <h2 class="text-2xl font-bold mb-3">Estadisticas</h2>
+      <h2 class="text-2xl font-bold mb-3">{{ t('stats.title') }}</h2>
       <div class="border border-white/40 p-4 text-left">
         <div class="flex items-center justify-between gap-2 text-sm">
-          <span class="font-bold">Contorno</span>
+          <span class="font-bold">{{ t('stats.contour') }}</span>
           <span>{{ formattedPerimeter }}</span>
         </div>
         <div class="flex items-center justify-between gap-2 text-sm mt-2">
-          <span class="font-bold">Campo</span>
+          <span class="font-bold">{{ t('stats.field') }}</span>
           <span>{{ formattedArea }}</span>
         </div>
         <div class="flex items-center justify-between gap-2 text-sm mt-2">
-          <span class="font-bold">Enemigos destruidos</span>
+          <span class="font-bold">{{ t('stats.enemiesDestroyed') }}</span>
           <span>{{ enemiesDestroyed }}</span>
+        </div>
+        <div class="flex items-center justify-between gap-2 text-sm mt-2">
+          <span class="font-bold">{{ t('stats.activeBarracks') }}</span>
+          <span>{{ activeBarracks }}</span>
         </div>
       </div>
       <div class="border border-white/40 p-4 text-left mt-4">
         <div class="flex items-center justify-between gap-2 text-sm font-bold mb-2">
-          <span class="w-40">Recursos capturados</span>
+          <span>{{ t('stats.resources') }}</span>
+          <span>{{ t('stats.capturedTotal') }}</span>
         </div>
         <div
           v-for="entry in resourceStats"
           :key="entry.type"
           class="flex items-center justify-between gap-2 text-sm"
         >
-          <span class="flex items-center gap-2 w-30">
+          <span class="flex items-center gap-2">
             <span
               class="inline-block h-2.5 w-2.5 rounded-full flex"
               :style="{ backgroundColor: entry.color }"
@@ -33,15 +38,14 @@
             ></span>
             <span>{{ entry.label }}</span>
           </span>
-          <span class="w-10 text-right">{{ entry.owned }}</span>
-          <span class="w-10 text-right">{{ entry.percent }}%</span> 
+          <span>{{ entry.owned }}/{{ entry.total }} ({{ entry.percent }}%)</span>
         </div>
       </div>
       <BaseButton
         full-width
         block
         base-class="cursor-pointer font-bold py-3 px-6 border-1 text-lg mx-auto block w-full mt-5"
-        label="Volver"
+        :label="t('stats.back')"
         @click="$emit('back')"
       />
     </div>
@@ -56,9 +60,11 @@ import { useMapStore } from '@/stores/mapStore';
 import { usePoiStore } from '@/stores/poiStore';
 import { useEnemyStore } from '@/stores/enemyStore';
 import { RESOURCE_POI_TYPES, getPOIColor, getPOIDisplayName, normalizePOICategory } from '@/constants/poiTypes';
+import { useI18n } from 'vue-i18n';
 
 defineEmits(['back']);
 
+const { t } = useI18n();
 const mapStore = useMapStore();
 const { coverageMetrics } = storeToRefs(mapStore);
 const poiStore = usePoiStore();
@@ -94,5 +100,10 @@ const resourceStats = computed(() => {
       color: getPOIColor(type),
     };
   });
+});
+
+const activeBarracks = computed(() => {
+  const list = Array.isArray(pois.value) ? pois.value : [];
+  return list.filter((poi) => poi.type === 'barrack' && poi.owned).length;
 });
 </script>

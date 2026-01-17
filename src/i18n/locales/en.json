@@ -109,5 +109,35 @@
     "title": "Game Over",
     "description": "The base has been destroyed.",
     "restart": "Restart"
+  },
+  "poiTypes": {
+    "food": "Food",
+    "pharmacy": "Pharmacy",
+    "fuel": "Fuel",
+    "bank": "Bank",
+    "police": "Police",
+    "barrack": "Barracks"
+  },
+  "pause": {
+    "title": "Game Paused",
+    "resume": "Back to game",
+    "stats": "Statistics",
+    "settings": "Settings"
+  },
+  "stats": {
+    "title": "Statistics",
+    "back": "Back",
+    "contour": "Contour",
+    "field": "Field",
+    "enemiesDestroyed": "Enemies destroyed",
+    "activeBarracks": "Active barracks (not captured)",
+    "resources": "Resources",
+    "capturedTotal": "Captured/Total"
+  },
+  "settings": {
+    "title": "Settings",
+    "language": "Language",
+    "spanish": "Spanish",
+    "english": "English"
   }
 }

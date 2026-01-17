@@ -98,7 +98,7 @@
     "autoAttack": "Auto-ataque",
     "autoAttackDesc": "Ataque pasivo desde la base contra enemigos cercanos.",
     "autoHeal": "Auto-heal",
-    "autoHealDesc": "Cura automaticamente la base usando farmacia.",
+    "autoHealDesc": "Cura automáticamente la base usando farmacia.",
     "currentCooldown": "Cooldown actual:",
     "nextCooldown": "Próximo cooldown:",
     "upgradeButton": "Mejorar",
@@ -109,5 +109,35 @@
     "title": "Game Over",
     "description": "La base ha sido destruida.",
     "restart": "Reiniciar"
+  },
+  "poiTypes": {
+    "food": "Comida",
+    "pharmacy": "Farmacia",
+    "fuel": "Combustible",
+    "bank": "Banco",
+    "police": "Policía",
+    "barrack": "Cuartel"
+  },
+  "pause": {
+    "title": "Juego en pausa",
+    "resume": "Volver al juego",
+    "stats": "Estadísticas",
+    "settings": "Configuración"
+  },
+  "stats": {
+    "title": "Estadísticas",
+    "back": "Volver",
+    "contour": "Contorno",
+    "field": "Campo",
+    "enemiesDestroyed": "Enemigos destruidos",
+    "activeBarracks": "Barracas activas (no capturadas)",
+    "resources": "Recursos",
+    "capturedTotal": "Capturados/Total"
+  },
+  "settings": {
+    "title": "Configuración",
+    "language": "Idioma",
+    "spanish": "Español",
+    "english": "English"
   }
 }
