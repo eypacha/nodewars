@@ -4,7 +4,7 @@ import { fetchPointsOfInterest } from '@/services/overpassService';
 import { getPOIColor } from '@/constants/poiTypes';
 import { calculateDistance } from '@/utils/mapHelpers';
 import { db } from '@/services/dbService';
-import { DEFAULT_RESOURCE_CAPACITY, DEFAULT_PRODUCTION_RATE, INITIAL_HEALTH, BASE_MAX_CONNECTIONS, BARRACKS_MAX_CONNECTIONS, BARRACKS_MAX_CONNECTIONS_INCREMENT } from '@/constants/pois';
+import { DEFAULT_RESOURCE_CAPACITY, DEFAULT_PRODUCTION_RATE, INITIAL_HEALTH, BASE_MAX_CONNECTIONS, BARRACKS_INITIAL_HEALTH, BARRACKS_MAX_CONNECTIONS, BARRACKS_MAX_CONNECTIONS_INCREMENT } from '@/constants/pois';
 import { PRODUCTION_UPGRADE_BASE_COST, PRODUCTION_UPGRADE_COST_GROWTH, PRODUCTION_RATE_MULTIPLIER, PRODUCTION_RATE_MIN_MS } from '@/constants/poiUpgrades';
 import { BARRACKS_MIN_RADIUS, BARRACKS_RADIUS_RATIO_BASE, BARRACKS_RADIUS_RATIO_BARRACK } from '@/constants/player';
 import { getRadarConfig } from '@/services/mapService';
@@ -470,12 +470,23 @@ export const usePoiStore = defineStore('poi', () => {
     if (poi.type === 'barrack') return false;
     poi.type = 'barrack';
     poi.color = BARRACK_COLOR;
+    poi.health = 0;
+    poi.maxHealth = BARRACKS_INITIAL_HEALTH;
     poi.barrackAutoAttackLevel = 0;
     poi.barrackAutoHealLevel = 0;
     poi.barrackNodesLevel = 1;
     const poiById = new Map(pois.value.map((entry) => [String(entry.id), entry]));
     poi.barrackRadarRadius = getBarrackRadarRadiusFor(poi, poiById);
-    updatePOI(poiId, { type: 'barrack', color: BARRACK_COLOR, barrackAutoAttackLevel: 0, barrackAutoHealLevel: 0, barrackNodesLevel: 1, barrackRadarRadius: poi.barrackRadarRadius });
+    updatePOI(poiId, {
+      type: 'barrack',
+      color: BARRACK_COLOR,
+      health: BARRACKS_INITIAL_HEALTH,
+      maxHealth: BARRACKS_INITIAL_HEALTH,
+      barrackAutoAttackLevel: 0,
+      barrackAutoHealLevel: 0,
+      barrackNodesLevel: 1,
+      barrackRadarRadius: poi.barrackRadarRadius,
+    });
     return true;
   };
 

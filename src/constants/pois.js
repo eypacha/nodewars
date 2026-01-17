@@ -2,5 +2,6 @@ export const INITIAL_HEALTH = 3;
 export const DEFAULT_RESOURCE_CAPACITY = 5;
 export const DEFAULT_PRODUCTION_RATE = 15000; // 30 seconds
 export const BASE_MAX_CONNECTIONS = 10;
+export const BARRACKS_INITIAL_HEALTH = 5;
 export const BARRACKS_MAX_CONNECTIONS = 5;
 export const BARRACKS_MAX_CONNECTIONS_INCREMENT = 1;
