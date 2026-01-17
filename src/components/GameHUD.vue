@@ -5,11 +5,12 @@
       <NextWaveTimer />
       <CoverageHUD />
       <button
-        class="pointer-events-auto rounded bg-white px-2 py-1 text-xs font-semibold text-black"
+        class="pointer-events-auto cursor-pointer px-2 py-1 text-lg font-semibold text-white"
         type="button"
+        aria-label="Pausar o reanudar"
         @click="togglePause"
       >
-        {{ isPaused ? 'Reanudar' : 'Pausar' }}
+        ☰
       </button>
     </div>
   </div>
