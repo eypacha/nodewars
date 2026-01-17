@@ -39,6 +39,10 @@ export function useBaseFeature({
   const handleConfirmMarker = () => {
     mapStore.confirmBase();
     disableDragging();
+    // Abrir diálogo del marcador de base inmediatamente después de confirmar
+    mapStore.openBaseMarkerDialog();
+    // Asegurar que la posición del diálogo esté sincronizada con el marcador
+    if (updateMarkerScreenPosition) updateMarkerScreenPosition();
   };
 
   const handleMarkerClick = (e) => {
