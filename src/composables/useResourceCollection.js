@@ -5,6 +5,7 @@
 import { ref } from 'vue';
 import L from 'leaflet';
 import { useGameStore } from '@/stores/gameStore';
+import { useGameClockStore } from '@/stores/gameClockStore';
 
 export const useResourceCollection = (mapRef, markerRef) => {
   const resourceParticles = ref([]);
@@ -12,6 +13,9 @@ export const useResourceCollection = (mapRef, markerRef) => {
   let nextSpawnId = 0;
   const pendingSpawns = ref([]);
   const gameStore = useGameStore();
+  const gameClockStore = useGameClockStore();
+  const REMOVE_DELAY_MS = 100;
+  let unsubscribeTick = null;
   const getRenderPoint = (latLng) => {
     if (!mapRef.value) return null;
     const pane = mapRef.value.getPane?.('resourceParticles');
@@ -56,6 +60,87 @@ export const useResourceCollection = (mapRef, markerRef) => {
     return { points: chain, ids: chainIds };
   };
 
+  const startTicking = () => {
+    if (unsubscribeTick) return;
+    unsubscribeTick = gameClockStore.onTick(({ nowMs, deltaMs }) => {
+      if (!deltaMs) return;
+      processPendingSpawns(nowMs);
+      updateParticles(nowMs);
+      if (!pendingSpawns.value.length && !resourceParticles.value.length) {
+        stopTicking();
+      }
+    });
+  };
+
+  const stopTicking = () => {
+    if (!unsubscribeTick) return;
+    unsubscribeTick();
+    unsubscribeTick = null;
+  };
+
+  const processPendingSpawns = (nowMs) => {
+    if (!pendingSpawns.value.length) return;
+    const remaining = [];
+    pendingSpawns.value.forEach((spawn) => {
+      if (spawn.at <= nowMs) {
+        spawn.fn();
+      } else {
+        remaining.push(spawn);
+      }
+    });
+    pendingSpawns.value = remaining;
+  };
+
+  const updateParticles = (nowMs) => {
+    if (!resourceParticles.value.length) return;
+    const toRemove = [];
+    resourceParticles.value.forEach((particle) => {
+      if (particle.completedAt != null) {
+        if (nowMs >= particle.completedAt + REMOVE_DELAY_MS) {
+          toRemove.push(particle.id);
+        }
+        return;
+      }
+
+      const elapsed = nowMs - particle.startTime;
+      const progress = Math.min(elapsed / particle.duration, 1);
+      const currentLat = particle.startLatLng.lat + (particle.endLatLng.lat - particle.startLatLng.lat) * progress;
+      const currentLng = particle.startLatLng.lng + (particle.endLatLng.lng - particle.startLatLng.lng) * progress;
+      const currentPoint = getRenderPoint(L.latLng([currentLat, currentLng]));
+      if (!currentPoint) return;
+
+      const particleIndex = resourceParticles.value.findIndex(p => p.id === particle.id);
+      if (particleIndex !== -1) {
+        resourceParticles.value[particleIndex].x = currentPoint.x;
+        resourceParticles.value[particleIndex].y = currentPoint.y;
+      }
+
+      if (progress < 1) return;
+
+      if (particle.isLastLeg) {
+        if (typeof particle.onArrive === 'function') {
+          particle.onArrive();
+        } else {
+          gameStore.addResource(particle.resourceType);
+        }
+      }
+      particle.onArrive = null;
+      particle.completedAt = nowMs;
+    });
+
+    if (toRemove.length) {
+      resourceParticles.value = resourceParticles.value.filter((particle) => !toRemove.includes(particle.id));
+    }
+  };
+
+  const scheduleSpawnInGame = (delayMs, fn, pathIds = []) => {
+    const at = gameClockStore.now() + Math.max(0, delayMs);
+    const spawnId = nextSpawnId++;
+    pendingSpawns.value.push({ id: spawnId, at, fn, pathIds });
+    startTicking();
+    return spawnId;
+  };
+
   /**
    * Crea una partícula que viaja de un punto a otro
    * @param {L.LatLng} startLatLng - Punto inicial
@@ -74,14 +159,14 @@ export const useResourceCollection = (mapRef, markerRef) => {
     const speed = 150; // m/s
     const duration = (distanceInMeters / speed) * 1000; // Duración en milisegundos
     
-    const startTime = performance.now();
+    const startTime = gameClockStore.now();
     const startPoint = getRenderPoint(startLatLng);
+    if (!startPoint) return;
     
     const particle = {
       id: particleId,
       x: startPoint.x,
       y: startPoint.y,
-      animationFrame: null,
       pathIds,
       startLatLng,
       endLatLng,
@@ -90,51 +175,12 @@ export const useResourceCollection = (mapRef, markerRef) => {
       resourceType,
       resourceColor,
       isLastLeg,
+      onArrive,
+      completedAt: null,
     };
     
     resourceParticles.value.push(particle);
-    
-    const animate = (currentTime) => {
-      const elapsed = currentTime - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      
-      // Interpolación lineal de las coordenadas geográficas
-      const currentLat = startLatLng.lat + (endLatLng.lat - startLatLng.lat) * progress;
-      const currentLng = startLatLng.lng + (endLatLng.lng - startLatLng.lng) * progress;
-      
-      // Convertir a coordenadas de pantalla
-      const currentPoint = getRenderPoint([currentLat, currentLng]);
-      
-      // Actualizar posición de la partícula
-      const particleIndex = resourceParticles.value.findIndex(p => p.id === particleId);
-      if (particleIndex !== -1) {
-        resourceParticles.value[particleIndex].x = currentPoint.x;
-        resourceParticles.value[particleIndex].y = currentPoint.y;
-      }
-      
-      if (progress < 1) {
-        particle.animationFrame = requestAnimationFrame(animate);
-      } else {
-        // Si es el último tramo, ejecutar callback o agregar recurso al gameStore
-        if (isLastLeg) {
-          if (typeof onArrive === 'function') {
-            onArrive();
-          } else {
-            gameStore.addResource(resourceType);
-          }
-        }
-        
-        // Eliminar la partícula después de un breve delay
-        setTimeout(() => {
-          const index = resourceParticles.value.findIndex(p => p.id === particleId);
-          if (index !== -1) {
-            resourceParticles.value.splice(index, 1);
-          }
-        }, 100);
-      }
-    };
-    
-    particle.animationFrame = requestAnimationFrame(animate);
+    startTicking();
   };
 
   /**
@@ -170,8 +216,7 @@ export const useResourceCollection = (mapRef, markerRef) => {
       const isLastLeg = (i === chain.length - 2); // Es el último tramo si es el anterior a la base
       
       // Stagger las partículas para que salgan en cascada
-      const spawnId = nextSpawnId++;
-      const timeoutId = setTimeout(() => {
+      scheduleSpawnInGame(delay, () => {
         createResourceParticle(
           L.latLng(startPoint),
           L.latLng(endPoint),
@@ -181,12 +226,7 @@ export const useResourceCollection = (mapRef, markerRef) => {
           isLastLeg ? (onArriveOverride ?? (() => gameStore.addResource(resourceType))) : null,
           chainIds
         );
-        const pendingIndex = pendingSpawns.value.findIndex((spawn) => spawn.id === spawnId);
-        if (pendingIndex !== -1) {
-          pendingSpawns.value.splice(pendingIndex, 1);
-        }
-      }, delay);
-      pendingSpawns.value.push({ id: spawnId, timeoutId, pathIds: chainIds });
+      }, chainIds);
       
       // Calcular el delay para el siguiente tramo
       const distanceInMeters = L.latLng(startPoint).distanceTo(L.latLng(endPoint));
@@ -200,21 +240,15 @@ export const useResourceCollection = (mapRef, markerRef) => {
    * Cancela todas las animaciones de recolección activas
    */
   const cancelResourceCollection = () => {
-    pendingSpawns.value.forEach((spawn) => clearTimeout(spawn.timeoutId));
     pendingSpawns.value = [];
-    resourceParticles.value.forEach(particle => {
-      if (particle.animationFrame) {
-        cancelAnimationFrame(particle.animationFrame);
-      }
-    });
     resourceParticles.value = [];
+    stopTicking();
   };
 
   const cancelResourceCollectionForBarrack = (barrackId) => {
     if (barrackId == null) return;
     pendingSpawns.value = pendingSpawns.value.filter((spawn) => {
       if (spawn.pathIds?.includes(barrackId)) {
-        clearTimeout(spawn.timeoutId);
         return false;
       }
       return true;
@@ -222,13 +256,13 @@ export const useResourceCollection = (mapRef, markerRef) => {
 
     resourceParticles.value = resourceParticles.value.filter((particle) => {
       if (particle.pathIds?.includes(barrackId)) {
-        if (particle.animationFrame) {
-          cancelAnimationFrame(particle.animationFrame);
-        }
         return false;
       }
       return true;
     });
+    if (!pendingSpawns.value.length && !resourceParticles.value.length) {
+      stopTicking();
+    }
   };
 
   /**
@@ -243,8 +277,8 @@ export const useResourceCollection = (mapRef, markerRef) => {
     const basePosition = markerRef.value.getLatLng();
 
     // Cadena desde el objetivo a la base y luego invertida (base -> objetivo)
-    let chain = buildSupplyChain(targetPOI, allPois);
-    chain = chain.points;
+    const { points: chainPoints, ids: chainIds } = buildSupplyChain(targetPOI, allPois);
+    let chain = chainPoints;
     const lastPoint = chain[chain.length - 1];
     if (lastPoint[0] !== basePosition.lat || lastPoint[1] !== basePosition.lng) {
       chain.push([basePosition.lat, basePosition.lng]);
@@ -257,16 +291,17 @@ export const useResourceCollection = (mapRef, markerRef) => {
       const endPoint = chain[i + 1];
       const isLastLeg = (i === chain.length - 2);
 
-      setTimeout(() => {
+      scheduleSpawnInGame(delay, () => {
         createResourceParticle(
           L.latLng(startPoint),
           L.latLng(endPoint),
           'pharmacy',
           resourceColor,
           isLastLeg,
-          isLastLeg ? onArrive : null
+          isLastLeg ? onArrive : null,
+          chainIds
         );
-      }, delay);
+      }, chainIds);
 
       const distanceInMeters = L.latLng(startPoint).distanceTo(L.latLng(endPoint));
       const speed = 150; // m/s

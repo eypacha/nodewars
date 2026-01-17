@@ -125,6 +125,7 @@ import { getPOIEmoji, getPOIDisplayName } from '@/constants/poiTypes';
 import { getRadarConfig } from '@/services/mapService';
 import { usePoiStore } from '@/stores/poiStore';
 import { useGameStore } from '@/stores/gameStore';
+import { useGameClockStore } from '@/stores/gameClockStore';
 import LabeledProgressBar from '@/components/UI/LabeledProgressBar.vue';
 import ProgressButton from '@/components/UI/ProgressButton.vue';
 import DialogShell from '@/components/UI/DialogShell.vue';
@@ -170,11 +171,12 @@ const props = defineProps({
 const emit = defineEmits(['close', 'attack', 'extract', 'autoextract', 'convertToBarracks', 'scan', 'stopScan', 'selectAsAttackOrigin', 'heal', 'open-poi-upgrades']);
 const poiStore = usePoiStore();
 const gameStore = useGameStore();
+const gameClockStore = useGameClockStore();
 const productionProgress = ref(0);
 const timeToNextProduction = ref(0);
 const atCapacity = ref(false);
 const autoExtractRequested = ref(false);
-let productionInterval = null;
+let unsubscribeTick = null;
 const baseRadarColor = getRadarConfig().color;
 const dialogPOIColor = computed(() => {
   if (!props.poi) return baseRadarColor;
@@ -250,7 +252,7 @@ const updateProductionProgress = () => {
 
   const updatedPOI = poiStore.applyProductionForPOI(props.poi.id) || props.poi;
   const rate = updatedPOI.productionRate || 0;
-  const lastProducedAt = updatedPOI.lastProducedAt || Date.now();
+  const lastProducedAt = updatedPOI.lastProducedAt || gameClockStore.now();
 
   if (!rate) {
     productionProgress.value = 0;
@@ -259,7 +261,7 @@ const updateProductionProgress = () => {
     return;
   }
 
-  const now = Date.now();
+  const now = gameClockStore.now();
   const elapsed = now - lastProducedAt;
   const isFull = updatedPOI.resourceAmount >= updatedPOI.resourceCapacity;
 
@@ -282,14 +284,16 @@ const updateProductionProgress = () => {
 const startProductionInterval = () => {
   stopProductionInterval();
   updateProductionProgress();
-  productionInterval = setInterval(updateProductionProgress, 500);
+  unsubscribeTick = gameClockStore.onTick(({ deltaMs }) => {
+    if (!deltaMs) return;
+    updateProductionProgress();
+  });
 };
 
 const stopProductionInterval = () => {
-  if (productionInterval) {
-    clearInterval(productionInterval);
-    productionInterval = null;
-  }
+  if (!unsubscribeTick) return;
+  unsubscribeTick();
+  unsubscribeTick = null;
 };
 
 // Calcular porcentaje de health

@@ -1,4 +1,5 @@
 import { onBeforeUnmount, ref } from 'vue';
+import { useGameClockStore } from '@/stores/gameClockStore';
 
 const timers = new Map();
 
@@ -6,6 +7,8 @@ export function useProgressTimer(durationMs, { onComplete, key } = {}) {
   if (!durationMs || durationMs <= 0) {
     throw new Error('useProgressTimer requires a positive duration');
   }
+
+  const gameClockStore = useGameClockStore();
 
   const getState = () => {
     if (key && timers.has(key)) {
@@ -15,7 +18,7 @@ export function useProgressTimer(durationMs, { onComplete, key } = {}) {
     const state = {
       progress: ref(0),
       isRunning: ref(false),
-      rafId: null,
+      unsubscribe: null,
       startTime: 0,
     };
 
@@ -26,9 +29,9 @@ export function useProgressTimer(durationMs, { onComplete, key } = {}) {
   const state = getState();
 
   const stop = () => {
-    if (state.rafId) {
-      cancelAnimationFrame(state.rafId);
-      state.rafId = null;
+    if (state.unsubscribe) {
+      state.unsubscribe();
+      state.unsubscribe = null;
     }
     state.isRunning.value = false;
     state.progress.value = 0;
@@ -39,26 +42,27 @@ export function useProgressTimer(durationMs, { onComplete, key } = {}) {
 
     state.isRunning.value = true;
     state.progress.value = 0;
-    state.startTime = performance.now();
+    state.startTime = gameClockStore.now();
 
-    const tick = (now) => {
-      const elapsed = now - state.startTime;
-      const value = Math.min((elapsed / durationMs) * 100, 100);
-      state.progress.value = value;
+    if (!state.unsubscribe) {
+      state.unsubscribe = gameClockStore.onTick(({ nowMs, deltaMs }) => {
+        if (!state.isRunning.value || !deltaMs) return;
+        const elapsed = nowMs - state.startTime;
+        const value = Math.min((elapsed / durationMs) * 100, 100);
+        state.progress.value = value;
 
-      if (value < 100) {
-        state.rafId = requestAnimationFrame(tick);
-      } else {
+        if (value < 100) return;
         state.isRunning.value = false;
         state.progress.value = 0;
-        state.rafId = null;
+        if (state.unsubscribe) {
+          state.unsubscribe();
+          state.unsubscribe = null;
+        }
         if (onComplete) onComplete();
         if (completeCallback) completeCallback();
         if (key) timers.delete(key);
-      }
-    };
-
-    state.rafId = requestAnimationFrame(tick);
+      });
+    }
   };
 
   onBeforeUnmount(() => {

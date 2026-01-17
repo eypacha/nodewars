@@ -10,10 +10,12 @@ import { BARRACKS_MIN_RADIUS, BARRACKS_RADIUS_RATIO_BASE, BARRACKS_RADIUS_RATIO_
 import { getRadarConfig } from '@/services/mapService';
 import { useGameStore } from '@/stores/gameStore';
 import { useMapStore } from '@/stores/mapStore';
+import { useGameClockStore } from '@/stores/gameClockStore';
 
 export const usePoiStore = defineStore('poi', () => {
   const BARRACK_COLOR = getPOIColor('barrack');
   const gameStore = useGameStore();
+  const gameClockStore = useGameClockStore();
 
   const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
   const computeProductionRate = (baseRate, level) => {
@@ -124,7 +126,7 @@ export const usePoiStore = defineStore('poi', () => {
     const productionBaseRate = poi.productionBaseRate ?? poi.productionRate ?? DEFAULT_PRODUCTION_RATE;
     const productionUpgradeLevel = poi.productionUpgradeLevel ?? 0;
     const productionRate = computeProductionRate(productionBaseRate, productionUpgradeLevel);
-    const lastProducedAt = poi.lastProducedAt ?? Date.now();
+    const lastProducedAt = poi.lastProducedAt ?? gameClockStore.now();
     const autoExtract = poi.autoExtract ?? false;
     const color = poi.type === 'barrack' ? BARRACK_COLOR : poi.color;
     const barrackAutoAttackLevel = poi.barrackAutoAttackLevel ?? 0;
@@ -153,7 +155,7 @@ export const usePoiStore = defineStore('poi', () => {
   const loadPOIs = async () => {
     try {
       const loadedPOIs = await db.pois.toArray();
-      const now = Date.now();
+      const now = gameClockStore.now();
       const barrackRadiusUpdates = [];
       const normalizedPOIs = loadedPOIs.map(poi => {
         const normalized = withProductionDefaults(poi);
@@ -222,7 +224,7 @@ export const usePoiStore = defineStore('poi', () => {
       poi.productionRate = effectiveRate;
     }
 
-    const now = Date.now();
+    const now = gameClockStore.now();
     const lastTick = poi.lastProducedAt ?? now;
     const elapsed = now - lastTick;
 
@@ -276,7 +278,7 @@ export const usePoiStore = defineStore('poi', () => {
 
       try {
         const fetchedPOIs = await fetchPointsOfInterest(center.lat, center.lng, radius);
-        const now = Date.now();
+        const now = gameClockStore.now();
 
         // Si durante el fetch se pidió detener, salir sin procesar
         state = { ...getScanState(key) };
@@ -536,7 +538,7 @@ export const usePoiStore = defineStore('poi', () => {
     const wasFull = poi.resourceAmount >= poi.resourceCapacity;
     poi.resourceAmount -= 1;
     if (wasFull) {
-      poi.lastProducedAt = Date.now();
+      poi.lastProducedAt = gameClockStore.now();
       updatePOI(poiId, { resourceAmount: poi.resourceAmount, lastProducedAt: poi.lastProducedAt });
     } else {
       updatePOI(poiId, { resourceAmount: poi.resourceAmount });

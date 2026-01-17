@@ -2,14 +2,17 @@ import { onBeforeUnmount } from 'vue';
 import { storeToRefs } from 'pinia';
 import { usePoiStore } from '@/stores/poiStore';
 import { useGameStore } from '@/stores/gameStore';
+import { useGameClockStore } from '@/stores/gameClockStore';
 import { getPOIColor } from '@/constants/poiTypes';
 
 export const useAutoExtract = ({ onAutoExtract } = {}) => {
   const poiStore = usePoiStore();
   const gameStore = useGameStore();
+  const gameClockStore = useGameClockStore();
   const { pois, selectedPOI, showPOIDialog } = storeToRefs(poiStore);
   const AUTO_EXTRACT_TICK_MS = 500;
-  let autoExtractInterval = null;
+  let unsubscribeTick = null;
+  let tickAccumulator = 0;
 
   const isBlockedByEnemyBarrack = (poi) => {
     if (!poi || !Array.isArray(pois.value)) return false;
@@ -53,14 +56,23 @@ export const useAutoExtract = ({ onAutoExtract } = {}) => {
   };
 
   const startAutoExtractLoop = () => {
-    if (autoExtractInterval) return;
-    autoExtractInterval = setInterval(handleAutoExtractTick, AUTO_EXTRACT_TICK_MS);
+    if (unsubscribeTick) return;
+    tickAccumulator = 0;
+    unsubscribeTick = gameClockStore.onTick(({ deltaMs }) => {
+      if (!deltaMs) return;
+      tickAccumulator += deltaMs;
+      while (tickAccumulator >= AUTO_EXTRACT_TICK_MS) {
+        handleAutoExtractTick();
+        tickAccumulator -= AUTO_EXTRACT_TICK_MS;
+      }
+    });
   };
 
   const stopAutoExtractLoop = () => {
-    if (!autoExtractInterval) return;
-    clearInterval(autoExtractInterval);
-    autoExtractInterval = null;
+    if (!unsubscribeTick) return;
+    unsubscribeTick();
+    unsubscribeTick = null;
+    tickAccumulator = 0;
   };
 
   startAutoExtractLoop();
