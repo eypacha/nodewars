@@ -90,6 +90,7 @@ export const usePoiStore = defineStore('poi', () => {
         shouldStopRetrying: false,
         retryTimeout: null,
         error: null,
+        paused: false,
       });
       scanStates.value = mapCopy;
     }
@@ -252,7 +253,7 @@ export const usePoiStore = defineStore('poi', () => {
 
   // Acciones
   const fetchPOIs = async (center, radius, options = {}) => {
-    const { stagger = false, staggerDelay = 200, originKey = defaultScanKey } = options;
+    const { stagger = false, staggerDelay = 200, originKey = defaultScanKey, pauseAware = true } = options;
 
     const key = originKey || defaultScanKey;
     let state = { ...getScanState(key) };
@@ -262,6 +263,7 @@ export const usePoiStore = defineStore('poi', () => {
     state.shouldStopRetrying = false;
     state.isLoading = true;
     state.error = null;
+    state.paused = false;
     setScanState(key, state);
     error.value = null;
 
@@ -275,6 +277,12 @@ export const usePoiStore = defineStore('poi', () => {
         setScanState(key, state);
         return { status: 'stopped', error: state.error };
       }
+      if (pauseAware && gameClockStore.isPaused) {
+        state.isLoading = false;
+        state.paused = true;
+        setScanState(key, state);
+        return { status: 'paused' };
+      }
 
       try {
         const fetchedPOIs = await fetchPointsOfInterest(center.lat, center.lng, radius);
@@ -286,6 +294,12 @@ export const usePoiStore = defineStore('poi', () => {
           state.isLoading = false;
           setScanState(key, state);
           return { status: 'stopped', error: 'stopped' };
+        }
+        if (pauseAware && gameClockStore.isPaused) {
+          state.isLoading = false;
+          state.paused = true;
+          setScanState(key, state);
+          return { status: 'paused' };
         }
 
         // Resetear contadores de reintento
@@ -353,10 +367,20 @@ export const usePoiStore = defineStore('poi', () => {
         if (stagger && poisToAdd.length) {
           for (let i = 0; i < poisToAdd.length; i++) {
             const poi = poisToAdd[i];
+            if (pauseAware && gameClockStore.isPaused) {
+              state = { ...getScanState(key), isLoading: false, paused: true };
+              setScanState(key, state);
+              return { status: 'paused' };
+            }
             pois.value = [...pois.value, poi];
             await savePOI(poi);
             if (i < poisToAdd.length - 1 && staggerDelay > 0) {
               await sleep(staggerDelay);
+              if (pauseAware && gameClockStore.isPaused) {
+                state = { ...getScanState(key), isLoading: false, paused: true };
+                setScanState(key, state);
+                return { status: 'paused' };
+              }
             }
           }
         } else {
@@ -382,6 +406,11 @@ export const usePoiStore = defineStore('poi', () => {
           setScanState(key, state);
           console.log(`Reintentando (${key})... (${state.retryCount}/${maxRetries})`);
           await sleep(3000);
+          if (pauseAware && gameClockStore.isPaused) {
+            state = { ...getScanState(key), isLoading: false, paused: true };
+            setScanState(key, state);
+            return { status: 'paused' };
+          }
           continue;
         }
 

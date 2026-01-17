@@ -59,6 +59,7 @@
       v-for="sweep in radarSweepStyles"
       :key="sweep.id"
       class="radar-sweep"
+      :class="{ 'is-paused': isPaused }"
       :style="sweep.style"
     >
       <div class="sweep-line"></div>
@@ -126,6 +127,7 @@ import { storeToRefs } from 'pinia';
 import { useMapStore } from '@/stores/mapStore';
 import { usePoiStore } from '@/stores/poiStore';
 import { useGameStore } from '@/stores/gameStore';
+import { useGameClockStore } from '@/stores/gameClockStore';
 import { useLeafletMap } from '@/composables/useLeafletMap';
 import { useMapMarker } from '@/composables/useMapMarker';
 import { useAttackRadar } from '@/composables/useAttackRadar';
@@ -159,8 +161,10 @@ const mapStore = useMapStore();
 let isProgrammaticMapMove = false;
 const poiStore = usePoiStore();
 const gameStore = useGameStore();
+const gameClockStore = useGameClockStore();
 const { center, zoom, marker, activeDialog, baseConfirmed, showUpgradesPanel } = storeToRefs(mapStore);
 const { radarLevel, resources, baseHealth, baseMaxHealth, showStartPopup, autoAttackLevel, autoHealLevel, isBaseCaptured } = storeToRefs(gameStore);
+const { isPaused } = storeToRefs(gameClockStore);
 const baseNodesUsed = computed(() => (pois.value || []).filter((poi) => poi.owned && !poi.conqueredFrom).length);
 const baseNodesMax = computed(() => gameStore.getMaxBaseNodes());
 const { selectedPOI, showPOIDialog, showPoiUpgradesPanel, isLoading, pois } = storeToRefs(poiStore);
@@ -886,6 +890,10 @@ watch(selectedBarracksForAttack, (newBarrack) => {
 
 .radar-sweep {
   pointer-events: none;
+}
+
+.radar-sweep.is-paused .sweep-line {
+  animation-play-state: paused;
 }
 
 .sweep-line {

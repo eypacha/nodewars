@@ -1,5 +1,7 @@
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import L from 'leaflet';
+import { useGameClockStore } from '@/stores/gameClockStore';
+import { storeToRefs } from 'pinia';
 
 /**
  * Gestiona el estado de scans y las animaciones de radar
@@ -13,6 +15,8 @@ export function useScanCoverage({
   poiStore,
   mapStore,
 }) {
+  const gameClockStore = useGameClockStore();
+  const { isPaused } = storeToRefs(gameClockStore);
   const scanContexts = ref(new Map());
   const scanAnimationTimeouts = ref(new Map());
 
@@ -59,11 +63,16 @@ export function useScanCoverage({
       mapStore.closeAllDialogs();
     }
 
-    addScanContext(key, { type, position, radius });
+    addScanContext(key, { type, position, radius, originId, paused: false });
     console.log(`[scan] start ${key}`, position, radius);
 
     try {
       const result = await poiStore.fetchPOIs(position, radius, { stagger: true, staggerDelay: 250, originKey: key });
+
+      if (result?.status === 'paused') {
+        addScanContext(key, { type, position, radius, originId, paused: true });
+        return;
+      }
 
       if (result?.status === 'ok' || result?.status === 'stopped') {
         const timeoutId = setTimeout(() => {
@@ -121,6 +130,25 @@ export function useScanCoverage({
         };
       })
       .filter(Boolean);
+  });
+
+  const resumePausedScans = () => {
+    const paused = activeScanContexts.value.filter((ctx) => ctx?.paused);
+    paused.forEach((ctx) => {
+      runScan({
+        type: ctx.type,
+        position: ctx.position,
+        radius: ctx.radius,
+        closeDialogs: false,
+        originId: ctx.originId ?? null,
+      });
+    });
+  };
+
+  watch(isPaused, (paused) => {
+    if (!paused) {
+      resumePausedScans();
+    }
   });
 
   return {
