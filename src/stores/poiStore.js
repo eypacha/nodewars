@@ -6,7 +6,7 @@ import { calculateDistance } from '@/utils/mapHelpers';
 import { db } from '@/services/dbService';
 import { DEFAULT_RESOURCE_CAPACITY, DEFAULT_PRODUCTION_RATE, INITIAL_HEALTH, BASE_MAX_CONNECTIONS, BARRACKS_MAX_CONNECTIONS, BARRACKS_MAX_CONNECTIONS_INCREMENT } from '@/constants/pois';
 import { PRODUCTION_UPGRADE_BASE_COST, PRODUCTION_UPGRADE_COST_GROWTH, PRODUCTION_RATE_MULTIPLIER, PRODUCTION_RATE_MIN_MS } from '@/constants/poiUpgrades';
-import { BARRACKS_MIN_RADIUS, BARRACKS_RADIUS_RATIO } from '@/constants/player';
+import { BARRACKS_MIN_RADIUS, BARRACKS_RADIUS_RATIO_BASE, BARRACKS_RADIUS_RATIO_BARRACK } from '@/constants/player';
 import { getRadarConfig } from '@/services/mapService';
 import { useGameStore } from '@/stores/gameStore';
 import { useMapStore } from '@/stores/mapStore';
@@ -30,12 +30,12 @@ export const usePoiStore = defineStore('poi', () => {
     return baseConfig.radius;
   };
 
-  const getBarrackRadiusFromParent = (parentRadius) => (
-    Math.max(BARRACKS_MIN_RADIUS, Math.round(parentRadius * BARRACKS_RADIUS_RATIO))
+  const getBarrackRadiusFromParent = (parentRadius, ratio) => (
+    Math.max(BARRACKS_MIN_RADIUS, Math.round(parentRadius * ratio))
   );
 
   const getBarrackRadarRadiusFor = (barrack, poiById = null, visited = new Set()) => {
-    const baseRadius = getBarrackRadiusFromParent(getBaseRadarRadius());
+    const baseRadius = getBarrackRadiusFromParent(getBaseRadarRadius(), BARRACKS_RADIUS_RATIO_BASE);
     if (!barrack || barrack.type !== 'barrack') {
       return baseRadius;
     }
@@ -62,7 +62,7 @@ export const usePoiStore = defineStore('poi', () => {
     const parentRadius = Number.isFinite(parent.barrackRadarRadius)
       ? parent.barrackRadarRadius
       : getBarrackRadarRadiusFor(parent, mapRef, visited);
-    const childRadius = getBarrackRadiusFromParent(parentRadius);
+    const childRadius = getBarrackRadiusFromParent(parentRadius, BARRACKS_RADIUS_RATIO_BARRACK);
     barrack.barrackRadarRadius = childRadius;
     return childRadius;
   };

@@ -7,7 +7,7 @@
 import { ref } from 'vue';
 import L from 'leaflet';
 import { getRadarConfig } from '@/services/mapService';
-import { BARRACKS_MIN_RADIUS, BARRACKS_RADIUS_RATIO } from '@/constants/player';
+import { BARRACKS_MIN_RADIUS, BARRACKS_RADIUS_RATIO_BASE } from '@/constants/player';
 import { computePointOnEdge } from '@/utils/mathUtils';
 import { ENEMY_COLOR } from '@/constants/colors';
 
@@ -34,7 +34,7 @@ export const useAttackRadar = (mapRef) => {
       const color = center.isEnemy ? ENEMY_RADAR_COLOR : BASE_RADAR_COLOR;
       const defaultRadius = Math.max(
         BARRACKS_MIN_RADIUS,
-        Math.round(getRadarConfig().radius * BARRACKS_RADIUS_RATIO)
+        Math.round(getRadarConfig().radius * BARRACKS_RADIUS_RATIO_BASE)
       );
       const radarRadius = center.radarRadius ?? center.barrackRadarRadius ?? defaultRadius;
       if (isActive) {

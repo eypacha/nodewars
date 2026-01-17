@@ -120,7 +120,7 @@
 import { computed, ref, onMounted, onBeforeUnmount, watch } from 'vue';
 import { calculateDistance } from '@/utils/mapHelpers';
 import { BARRACKS_MAX_CONNECTIONS, BARRACKS_MAX_CONNECTIONS_INCREMENT } from '@/constants/pois';
-import { BARRACKS_MIN_RADIUS, BARRACKS_RADIUS_RATIO } from '@/constants/player';
+import { BARRACKS_MIN_RADIUS, BARRACKS_RADIUS_RATIO_BASE } from '@/constants/player';
 import { getPOIEmoji, getPOIDisplayName } from '@/constants/poiTypes';
 import { getRadarConfig } from '@/services/mapService';
 import { usePoiStore } from '@/stores/poiStore';
@@ -383,7 +383,7 @@ const isInRange = computed(() => {
       [props.poi.lat, props.poi.lng]
     );
     const barrackRadius = props.selectedBarracksForAttack.barrackRadarRadius
-      ?? Math.max(BARRACKS_MIN_RADIUS, Math.round(props.radarRadius * BARRACKS_RADIUS_RATIO));
+      ?? Math.max(BARRACKS_MIN_RADIUS, Math.round(props.radarRadius * BARRACKS_RADIUS_RATIO_BASE));
     return distanceFromBarrack <= barrackRadius;
   }
   

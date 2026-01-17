@@ -1,4 +1,4 @@
-export const INITIAL_HEALTH = 5;
+export const INITIAL_HEALTH = 1;
 export const DEFAULT_RESOURCE_CAPACITY = 5;
 export const DEFAULT_PRODUCTION_RATE = 15000; // 30 seconds
 export const BASE_MAX_CONNECTIONS = 10;
