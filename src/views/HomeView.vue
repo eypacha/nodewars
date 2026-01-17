@@ -66,6 +66,7 @@ const enemyStore = useEnemyStore();
 const gameClockStore = useGameClockStore();
 const { baseConfirmed } = storeToRefs(mapStore);
 const { isPaused } = storeToRefs(gameClockStore);
+const { showGameOverPopup } = storeToRefs(gameStore);
 const showStatsOverlay = ref(false);
 const showSettingsOverlay = ref(false);
 const showStartSettingsOverlay = ref(false);
@@ -151,6 +152,12 @@ watch(isPaused, (paused) => {
   if (!paused) {
     showStatsOverlay.value = false;
     showSettingsOverlay.value = false;
+  }
+});
+
+watch(showGameOverPopup, (visible) => {
+  if (visible) {
+    gameClockStore.pause();
   }
 });
 </script>
