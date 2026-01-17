@@ -109,7 +109,7 @@
   "gameOver": {
     "title": "Game Over",
     "description": "La base ha sido destruida.",
-    "restart": "Reiniciar"
+    "backToMenu": "Volver al menu principal"
   },
   "poiTypes": {
     "food": "Comida",

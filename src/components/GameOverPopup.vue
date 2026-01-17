@@ -7,8 +7,8 @@
         full-width
         block
         base-class="cursor-pointer font-bold py-4 px-6 border-1 text-xl mx-auto block w-full"
-        :label="$t('gameOver.restart')"
-        @click="$emit('restart')"
+        :label="$t('gameOver.backToMenu')"
+        @click="$emit('back-to-menu')"
       />
     </div>
   </div>
@@ -17,5 +17,5 @@
 <script setup>
 import BaseButton from '@/components/UI/BaseButton.vue';
 
-defineEmits(['restart']);
+defineEmits(['back-to-menu']);
 </script>

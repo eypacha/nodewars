@@ -25,3 +25,15 @@ export const wipeDatabase = async () => {
     console.error('Error wiping database:', error);
   }
 };
+
+export const clearGameData = async () => {
+  try {
+    await db.transaction('rw', db.pois, db.game, db.enemies, async () => {
+      await db.pois.clear();
+      await db.game.clear();
+      await db.enemies.clear();
+    });
+  } catch (error) {
+    console.error('Error clearing game data:', error);
+  }
+};

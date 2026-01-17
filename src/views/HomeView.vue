@@ -10,20 +10,20 @@
     />
     <GameOverPopup
       v-if="gameStore.showGameOverPopup"
-      @restart="handleGameOverRestart"
+      @back-to-menu="handleGameOverBackToMenu"
     />
     <PauseOverlay
-      v-if="isPaused && !showGameOverPopup && !showStatsOverlay && !showSettingsOverlay"
+      v-if="isPaused && !showGameOverPopup && !showStartPopup && !showStatsOverlay && !showSettingsOverlay"
       @resume="handleResume"
       @stats="showStatsOverlay = true"
       @settings="showSettingsOverlay = true"
     />
     <StatsOverlay
-      v-if="isPaused && !showGameOverPopup && showStatsOverlay"
+      v-if="isPaused && !showGameOverPopup && !showStartPopup && showStatsOverlay"
       @back="showStatsOverlay = false"
     />
     <SettingsOverlay
-      v-if="isPaused && !showGameOverPopup && showSettingsOverlay"
+      v-if="isPaused && !showGameOverPopup && !showStartPopup && showSettingsOverlay"
       @back="showSettingsOverlay = false"
     />
     <SettingsOverlay
@@ -57,7 +57,7 @@ import { useEnemyStore } from '@/stores/enemyStore';
 import { useGameClockStore } from '@/stores/gameClockStore';
 import { useGeolocation } from '@/composables/useGeolocation';
 import { ref, watch } from 'vue';
-import { wipeDatabase } from '@/services/dbService';
+import { clearGameData } from '@/services/dbService';
 
 const gameStore = useGameStore();
 const mapStore = useMapStore();
@@ -66,7 +66,7 @@ const enemyStore = useEnemyStore();
 const gameClockStore = useGameClockStore();
 const { baseConfirmed } = storeToRefs(mapStore);
 const { isPaused } = storeToRefs(gameClockStore);
-const { showGameOverPopup } = storeToRefs(gameStore);
+const { showGameOverPopup, showStartPopup } = storeToRefs(gameStore);
 const showStatsOverlay = ref(false);
 const showSettingsOverlay = ref(false);
 const showStartSettingsOverlay = ref(false);
@@ -83,10 +83,16 @@ const handleStartGame = async () => {
   mapStore.clearSavedGame();
 };
 
-const handleGameOverRestart = async () => {
-  mapStore.clearSavedGame();
-  await wipeDatabase();
-  window.location.reload();
+const handleGameOverBackToMenu = () => {
+  showStartSettingsOverlay.value = false;
+  showStatsOverlay.value = false;
+  showSettingsOverlay.value = false;
+  showGameOverPopup.value = false;
+  showStartPopup.value = true;
+  gameStore.showBaseLocationPopup = false;
+  gameStore.showLocationPopup = false;
+  mapStore.resetMap();
+  gameClockStore.resume();
 };
 
 const handleContinueGame = async () => {
@@ -159,6 +165,8 @@ watch(showGameOverPopup, (visible) => {
   if (visible) {
     showStatsOverlay.value = false;
     showSettingsOverlay.value = false;
+    mapStore.clearSavedGame();
+    void clearGameData();
     gameClockStore.pause();
   }
 });
