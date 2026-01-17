@@ -1,4 +1,5 @@
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
+import { useGameClockStore } from '@/stores/gameClockStore';
 
 export const useAutoHeal = ({
   baseConfirmed,
@@ -10,31 +11,22 @@ export const useAutoHeal = ({
   getCooldownMs,
   onHeal,
 }) => {
-  const autoHealTimeoutId = ref(null);
+  const gameClockStore = useGameClockStore();
   const autoHealProgress = ref(0);
   const timeToNextHeal = ref(0);
   const lastAutoHealAt = ref(null);
-  let autoHealProgressIntervalId = null;
+  const nextHealAt = ref(null);
+  let unsubscribeTick = null;
 
   const autoHealUnlocked = computed(() => (autoHealLevel?.value ?? 0) > 0);
   const autoHealCooldownMs = computed(() => (typeof getCooldownMs === 'function' ? getCooldownMs() : null));
   const autoHealEnabled = computed(() => baseConfirmed.value && autoHealUnlocked.value && !isBaseCaptured.value);
 
-  const clearAutoHealTimeout = () => {
-    if (autoHealTimeoutId.value) {
-      clearTimeout(autoHealTimeoutId.value);
-      autoHealTimeoutId.value = null;
-    }
-  };
-
   const clearAutoHealProgress = () => {
-    if (autoHealProgressIntervalId) {
-      clearInterval(autoHealProgressIntervalId);
-      autoHealProgressIntervalId = null;
-    }
     autoHealProgress.value = 0;
     timeToNextHeal.value = 0;
     lastAutoHealAt.value = null;
+    nextHealAt.value = null;
   };
 
   const updateAutoHealProgress = () => {
@@ -51,21 +43,17 @@ export const useAutoHeal = ({
       return;
     }
 
-    const now = Date.now();
+    const now = gameClockStore.now();
     const last = lastAutoHealAt.value ?? now;
     const elapsed = now - last;
     autoHealProgress.value = Math.max(100 - (elapsed / cooldown) * 100, 0);
     timeToNextHeal.value = Math.max(cooldown - (elapsed % cooldown), 0);
   };
 
-  const startAutoHealProgress = () => {
-    if (autoHealProgressIntervalId) return;
-    if (!autoHealEnabled.value) return;
-    if (lastAutoHealAt.value == null) {
-      lastAutoHealAt.value = Date.now();
-    }
-    updateAutoHealProgress();
-    autoHealProgressIntervalId = setInterval(updateAutoHealProgress, 250);
+  const stopTicking = () => {
+    if (!unsubscribeTick) return;
+    unsubscribeTick();
+    unsubscribeTick = null;
   };
 
   const tryAutoHeal = () => {
@@ -84,31 +72,36 @@ export const useAutoHeal = ({
       tryAutoHeal();
     }
 
-    if (autoHealTimeoutId.value) return;
+    if (nextHealAt.value != null) return;
 
-    lastAutoHealAt.value = Date.now();
+    lastAutoHealAt.value = gameClockStore.now();
     updateAutoHealProgress();
-    startAutoHealProgress();
+    nextHealAt.value = lastAutoHealAt.value + cooldown;
 
-    autoHealTimeoutId.value = setTimeout(() => {
-      autoHealTimeoutId.value = null;
+    if (!unsubscribeTick) {
+      unsubscribeTick = gameClockStore.onTick(({ nowMs, deltaMs }) => {
+        if (!deltaMs) return;
+        updateAutoHealProgress();
+        if (nextHealAt.value == null || nowMs < nextHealAt.value) return;
+        nextHealAt.value = null;
 
-      if (!autoHealEnabled.value) {
+        if (!autoHealEnabled.value) {
+          scheduleAutoHeal();
+          return;
+        }
+
+        tryAutoHeal();
         scheduleAutoHeal();
-        return;
-      }
-
-      tryAutoHeal();
-      scheduleAutoHeal();
-    }, cooldown);
+      });
+    }
   };
 
   watch(
     [baseConfirmed, autoHealUnlocked, isBaseCaptured],
     ([confirmed, unlocked, captured]) => {
       if (!confirmed || !unlocked || captured) {
-        clearAutoHealTimeout();
         clearAutoHealProgress();
+        stopTicking();
         return;
       }
       scheduleAutoHeal();
@@ -116,20 +109,20 @@ export const useAutoHeal = ({
   );
 
   watch(autoHealCooldownMs, () => {
-    clearAutoHealTimeout();
     clearAutoHealProgress();
+    stopTicking();
     if (!autoHealEnabled.value) return;
     scheduleAutoHeal();
   });
 
   onBeforeUnmount(() => {
-    clearAutoHealTimeout();
     clearAutoHealProgress();
+    stopTicking();
   });
 
   return {
     scheduleAutoHeal,
-    clearAutoHealTimeout,
+    clearAutoHealProgress,
     autoHealProgress,
     timeToNextHeal,
   };

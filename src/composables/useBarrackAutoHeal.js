@@ -1,4 +1,5 @@
 import { onBeforeUnmount, reactive } from 'vue';
+import { useGameClockStore } from '@/stores/gameClockStore';
 
 // Expose reactive maps so UI components can show per-barrack progress
 export const barrackAutoHealProgress = reactive({});
@@ -13,12 +14,14 @@ export const useBarrackAutoHeal = ({
 }) => {
   const AUTO_HEAL_TICK_MS = 500;
   const lastHealAtByBarrack = new Map();
-  let intervalId = null;
+  const gameClockStore = useGameClockStore();
+  let unsubscribeTick = null;
+  let tickAccumulator = 0;
 
   const handleBarrackAutoHealTick = () => {
     if (!Array.isArray(pois.value) || !pois.value.length) return;
 
-    const now = Date.now();
+    const now = gameClockStore.now();
     pois.value.forEach((poi) => {
       if (!poi || poi.type !== 'barrack' || !poi.owned) return;
       const level = poi.barrackAutoHealLevel ?? 0;
@@ -53,14 +56,23 @@ export const useBarrackAutoHeal = ({
   };
 
   const startBarrackAutoHeal = () => {
-    if (intervalId) return;
-    intervalId = setInterval(handleBarrackAutoHealTick, AUTO_HEAL_TICK_MS);
+    if (unsubscribeTick) return;
+    tickAccumulator = 0;
+    unsubscribeTick = gameClockStore.onTick(({ deltaMs }) => {
+      if (!deltaMs) return;
+      tickAccumulator += deltaMs;
+      while (tickAccumulator >= AUTO_HEAL_TICK_MS) {
+        handleBarrackAutoHealTick();
+        tickAccumulator -= AUTO_HEAL_TICK_MS;
+      }
+    });
   };
 
   const stopBarrackAutoHeal = () => {
-    if (!intervalId) return;
-    clearInterval(intervalId);
-    intervalId = null;
+    if (!unsubscribeTick) return;
+    unsubscribeTick();
+    unsubscribeTick = null;
+    tickAccumulator = 0;
   };
 
   startBarrackAutoHeal();

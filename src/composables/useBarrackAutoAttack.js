@@ -2,6 +2,7 @@ import { onBeforeUnmount } from 'vue';
 import L from 'leaflet';
 import { BARRACKS_MIN_RADIUS, BARRACKS_RADIUS_RATIO_BASE } from '@/constants/player';
 import { getRadarConfig } from '@/services/mapService';
+import { useGameClockStore } from '@/stores/gameClockStore';
 
 export const useBarrackAutoAttack = ({
   pois,
@@ -13,7 +14,9 @@ export const useBarrackAutoAttack = ({
   const AUTO_ATTACK_TICK_MS = 500;
   const lastShotAtByBarrack = new Map();
   const engagedEnemyIdsByBarrack = new Map();
-  let intervalId = null;
+  const gameClockStore = useGameClockStore();
+  let unsubscribeTick = null;
+  let tickAccumulator = 0;
 
   const getNearestEnemyInRange = (barrack, enemyList, engagedEnemyIds) => {
     if (!barrack || !Array.isArray(enemyList) || !enemyList.length) return null;
@@ -37,7 +40,7 @@ export const useBarrackAutoAttack = ({
   const handleBarrackAutoAttackTick = () => {
     if (!Array.isArray(pois.value) || !pois.value.length || !enemies.value.length) return;
 
-    const now = Date.now();
+    const now = gameClockStore.now();
     const liveEnemyIds = new Set(enemies.value.map((enemy) => enemy.id));
     engagedEnemyIdsByBarrack.forEach((set) => {
       set.forEach((id) => {
@@ -81,14 +84,23 @@ export const useBarrackAutoAttack = ({
   };
 
   const startBarrackAutoAttack = () => {
-    if (intervalId) return;
-    intervalId = setInterval(handleBarrackAutoAttackTick, AUTO_ATTACK_TICK_MS);
+    if (unsubscribeTick) return;
+    tickAccumulator = 0;
+    unsubscribeTick = gameClockStore.onTick(({ deltaMs }) => {
+      if (!deltaMs) return;
+      tickAccumulator += deltaMs;
+      while (tickAccumulator >= AUTO_ATTACK_TICK_MS) {
+        handleBarrackAutoAttackTick();
+        tickAccumulator -= AUTO_ATTACK_TICK_MS;
+      }
+    });
   };
 
   const stopBarrackAutoAttack = () => {
-    if (!intervalId) return;
-    clearInterval(intervalId);
-    intervalId = null;
+    if (!unsubscribeTick) return;
+    unsubscribeTick();
+    unsubscribeTick = null;
+    tickAccumulator = 0;
   };
 
   startBarrackAutoAttack();
