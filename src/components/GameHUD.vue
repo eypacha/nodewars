@@ -4,12 +4,32 @@
       <ResourceHUD />
       <NextWaveTimer />
       <CoverageHUD />
+      <button
+        class="pointer-events-auto rounded bg-white px-2 py-1 text-xs font-semibold text-black"
+        type="button"
+        @click="togglePause"
+      >
+        {{ isPaused ? 'Reanudar' : 'Pausar' }}
+      </button>
     </div>
   </div>
 </template>
 
 <script setup>
+import { storeToRefs } from 'pinia';
 import CoverageHUD from './CoverageHUD.vue';
 import ResourceHUD from './ResourceHUD.vue';
 import NextWaveTimer from './NextWaveTimer.vue';
+import { useGameClockStore } from '@/stores/gameClockStore';
+
+const gameClockStore = useGameClockStore();
+const { isPaused } = storeToRefs(gameClockStore);
+
+const togglePause = () => {
+  if (isPaused.value) {
+    gameClockStore.resume();
+  } else {
+    gameClockStore.pause();
+  }
+};
 </script>
