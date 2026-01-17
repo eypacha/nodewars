@@ -12,20 +12,6 @@
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 items-stretch">
-        <!-- Radar Level Upgrade -->
-        <UpgradeCard
-          :title="$t('upgrades.radar')"
-          :subtitle="`${radarLevel} → ${radarLevel + 1}`"
-          :cost="nextUpgradeCostDisplay"
-          :costColor="'#fbbf24'"
-          :description="[
-            $t('upgrades.increaseRange'),
-            `${$t('upgrades.currentRadius')} ${currentRadarRadius}m`
-          ]"
-          :buttonLabel="maxLevelReached ? $t('upgrades.maxLevel') : canAffordUpgrade ? $t('upgrades.upgradeButton') : $t('upgrades.insufficientFunds')"
-          :disabled="!canAffordUpgrade || maxLevelReached"
-          :onClick="handleUpgrade"
-        />
 
         <!-- Auto-Attack Upgrade -->
         <UpgradeCard
@@ -57,6 +43,21 @@
           :onClick="handleAutoHealUpgrade"
         />
 
+        <!-- Radar Level Upgrade -->
+        <UpgradeCard
+          :title="$t('upgrades.radar')"
+          :subtitle="`${radarLevel} → ${radarLevel + 1}`"
+          :cost="nextUpgradeCostDisplay"
+          :costColor="'#fbbf24'"
+          :description="[
+            $t('upgrades.increaseRange'),
+            `${$t('upgrades.currentRadius')} ${currentRadarRadius}m`
+          ]"
+          :buttonLabel="maxLevelReached ? $t('upgrades.maxLevel') : canAffordUpgrade ? $t('upgrades.upgradeButton') : $t('upgrades.insufficientFunds')"
+          :disabled="!canAffordUpgrade || maxLevelReached"
+          :onClick="handleUpgrade"
+        />
+        
         <!-- Base Nodes Upgrade -->
         <UpgradeCard
           :title="$t('upgrades.baseNodes')"
