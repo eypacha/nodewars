@@ -29,10 +29,11 @@ export const useEnemyStore = defineStore('enemy', () => {
   const enemies = ref([]);
   const waveNumber = ref(1);
   const nextWaveTimestamp = ref(0);
+  const enemiesDestroyed = ref(0);
   let persistTimeout = null;
 
   const initialize = async () => {
-    await Promise.all([loadEnemies(), loadWaveNumber(), loadNextWaveTimestamp()]);
+    await Promise.all([loadEnemies(), loadWaveNumber(), loadNextWaveTimestamp(), loadEnemiesDestroyed()]);
   };
 
   const loadEnemies = async () => {
@@ -66,6 +67,17 @@ export const useEnemyStore = defineStore('enemy', () => {
     }
   };
 
+  const loadEnemiesDestroyed = async () => {
+    try {
+      const stored = await db.game.get('enemiesDestroyed');
+      if (stored?.data != null) {
+        enemiesDestroyed.value = stored.data;
+      }
+    } catch (err) {
+      console.error('Error loading enemies destroyed from DB', err);
+    }
+  };
+
   const persistEnemies = async () => {
     try {
       await db.enemies.clear();
@@ -90,6 +102,14 @@ export const useEnemyStore = defineStore('enemy', () => {
       await db.game.put({ key: 'nextWaveTimestamp', data: nextWaveTimestamp.value });
     } catch (err) {
       console.error('Error persisting next wave timestamp to DB', err);
+    }
+  };
+
+  const persistEnemiesDestroyed = async () => {
+    try {
+      await db.game.put({ key: 'enemiesDestroyed', data: enemiesDestroyed.value });
+    } catch (err) {
+      console.error('Error persisting enemies destroyed to DB', err);
     }
   };
 
@@ -140,7 +160,12 @@ export const useEnemyStore = defineStore('enemy', () => {
   };
 
   const removeEnemy = (id) => {
+    const hadEnemy = enemies.value.some((e) => e.id === id);
     enemies.value = enemies.value.filter((e) => e.id !== id);
+    if (hadEnemy) {
+      enemiesDestroyed.value += 1;
+      persistEnemiesDestroyed();
+    }
     db.enemies.delete(id).catch((err) => console.error('Error deleting enemy from DB', err));
     schedulePersist();
   };
@@ -160,9 +185,15 @@ export const useEnemyStore = defineStore('enemy', () => {
     setWaveNumber(waveNumber.value + 1);
   };
 
+  const resetEnemiesDestroyed = () => {
+    enemiesDestroyed.value = 0;
+    persistEnemiesDestroyed();
+  };
+
   const resetWaveState = () => {
     setWaveNumber(1);
     setNextWaveTimestamp(0);
+    resetEnemiesDestroyed();
   };
 
   const clearEnemies = async () => {
@@ -182,6 +213,7 @@ export const useEnemyStore = defineStore('enemy', () => {
     enemies,
     waveNumber,
     nextWaveTimestamp,
+    enemiesDestroyed,
     initialize,
     loadEnemies,
     spawnEnemy,
@@ -191,10 +223,12 @@ export const useEnemyStore = defineStore('enemy', () => {
     persistEnemies,
     persistWaveNumber,
     persistNextWaveTimestamp,
+    persistEnemiesDestroyed,
     schedulePersist,
     setNextWaveTimestamp,
     setWaveNumber,
     incrementWaveNumber,
+    resetEnemiesDestroyed,
     resetWaveState,
   };
 });

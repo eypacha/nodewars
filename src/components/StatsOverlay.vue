@@ -11,6 +11,31 @@
           <span class="font-bold">Campo</span>
           <span>{{ formattedArea }}</span>
         </div>
+        <div class="flex items-center justify-between gap-2 text-sm mt-2">
+          <span class="font-bold">Enemigos destruidos</span>
+          <span>{{ enemiesDestroyed }}</span>
+        </div>
+      </div>
+      <div class="border border-white/40 p-4 text-left mt-4">
+        <div class="flex items-center justify-between gap-2 text-sm font-bold mb-2">
+          <span class="w-40">Recursos capturados</span>
+        </div>
+        <div
+          v-for="entry in resourceStats"
+          :key="entry.type"
+          class="flex items-center justify-between gap-2 text-sm"
+        >
+          <span class="flex items-center gap-2 w-30">
+            <span
+              class="inline-block h-2.5 w-2.5 rounded-full flex"
+              :style="{ backgroundColor: entry.color }"
+              aria-hidden="true"
+            ></span>
+            <span>{{ entry.label }}</span>
+          </span>
+          <span class="w-10 text-right">{{ entry.owned }}</span>
+          <span class="w-10 text-right">{{ entry.percent }}%</span> 
+        </div>
       </div>
       <BaseButton
         full-width
@@ -28,11 +53,18 @@ import { computed } from 'vue';
 import { storeToRefs } from 'pinia';
 import BaseButton from '@/components/UI/BaseButton.vue';
 import { useMapStore } from '@/stores/mapStore';
+import { usePoiStore } from '@/stores/poiStore';
+import { useEnemyStore } from '@/stores/enemyStore';
+import { RESOURCE_POI_TYPES, getPOIColor, getPOIDisplayName, normalizePOICategory } from '@/constants/poiTypes';
 
 defineEmits(['back']);
 
 const mapStore = useMapStore();
 const { coverageMetrics } = storeToRefs(mapStore);
+const poiStore = usePoiStore();
+const { pois } = storeToRefs(poiStore);
+const enemyStore = useEnemyStore();
+const { enemiesDestroyed } = storeToRefs(enemyStore);
 
 const formattedPerimeter = computed(() => {
   const value = Number.isFinite(coverageMetrics.value.perimeter) ? coverageMetrics.value.perimeter : 0;
@@ -45,5 +77,22 @@ const formattedPerimeter = computed(() => {
 const formattedArea = computed(() => {
   const value = Number.isFinite(coverageMetrics.value.area) ? coverageMetrics.value.area : 0;
   return `${(value / 1_000_000).toFixed(2)} km2`;
+});
+
+const resourceStats = computed(() => {
+  const list = Array.isArray(pois.value) ? pois.value : [];
+  return RESOURCE_POI_TYPES.map((type) => {
+    const total = list.filter((poi) => normalizePOICategory(poi.category || poi.type) === type).length;
+    const owned = list.filter((poi) => poi.owned && normalizePOICategory(poi.category || poi.type) === type).length;
+    const percent = total > 0 ? Math.round((owned / total) * 100) : 0;
+    return {
+      type,
+      total,
+      owned,
+      percent,
+      label: getPOIDisplayName(type),
+      color: getPOIColor(type),
+    };
+  });
 });
 </script>
