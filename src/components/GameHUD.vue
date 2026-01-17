@@ -3,7 +3,6 @@
     <div class="flex items-center justify-between gap-3">
       <ResourceHUD />
       <NextWaveTimer />
-      <CoverageHUD />
       <button
         class="pointer-events-auto cursor-pointer px-2 py-1 text-lg font-semibold text-white"
         type="button"
@@ -18,7 +17,6 @@
 
 <script setup>
 import { storeToRefs } from 'pinia';
-import CoverageHUD from './CoverageHUD.vue';
 import ResourceHUD from './ResourceHUD.vue';
 import NextWaveTimer from './NextWaveTimer.vue';
 import { useGameClockStore } from '@/stores/gameClockStore';
