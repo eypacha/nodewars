@@ -131,7 +131,7 @@
     "contour": "Contorno",
     "field": "Campo",
     "enemiesDestroyed": "Enemigos destruidos",
-    "activeBarracks": "Barracas activas (no capturadas)",
+    "activeBarracks": "Barracas activas",
     "resources": "Recursos",
     "capturedTotal": "Capturados/Total"
   },

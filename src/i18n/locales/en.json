@@ -131,7 +131,7 @@
     "contour": "Contour",
     "field": "Field",
     "enemiesDestroyed": "Enemies destroyed",
-    "activeBarracks": "Active barracks (not captured)",
+    "activeBarracks": "Active barracks",
     "resources": "Resources",
     "capturedTotal": "Captured/Total"
   },
