@@ -75,7 +75,7 @@
         zIndex: 800,
       }"
     >
-      {{ triangle.type === 'heal' ? '💊' : triangle.isAuto ? '▴' : '▲' }}
+      ▲
     </div>
     <Teleport v-if="enemyPane && !showStartPopup && baseConfirmed" :to="enemyPane">
       <div 
