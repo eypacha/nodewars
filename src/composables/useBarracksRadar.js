@@ -5,7 +5,7 @@
 import { ref } from 'vue';
 import L from 'leaflet';
 import { getRadarConfig } from '@/services/mapService';
-import { BARRACKS_RADIUS_RATIO } from '@/constants/player';
+import { BARRACKS_MIN_RADIUS, BARRACKS_RADIUS_RATIO } from '@/constants/player';
 
 export const useBarracksRadar = (mapRef) => {
   const barracksRadars = ref(new Map());
@@ -44,7 +44,8 @@ export const useBarracksRadar = (mapRef) => {
       } else {
         // Crear nuevo radar con el color del radar principal
         const baseRadius = getRadarConfig().radius;
-        const barrackRadius = barrack.barrackRadarRadius ?? (baseRadius * BARRACKS_RADIUS_RATIO);
+        const barrackRadius = barrack.barrackRadarRadius
+          ?? Math.max(BARRACKS_MIN_RADIUS, Math.round(baseRadius * BARRACKS_RADIUS_RATIO));
         const radar = L.circle([barrack.lat, barrack.lng], {
           color: BASE_RADAR_COLOR, // Color del radar principal
           fillColor: BASE_RADAR_COLOR,

@@ -4,4 +4,4 @@ export const ENEMY_SPEED_RATIO = 0.80; // Relativo a la velocidad base (más len
 export const ENEMY_WAVE_BASE_SIZE = 8;
 export const ENEMY_WAVE_GROWTH_RATE = 0.15; // 15% más enemigos por oleada
 export const ENEMY_PROJECTILE_STAGGER_MS = 600;
-export const ENEMY_ATTACK_COOLDOWN_MS = 2000;
+export const ENEMY_ATTACK_COOLDOWN_MS = 1800;

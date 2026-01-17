@@ -6,7 +6,7 @@ import { calculateDistance } from '@/utils/mapHelpers';
 import { db } from '@/services/dbService';
 import { DEFAULT_RESOURCE_CAPACITY, DEFAULT_PRODUCTION_RATE, INITIAL_HEALTH, BASE_MAX_CONNECTIONS, BARRACKS_MAX_CONNECTIONS, BARRACKS_MAX_CONNECTIONS_INCREMENT } from '@/constants/pois';
 import { PRODUCTION_UPGRADE_BASE_COST, PRODUCTION_UPGRADE_COST_GROWTH, PRODUCTION_RATE_MULTIPLIER, PRODUCTION_RATE_MIN_MS } from '@/constants/poiUpgrades';
-import { BARRACKS_RADIUS_RATIO } from '@/constants/player';
+import { BARRACKS_MIN_RADIUS, BARRACKS_RADIUS_RATIO } from '@/constants/player';
 import { getRadarConfig } from '@/services/mapService';
 import { useGameStore } from '@/stores/gameStore';
 import { useMapStore } from '@/stores/mapStore';
@@ -30,25 +30,41 @@ export const usePoiStore = defineStore('poi', () => {
     return baseConfig.radius;
   };
 
-  const getBarrackRadarRadiusFor = (barrack, poiById = null) => {
+  const getBarrackRadiusFromParent = (parentRadius) => (
+    Math.max(BARRACKS_MIN_RADIUS, Math.round(parentRadius * BARRACKS_RADIUS_RATIO))
+  );
+
+  const getBarrackRadarRadiusFor = (barrack, poiById = null, visited = new Set()) => {
+    const baseRadius = getBarrackRadiusFromParent(getBaseRadarRadius());
     if (!barrack || barrack.type !== 'barrack') {
-      return getBaseRadarRadius() * BARRACKS_RADIUS_RATIO;
+      return baseRadius;
     }
     if (Number.isFinite(barrack.barrackRadarRadius)) return barrack.barrackRadarRadius;
 
     if (!barrack.conqueredFrom) {
-      return getBaseRadarRadius() * BARRACKS_RADIUS_RATIO;
+      barrack.barrackRadarRadius = baseRadius;
+      return baseRadius;
     }
+
+    const barrackId = String(barrack.id ?? barrack.conqueredFrom);
+    if (visited.has(barrackId)) {
+      return baseRadius;
+    }
+    visited.add(barrackId);
 
     const mapRef = poiById ?? new Map(pois.value.map((poi) => [String(poi.id), poi]));
     const parent = mapRef.get(String(barrack.conqueredFrom));
     if (!parent || parent.type !== 'barrack') {
-      return getBaseRadarRadius() * BARRACKS_RADIUS_RATIO;
+      barrack.barrackRadarRadius = baseRadius;
+      return baseRadius;
     }
 
-    const parentRadius = parent.barrackRadarRadius ?? (getBaseRadarRadius() * BARRACKS_RADIUS_RATIO);
-    barrack.barrackRadarRadius = parentRadius;
-    return parentRadius;
+    const parentRadius = Number.isFinite(parent.barrackRadarRadius)
+      ? parent.barrackRadarRadius
+      : getBarrackRadarRadiusFor(parent, mapRef, visited);
+    const childRadius = getBarrackRadiusFromParent(parentRadius);
+    barrack.barrackRadarRadius = childRadius;
+    return childRadius;
   };
 
   // Estado
