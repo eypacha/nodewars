@@ -6,11 +6,77 @@ import { ref } from 'vue';
 import L from 'leaflet';
 import { usePoiStore } from '@/stores/poiStore';
 import { getRadarConfig } from '@/services/mapService';
+import { useGameClockStore } from '@/stores/gameClockStore';
 
 export const useAttackAnimation = (mapRef, markerRef, { radarLevel } = {}) => {
   const attackTriangles = ref([]);
   let nextAttackId = 0;
   const poiStore = usePoiStore();
+  const gameClockStore = useGameClockStore();
+  let unsubscribeTick = null;
+  const REMOVE_DELAY_MS = 100;
+
+  const startTicking = () => {
+    if (unsubscribeTick) return;
+    unsubscribeTick = gameClockStore.onTick(({ nowMs }) => {
+      if (!attackTriangles.value.length) return;
+      const toRemove = [];
+
+      attackTriangles.value.forEach((attack) => {
+        if (attack.completedAt != null) {
+          if (nowMs >= attack.completedAt + REMOVE_DELAY_MS) {
+            toRemove.push(attack.id);
+          }
+          return;
+        }
+
+        const elapsed = nowMs - attack.startTime;
+        const progress = Math.min(elapsed / attack.duration, 1);
+
+        if (attack.trackTarget) {
+          const dynamicTarget = attack.trackTarget();
+          if (dynamicTarget && dynamicTarget.lat != null && dynamicTarget.lng != null) {
+            attack.endLatLng = [dynamicTarget.lat, dynamicTarget.lng];
+          }
+        }
+
+        const endLatLng = attack.endLatLng;
+        const currentLat = attack.startLatLng.lat + (endLatLng[0] - attack.startLatLng.lat) * progress;
+        const currentLng = attack.startLatLng.lng + (endLatLng[1] - attack.startLatLng.lng) * progress;
+        const currentPoint = mapRef.value.latLngToContainerPoint([currentLat, currentLng]);
+        const endPoint = mapRef.value.latLngToContainerPoint(endLatLng);
+
+        const attackIndex = attackTriangles.value.findIndex(a => a.id === attack.id);
+        if (attackIndex !== -1) {
+          attackTriangles.value[attackIndex].x = currentPoint.x;
+          attackTriangles.value[attackIndex].y = currentPoint.y;
+          attackTriangles.value[attackIndex].rotation = ((Math.atan2(endPoint.y - currentPoint.y, endPoint.x - currentPoint.x) * 180) / Math.PI) + 90;
+        }
+
+        const distanceToTarget = L.latLng([currentLat, currentLng]).distanceTo(L.latLng(endLatLng));
+        if (progress < 1 && distanceToTarget > attack.interceptDistanceMeters) return;
+
+        if (attack.onHit) {
+          attack.onHit();
+        } else if (attack.targetId != null) {
+          const attackOriginId = attack.attackOriginId ?? null;
+          poiStore.damagePOI(attack.targetId, 1, attackOriginId);
+        }
+
+        attack.completedAt = nowMs;
+      });
+
+      if (toRemove.length) {
+        attackTriangles.value = attackTriangles.value.filter((attack) => !toRemove.includes(attack.id));
+      }
+    });
+  };
+
+  const stopTicking = () => {
+    if (!unsubscribeTick) return;
+    unsubscribeTick();
+    unsubscribeTick = null;
+  };
 
   /**
    * Inicia la animación de ataque hacia un POI
@@ -48,7 +114,7 @@ export const useAttackAnimation = (mapRef, markerRef, { radarLevel } = {}) => {
     const dy = endPoint.y - startPoint.y;
     const rotation = (Math.atan2(dy, dx) * 180 / Math.PI) + 90; // +90 para que apunte hacia arriba por defecto
     
-    const startTime = performance.now();
+    const startTime = gameClockStore.now();
     
     // Crear objeto de ataque
     const attack = {
@@ -58,79 +124,28 @@ export const useAttackAnimation = (mapRef, markerRef, { radarLevel } = {}) => {
       rotation: rotation,
       isAuto,
       type,
-      animationFrame: null,
       startLatLng,
       endLatLng,
       startTime,
       duration,
+      onHit,
+      trackTarget,
+      interceptDistanceMeters,
+      targetId: target.id,
+      attackOriginId: attackOrigin ? attackOrigin.id : null,
+      completedAt: null,
     };
     
     attackTriangles.value.push(attack);
-    
-    const animate = (currentTime) => {
-      const elapsed = currentTime - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      
-      // Actualizar objetivo dinámico si se proporciona
-      if (trackTarget) {
-        const dynamicTarget = trackTarget();
-        if (dynamicTarget && dynamicTarget.lat != null && dynamicTarget.lng != null) {
-          endLatLng = [dynamicTarget.lat, dynamicTarget.lng];
-          endPoint = mapRef.value.latLngToContainerPoint(endLatLng);
-        }
-      }
-
-      // Interpolación lineal de las coordenadas geográficas
-      const currentLat = startLatLng.lat + (endLatLng[0] - startLatLng.lat) * progress;
-      const currentLng = startLatLng.lng + (endLatLng[1] - startLatLng.lng) * progress;
-      
-      // Convertir a coordenadas de pantalla
-      const currentPoint = mapRef.value.latLngToContainerPoint([currentLat, currentLng]);
-      
-      // Actualizar posición del triángulo
-      const attackIndex = attackTriangles.value.findIndex(a => a.id === attackId);
-      if (attackIndex !== -1) {
-        attackTriangles.value[attackIndex].x = currentPoint.x;
-        attackTriangles.value[attackIndex].y = currentPoint.y;
-        attackTriangles.value[attackIndex].rotation = ((Math.atan2(endPoint.y - currentPoint.y, endPoint.x - currentPoint.x) * 180) / Math.PI) + 90;
-      }
-
-      const distanceToTarget = L.latLng([currentLat, currentLng]).distanceTo(L.latLng(endLatLng));
-
-      if (progress < 1 && distanceToTarget > interceptDistanceMeters) {
-        attack.animationFrame = requestAnimationFrame(animate);
-      } else {
-        // Animación completada o interceptada - ejecutar callback o dañar POI
-        if (onHit) {
-          onHit();
-        } else if (target.id != null) {
-          const attackOriginId = attackOrigin ? attackOrigin.id : null;
-          poiStore.damagePOI(target.id, 1, attackOriginId);
-        }
-        
-        // Eliminar el ataque después de un breve delay
-        setTimeout(() => {
-          const index = attackTriangles.value.findIndex(a => a.id === attackId);
-          if (index !== -1) {
-            attackTriangles.value.splice(index, 1);
-          }
-        }, 100);
-      }
-    };
-    
-    attack.animationFrame = requestAnimationFrame(animate);
+    startTicking();
   };
 
   /**
    * Cancela todas las animaciones de ataque activas
    */
   const cancelAttack = () => {
-    attackTriangles.value.forEach(attack => {
-      if (attack.animationFrame) {
-        cancelAnimationFrame(attack.animationFrame);
-      }
-    });
     attackTriangles.value = [];
+    stopTicking();
   };
 
   return {

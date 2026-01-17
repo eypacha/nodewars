@@ -1,5 +1,6 @@
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import L from 'leaflet';
+import { useGameClockStore } from '@/stores/gameClockStore';
 
 export const useAutoAttack = ({
   markerRef,
@@ -10,16 +11,19 @@ export const useAutoAttack = ({
   startAttack,
   removeEnemy,
 }) => {
-  const autoAttackTimeoutId = ref(null);
   const autoAttackTargetIndex = ref(0);
+  const gameClockStore = useGameClockStore();
+  const nextFireAt = ref(null);
+  let unsubscribeTick = null;
 
   const autoAttackUnlocked = computed(() => (autoAttackLevel?.value ?? 0) > 0);
   const autoAttackCooldownMs = computed(() => (typeof getCooldownMs === 'function' ? getCooldownMs() : null));
 
   const clearAutoAttackTimeout = () => {
-    if (autoAttackTimeoutId.value) {
-      clearTimeout(autoAttackTimeoutId.value);
-      autoAttackTimeoutId.value = null;
+    nextFireAt.value = null;
+    if (unsubscribeTick) {
+      unsubscribeTick();
+      unsubscribeTick = null;
     }
   };
 
@@ -64,26 +68,28 @@ export const useAutoAttack = ({
     if (!cooldown) return;
 
     if (immediate) {
-      if (autoAttackTimeoutId.value) {
-        clearAutoAttackTimeout();
-      }
+      if (nextFireAt.value != null) clearAutoAttackTimeout();
       fireAutoAttack();
     }
 
-    if (autoAttackTimeoutId.value) return;
+    if (nextFireAt.value != null) return;
 
-    autoAttackTimeoutId.value = setTimeout(() => {
-      autoAttackTimeoutId.value = null;
+    nextFireAt.value = gameClockStore.now() + cooldown;
+    if (!unsubscribeTick) {
+      unsubscribeTick = gameClockStore.onTick(({ nowMs }) => {
+        if (nextFireAt.value == null) return;
+        if (nowMs < nextFireAt.value) return;
+        nextFireAt.value = null;
 
-      if (!baseConfirmed.value || !enemies.value.length || !autoAttackUnlocked.value) {
+        if (!baseConfirmed.value || !enemies.value.length || !autoAttackUnlocked.value) {
+          scheduleAutoAttack();
+          return;
+        }
+
+        fireAutoAttack();
         scheduleAutoAttack();
-        return;
-      }
-
-      fireAutoAttack();
-
-      scheduleAutoAttack();
-    }, cooldown);
+      });
+    }
   };
 
   watch(
