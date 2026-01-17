@@ -2,16 +2,20 @@ import { ref, onBeforeUnmount, watch } from 'vue';
 import { ENEMY_SPAWN_INTERVAL_MS, ENEMY_WAVE_BASE_SIZE, ENEMY_WAVE_GROWTH_RATE, ENEMY_PROJECTILE_STAGGER_MS } from '@/constants/enemies';
 import { BARRACKS_MIN_RADIUS, BARRACKS_RADIUS_RATIO_BASE } from '@/constants/player';
 import { useEnemyStore } from '@/stores/enemyStore';
+import { useGameClockStore } from '@/stores/gameClockStore';
 import { getRadarConfig } from '@/services/mapService';
 import { computeBearingRadians, createUniformSpawnOnUnionBoundarySelector } from '@/utils/mathUtils';
 
 
 export const useEnemySpawn = ({ baseMarkerPosition, pois, radarLevel }) => {
   const enemyStore = useEnemyStore();
-  const timeoutId = ref(null);
+  const gameClockStore = useGameClockStore();
+  const scheduledWaveAt = ref(null);
+  const pendingSpawns = ref([]);
   const spawnSelector = ref(null);
   const isSpawnLoopActive = ref(false);
   const isWaitingForWaveClear = ref(false);
+  let unsubscribeTick = null;
 
 
   const getRadarsForSpawn = () => {
@@ -90,7 +94,7 @@ export const useEnemySpawn = ({ baseMarkerPosition, pois, radarLevel }) => {
 
       for (let shotIndex = 0; shotIndex < extraShotsPerBarrack; shotIndex += 1) {
         const delayMs = (barrackIndex * extraShotsPerBarrack + shotIndex) * ENEMY_PROJECTILE_STAGGER_MS;
-        setTimeout(() => {
+        scheduleSpawnInGame(delayMs, () => {
           const angle = computeBearingRadians({ lat: barrack.lat, lng: barrack.lng }, target.position);
 
           const earthRadius = 6371000; // metros
@@ -106,7 +110,7 @@ export const useEnemySpawn = ({ baseMarkerPosition, pois, radarLevel }) => {
             targetType: target.type,
             targetId: target.id,
           });
-        }, delayMs);
+        });
       }
     });
   };
@@ -150,7 +154,7 @@ export const useEnemySpawn = ({ baseMarkerPosition, pois, radarLevel }) => {
         if (!selection) break;
         const { radar, angle } = selection;
         const target = getTargetForRadar(radar);
-        setTimeout(() => {
+        scheduleSpawnInGame(i * ENEMY_PROJECTILE_STAGGER_MS, () => {
           enemyStore.spawnEnemy({
             center: radar.center,
             radius: radar.radius,
@@ -158,7 +162,7 @@ export const useEnemySpawn = ({ baseMarkerPosition, pois, radarLevel }) => {
             targetType: target.targetType,
             targetId: target.targetId,
           });
-        }, i * ENEMY_PROJECTILE_STAGGER_MS);
+        });
       }
     }
 
@@ -169,34 +173,60 @@ export const useEnemySpawn = ({ baseMarkerPosition, pois, radarLevel }) => {
     isWaitingForWaveClear.value = true;
   };
 
-  const clearSpawnTimeout = () => {
-    if (timeoutId.value) {
-      clearTimeout(timeoutId.value);
-      timeoutId.value = null;
-    }
+  const scheduleSpawnInGame = (delayMs, fn) => {
+    if (!isSpawnLoopActive.value) return;
+    const at = gameClockStore.now() + Math.max(0, delayMs);
+    pendingSpawns.value.push({ at, fn });
+  };
+
+  const clearSpawnSchedule = () => {
+    scheduledWaveAt.value = null;
+  };
+
+  const clearPendingSpawns = () => {
+    pendingSpawns.value = [];
+  };
+
+  const processPendingSpawns = (nowMs) => {
+    if (!pendingSpawns.value.length) return;
+    const remaining = [];
+    pendingSpawns.value.forEach((spawn) => {
+      if (spawn.at <= nowMs) {
+        spawn.fn();
+      } else {
+        remaining.push(spawn);
+      }
+    });
+    pendingSpawns.value = remaining;
   };
 
   const scheduleNextWaveSpawn = () => {
     if (!isSpawnLoopActive.value) return;
-    clearSpawnTimeout();
+    clearSpawnSchedule();
 
-    const now = Date.now();
+    const now = gameClockStore.now();
     const target = enemyStore.nextWaveTimestamp && enemyStore.nextWaveTimestamp > now
       ? enemyStore.nextWaveTimestamp
       : now + ENEMY_SPAWN_INTERVAL_MS;
 
     enemyStore.setNextWaveTimestamp(target);
 
-    timeoutId.value = setTimeout(() => {
-      timeoutId.value = null;
-      if (!isSpawnLoopActive.value) return;
-      spawnEnemyAtRadarEdge();
-    }, Math.max(0, target - now));
+    scheduledWaveAt.value = target;
   };
 
   const startEnemySpawnLoop = () => {
     stopEnemySpawnLoop();
     isSpawnLoopActive.value = true;
+    if (!unsubscribeTick) {
+      unsubscribeTick = gameClockStore.onTick(({ nowMs }) => {
+        processPendingSpawns(nowMs);
+        if (scheduledWaveAt.value && nowMs >= scheduledWaveAt.value) {
+          scheduledWaveAt.value = null;
+          if (!isSpawnLoopActive.value) return;
+          spawnEnemyAtRadarEdge();
+        }
+      });
+    }
 
     const currentEnemies = enemyStore.enemies?.length || 0;
     if (currentEnemies > 0) {
@@ -210,10 +240,15 @@ export const useEnemySpawn = ({ baseMarkerPosition, pois, radarLevel }) => {
   };
 
   const stopEnemySpawnLoop = () => {
-    clearSpawnTimeout();
+    clearSpawnSchedule();
+    clearPendingSpawns();
     isSpawnLoopActive.value = false;
     isWaitingForWaveClear.value = false;
     enemyStore.setNextWaveTimestamp(0);
+    if (unsubscribeTick) {
+      unsubscribeTick();
+      unsubscribeTick = null;
+    }
   };
 
   watch(
@@ -222,7 +257,7 @@ export const useEnemySpawn = ({ baseMarkerPosition, pois, radarLevel }) => {
       if (!isSpawnLoopActive.value) return;
 
       if (count === 0) {
-        if (isWaitingForWaveClear.value || prev > 0 || !timeoutId.value) {
+        if (isWaitingForWaveClear.value || prev > 0 || !scheduledWaveAt.value) {
           isWaitingForWaveClear.value = false;
           scheduleNextWaveSpawn();
         }
@@ -231,9 +266,7 @@ export const useEnemySpawn = ({ baseMarkerPosition, pois, radarLevel }) => {
 
       // There are active enemies, ensure countdown is stopped
       isWaitingForWaveClear.value = true;
-      if (timeoutId.value) {
-        clearSpawnTimeout();
-      }
+      if (scheduledWaveAt.value) clearSpawnSchedule();
       if (enemyStore.nextWaveTimestamp) {
         enemyStore.setNextWaveTimestamp(0);
       }

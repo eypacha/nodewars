@@ -1,12 +1,13 @@
 import { onBeforeUnmount } from 'vue';
 import { useEnemyStore } from '@/stores/enemyStore';
+import { useGameClockStore } from '@/stores/gameClockStore';
 import { ENEMY_SPEED_MPS, ENEMY_SPEED_RATIO } from '@/constants/enemies';
 import { getRadarConfig } from '@/services/mapService';
 
 export const useEnemyMovement = ({ getTargetPosition, onBaseHit, onBarrackHit, radarLevel }) => {
   const enemyStore = useEnemyStore();
-  let rafId = null;
-  let lastTs = null;
+  const gameClockStore = useGameClockStore();
+  let unsubscribe = null;
   let accumulator = 0;
   const fixedStep = 1 / 30;
 
@@ -17,38 +18,27 @@ export const useEnemyMovement = ({ getTargetPosition, onBaseHit, onBarrackHit, r
     return ENEMY_SPEED_MPS * (currentRadius / baseRadius) * ENEMY_SPEED_RATIO;
   };
 
-  const step = (ts) => {
-    if (lastTs === null) {
-      lastTs = ts;
-      rafId = requestAnimationFrame(step);
-      return;
-    }
-
-    const deltaSeconds = (ts - lastTs) / 1000;
-    lastTs = ts;
-    accumulator += deltaSeconds;
+  const handleTick = ({ deltaMs }) => {
+    if (!deltaMs) return;
+    accumulator += deltaMs / 1000;
 
     while (accumulator >= fixedStep) {
       enemyStore.moveEnemies(fixedStep, { getTargetPosition, onBaseHit, onBarrackHit, speedMps: getSpeedMps() });
       accumulator -= fixedStep;
     }
-    rafId = requestAnimationFrame(step);
   };
 
   const start = () => {
-    if (rafId) return;
-    lastTs = null;
+    if (unsubscribe) return;
     accumulator = 0;
-    rafId = requestAnimationFrame(step);
+    unsubscribe = gameClockStore.onTick(handleTick);
   };
 
   const stop = () => {
-    if (rafId) {
-      cancelAnimationFrame(rafId);
-      rafId = null;
-      lastTs = null;
-      accumulator = 0;
-    }
+    if (!unsubscribe) return;
+    unsubscribe();
+    unsubscribe = null;
+    accumulator = 0;
   };
 
   onBeforeUnmount(() => {

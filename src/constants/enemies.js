@@ -1,4 +1,4 @@
-export const ENEMY_SPAWN_INTERVAL_MS = 1000 * 60 * 3; // Espacio entre las oleadas
+export const ENEMY_SPAWN_INTERVAL_MS = 1000 * 30 * 1; // Espacio entre las oleadas
 export const ENEMY_SPEED_MPS = 30; // Velocidad de movimiento hacia el objetivo
 export const ENEMY_SPEED_RATIO = 0.80; // Relativo a la velocidad base (más lento)
 export const ENEMY_WAVE_BASE_SIZE = 8;

@@ -4,26 +4,28 @@ import { ENEMY_SPEED_MPS } from '@/constants/enemies';
 import { computeBearingRadians, moveTowards, toDegrees } from '@/utils/mathUtils';
 import { calculateDistance } from '@/utils/mapHelpers';
 import { db } from '@/services/dbService';
+import { useGameClockStore } from '@/stores/gameClockStore';
 
-const createEnemyAtEdge = (center, radius, angle, targetType, targetId) => {
+const createEnemyAtEdge = (center, radius, angle, targetType, targetId, nowMs = Date.now()) => {
   const chosenAngle = typeof angle === 'number' ? angle : Math.random() * Math.PI * 2;
   const distance = radius;
   const deltaLat = toDegrees((distance * Math.cos(chosenAngle)) / 6371000);
   const deltaLng = toDegrees((distance * Math.sin(chosenAngle)) / (6371000 * Math.cos((center.lat * Math.PI) / 180)));
 
   return {
-    id: `enemy-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    id: `enemy-${nowMs}-${Math.random().toString(16).slice(2)}`,
     lat: center.lat + deltaLat,
     lng: center.lng + deltaLng,
     heading: toDegrees(computeBearingRadians({ lat: center.lat + deltaLat, lng: center.lng + deltaLng }, center)),
     targetType,
     targetId,
-    lastUpdatedAt: Date.now(),
-    spawnedAt: Date.now(),
+    lastUpdatedAt: nowMs,
+    spawnedAt: nowMs,
   };
 };
 
 export const useEnemyStore = defineStore('enemy', () => {
+  const gameClockStore = useGameClockStore();
   const enemies = ref([]);
   const waveNumber = ref(1);
   const nextWaveTimestamp = ref(0);
@@ -101,7 +103,7 @@ export const useEnemyStore = defineStore('enemy', () => {
 
   const spawnEnemy = ({ center, radius, angle, targetType = 'base', targetId = 'base' }) => {
     if (!center) return null;
-    const enemy = createEnemyAtEdge(center, radius, angle, targetType, targetId);
+    const enemy = createEnemyAtEdge(center, radius, angle, targetType, targetId, gameClockStore.now());
     enemies.value.push(enemy);
     schedulePersist();
     return enemy;
@@ -130,7 +132,7 @@ export const useEnemyStore = defineStore('enemy', () => {
       enemy.lat = nextPos.lat;
       enemy.lng = nextPos.lng;
       enemy.heading = toDegrees(bearing);
-      enemy.lastUpdatedAt = Date.now();
+      enemy.lastUpdatedAt = gameClockStore.now();
       return true;
     });
 

@@ -9,38 +9,25 @@
 </template>
 
 <script setup>
-import { computed, ref, onMounted, onUnmounted } from 'vue';
+import { computed } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useEnemyStore } from '@/stores/enemyStore';
+import { useGameClockStore } from '@/stores/gameClockStore';
 
 const enemyStore = useEnemyStore();
 const { nextWaveTimestamp, waveNumber } = storeToRefs(enemyStore);
-
-const now = ref(Date.now());
-let intervalId = null;
-
-onMounted(() => {
-  intervalId = setInterval(() => {
-    now.value = Date.now();
-  }, 1000);
-});
-
-onUnmounted(() => {
-  if (intervalId) {
-    clearInterval(intervalId);
-    intervalId = null;
-  }
-});
+const gameClockStore = useGameClockStore();
+const { nowMs } = storeToRefs(gameClockStore);
 
 const showCountdown = computed(() => {
   const target = Number.isFinite(nextWaveTimestamp.value) ? nextWaveTimestamp.value : 0;
-  return target > now.value;
+  return target > nowMs.value;
 });
 
 const remainingSeconds = computed(() => {
   const target = Number.isFinite(nextWaveTimestamp.value) ? nextWaveTimestamp.value : 0;
-  if (!target || target <= now.value) return 0;
-  return Math.max(0, Math.ceil((target - now.value) / 1000));
+  if (!target || target <= nowMs.value) return 0;
+  return Math.max(0, Math.ceil((target - nowMs.value) / 1000));
 });
 
 const formattedTime = computed(() => {
