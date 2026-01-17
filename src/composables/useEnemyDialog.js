@@ -12,7 +12,13 @@ export function useEnemyDialog({
 }) {
   const selectedEnemyId = ref(null);
 
-  const enemyAttackCooldown = useProgressTimer(ENEMY_ATTACK_COOLDOWN_MS, { key: 'enemy-attack' });
+  const enemyAttackCooldown = useProgressTimer(ENEMY_ATTACK_COOLDOWN_MS, {
+    key: 'enemy-attack',
+    onComplete: () => {
+      if (!selectedEnemyId.value) return;
+      handleEnemyAttack(selectedEnemyId.value);
+    },
+  });
   const isEnemyAttackOnCooldown = enemyAttackCooldown.isRunning;
   const enemyAttackCooldownProgress = enemyAttackCooldown.progress;
 
@@ -39,7 +45,7 @@ export function useEnemyDialog({
     handleEnemyAttack(enemyId);
   };
 
-  const handleEnemyAttack = (enemyId) => {
+  function handleEnemyAttack(enemyId) {
     if (!enemyId || enemyAttackCooldown.isRunning.value) return;
     const target = enemies.value.find((e) => e.id === enemyId);
     if (!target) return;
@@ -55,7 +61,7 @@ export function useEnemyDialog({
     });
     enemyAttackCooldown.start();
     deselectEnemy();
-  };
+  }
 
   watch(enemies, (list) => {
     if (!selectedEnemyId.value) return;
