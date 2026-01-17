@@ -13,17 +13,17 @@
       @restart="handleGameOverRestart"
     />
     <PauseOverlay
-      v-if="isPaused && !showStatsOverlay && !showSettingsOverlay"
+      v-if="isPaused && !showGameOverPopup && !showStatsOverlay && !showSettingsOverlay"
       @resume="handleResume"
       @stats="showStatsOverlay = true"
       @settings="showSettingsOverlay = true"
     />
     <StatsOverlay
-      v-if="isPaused && showStatsOverlay"
+      v-if="isPaused && !showGameOverPopup && showStatsOverlay"
       @back="showStatsOverlay = false"
     />
     <SettingsOverlay
-      v-if="isPaused && showSettingsOverlay"
+      v-if="isPaused && !showGameOverPopup && showSettingsOverlay"
       @back="showSettingsOverlay = false"
     />
     <SettingsOverlay
@@ -157,6 +157,8 @@ watch(isPaused, (paused) => {
 
 watch(showGameOverPopup, (visible) => {
   if (visible) {
+    showStatsOverlay.value = false;
+    showSettingsOverlay.value = false;
     gameClockStore.pause();
   }
 });
