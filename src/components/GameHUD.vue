@@ -7,7 +7,7 @@
         class="pointer-events-auto cursor-pointer px-2 py-1 text-lg font-semibold text-white"
         type="button"
         aria-label="Pausar o reanudar"
-        @click="togglePause"
+        @click="gameClockStore.pause"
       >
         ☰
       </button>
@@ -16,19 +16,9 @@
 </template>
 
 <script setup>
-import { storeToRefs } from 'pinia';
 import ResourceHUD from './ResourceHUD.vue';
 import NextWaveTimer from './NextWaveTimer.vue';
 import { useGameClockStore } from '@/stores/gameClockStore';
 
 const gameClockStore = useGameClockStore();
-const { isPaused } = storeToRefs(gameClockStore);
-
-const togglePause = () => {
-  if (isPaused.value) {
-    gameClockStore.resume();
-  } else {
-    gameClockStore.pause();
-  }
-};
 </script>
