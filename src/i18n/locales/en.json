@@ -133,7 +133,7 @@
     "enemiesDestroyed": "Enemies destroyed",
     "activeBarracks": "Active barracks",
     "resources": "Resources",
-    "capturedTotal": "Captured/Total"
+    "captured": "Captured"
   },
   "settings": {
     "title": "Settings",

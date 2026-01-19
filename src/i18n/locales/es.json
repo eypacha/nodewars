@@ -133,7 +133,7 @@
     "enemiesDestroyed": "Enemigos destruidos",
     "activeBarracks": "Barracas activas",
     "resources": "Recursos",
-    "capturedTotal": "Capturados/Total"
+    "captured": "Capturados"
   },
   "settings": {
     "title": "Configuración",

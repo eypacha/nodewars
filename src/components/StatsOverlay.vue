@@ -23,7 +23,7 @@
       <div class="border border-white/40 p-4 text-left mt-4">
         <div class="flex items-center justify-between gap-2 text-sm font-bold mb-2">
           <span>{{ t('stats.resources') }}</span>
-          <span>{{ t('stats.capturedTotal') }}</span>
+          <span>{{ t('stats.caputered') }}</span>
         </div>
         <div
           v-for="entry in resourceStats"
@@ -38,7 +38,7 @@
             ></span>
             <span>{{ entry.label }}</span>
           </span>
-          <span>{{ entry.owned }}/{{ entry.total }} ({{ entry.percent }}%)</span>
+          <span>{{ entry.owned }}</span>
         </div>
       </div>
       <BaseButton
@@ -88,14 +88,11 @@ const formattedArea = computed(() => {
 const resourceStats = computed(() => {
   const list = Array.isArray(pois.value) ? pois.value : [];
   return RESOURCE_POI_TYPES.map((type) => {
-    const total = list.filter((poi) => normalizePOICategory(poi.category || poi.type) === type).length;
     const owned = list.filter((poi) => poi.owned && normalizePOICategory(poi.category || poi.type) === type).length;
-    const percent = total > 0 ? Math.round((owned / total) * 100) : 0;
+    
     return {
       type,
-      total,
       owned,
-      percent,
       label: getPOIDisplayName(type),
       color: getPOIColor(type),
     };
