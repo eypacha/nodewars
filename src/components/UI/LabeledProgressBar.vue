@@ -6,7 +6,8 @@
     </div>
     <div class="w-full overflow-hidden" :class="[trackClass, heightClass]">
       <div
-        class="h-full transition-all duration-300"
+        class="h-full"
+        :class="animated && 'transition-all duration-500 ease-in-out'"
         :style="{ width: normalizedProgress + '%', backgroundColor: barColor }"
       ></div>
     </div>
@@ -41,6 +42,10 @@ const props = defineProps({
     type: String,
     default: 'small',
     validator: (value) => ['small', 'large'].includes(value),
+  },
+  animated: {
+    type: Boolean,
+    default: false,
   },
 });
 
