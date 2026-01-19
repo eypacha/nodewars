@@ -244,7 +244,6 @@ export const useEnemySpawn = ({ baseMarkerPosition, pois, radarLevel }) => {
     clearPendingSpawns();
     isSpawnLoopActive.value = false;
     isWaitingForWaveClear.value = false;
-    enemyStore.setNextWaveTimestamp(0);
     if (unsubscribeTick) {
       unsubscribeTick();
       unsubscribeTick = null;
