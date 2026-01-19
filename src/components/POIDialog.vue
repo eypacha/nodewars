@@ -23,6 +23,7 @@
           :right-label="`${poi.resourceAmount} / ${poi.resourceCapacity}`"
           :progress="resourcePercentage"
           :bar-color="dialogPOIColor"
+          animated
           size="large"
         />
         
@@ -34,6 +35,7 @@
           :right-label="`${poi.health} / ${poi.maxHealth}`"
           :progress="healthPercentage"
           :bar-color="healthBarColor"
+          animated
           size="large"
         />
 
