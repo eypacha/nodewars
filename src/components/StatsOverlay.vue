@@ -23,7 +23,7 @@
       <div class="border border-white/40 p-4 text-left mt-4">
         <div class="flex items-center justify-between gap-2 text-sm font-bold mb-2">
           <span>{{ t('stats.resources') }}</span>
-          <span>{{ t('stats.caputered') }}</span>
+          <span>{{ t('stats.captured') }}</span>
         </div>
         <div
           v-for="entry in resourceStats"
