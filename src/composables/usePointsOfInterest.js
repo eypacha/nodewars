@@ -19,20 +19,6 @@ export const usePointsOfInterest = (mapRef) => {
 
   const getMarkerEntryById = (poiId) => poiMarkers.value.find(({ id }) => id === poiId);
 
-  const createAutoExtractRing = (poi, config) => {
-    if (!mapRef.value) return null;
-    return L.circleMarker([poi.lat, poi.lng], {
-      radius: config.radius + 4,
-      color: poi.color,
-      weight: 1,
-      opacity: 1,
-      fillOpacity: 0,
-      className: config.className,
-      interactive: false,
-      bubblingMouseEvents: false,
-    }).addTo(mapRef.value);
-  };
-
   const applyAutoExtractStyle = (entry, poi) => {
     if (!entry || !poi) return;
 
@@ -54,13 +40,6 @@ export const usePointsOfInterest = (mapRef) => {
       }
     }
 
-    const hasAutoExtract = !!poi.autoExtract;
-    if (hasAutoExtract && !entry.ringMarker) {
-      entry.ringMarker = createAutoExtractRing(poi, config);
-    } else if (!hasAutoExtract && entry.ringMarker) {
-      entry.ringMarker.remove();
-      entry.ringMarker = null;
-    }
   };
 
   /**
@@ -75,8 +54,6 @@ export const usePointsOfInterest = (mapRef) => {
       console.log('⚠️ mapRef not available');
       return;
     }
-
-    const config = getPOIConfig();
 
     // Crear un marcador visual para cada POI
     pois.value.forEach((poi) => {
@@ -107,6 +84,7 @@ export const usePointsOfInterest = (mapRef) => {
         const app = createApp(POIMarker, {
           color: poi.color,
           icon: POI_ICONS[poi.type],
+          autoExtract: poi.autoExtract,
         });
         app.mount(container);
 
@@ -137,12 +115,7 @@ export const usePointsOfInterest = (mapRef) => {
       const entry = {
         id: poi.id,
         marker,
-        ringMarker: null,
       };
-
-      if (poi.type !== 'barrack' && poi.autoExtract) {
-        entry.ringMarker = createAutoExtractRing(poi, config);
-      }
 
       poiMarkers.value.push(entry);
     });
@@ -160,9 +133,8 @@ export const usePointsOfInterest = (mapRef) => {
    * Elimina todos los marcadores POI del mapa
    */
   const clearPOIMarkers = () => {
-    poiMarkers.value.forEach(({ marker, ringMarker }) => {
+    poiMarkers.value.forEach(({ marker }) => {
       marker.remove();
-      if (ringMarker) ringMarker.remove();
     });
     poiMarkers.value = [];
   };
