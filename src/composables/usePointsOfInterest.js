@@ -9,6 +9,7 @@ import { usePoiStore } from '@/stores/poiStore';
 import { getPOIConfig } from '@/services/mapService';
 import BarracksMarker from '@/components/BarracksMarker.vue';
 import POIMarker from '@/components/POIMarker.vue';
+import { POI_ICONS } from '@/constants/poiIcons';
 
 export const usePointsOfInterest = (mapRef) => {
   const poiStore = usePoiStore();
@@ -104,9 +105,8 @@ export const usePointsOfInterest = (mapRef) => {
         // POI normal - usar componente POIMarker (SVG placeholder)
         const container = document.createElement('div');
         const app = createApp(POIMarker, {
-          iconColor: poi.color,
-          background: '#000',
-          border: poi.color,
+          color: poi.color,
+          icon: POI_ICONS[poi.type],
         });
         app.mount(container);
 
