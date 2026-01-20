@@ -91,8 +91,8 @@ export const usePointsOfInterest = (mapRef) => {
         const customIcon = L.divIcon({
           html: container.innerHTML,
           className: 'poi-marker',
-          iconSize: [28, 28],
-          iconAnchor: [14, 14],
+          iconSize: [20, 20],
+          iconAnchor: [10, 10],
         });
 
         marker = L.marker([poi.lat, poi.lng], {
