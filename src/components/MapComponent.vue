@@ -875,11 +875,14 @@ watch(selectedBarracksForAttack, (newBarrack) => {
 }
 :deep(.poi-marker) {
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: transform 0.18s ease, filter 0.18s ease;
+  transform: translate(-50%, -50%);
+  transform-origin: center;
 }
 
 :deep(.poi-marker:hover) {
   filter: brightness(1.2);
+  transform: translate(-50%, -50%) scale(1.25);
 }
 
 .attack-triangle {

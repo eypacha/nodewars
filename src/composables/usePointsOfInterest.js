@@ -8,6 +8,7 @@ import { storeToRefs } from 'pinia';
 import { usePoiStore } from '@/stores/poiStore';
 import { getPOIConfig } from '@/services/mapService';
 import BarracksMarker from '@/components/BarracksMarker.vue';
+import POIMarker from '@/components/POIMarker.vue';
 
 export const usePointsOfInterest = (mapRef) => {
   const poiStore = usePoiStore();
@@ -37,11 +38,19 @@ export const usePointsOfInterest = (mapRef) => {
     if (poi.type === 'barrack') return;
 
     const config = getPOIConfig();
+    // For circleMarkers we can use setStyle; for div-based markers update DOM styles
     if (entry.marker?.setStyle) {
       entry.marker.setStyle({
         weight: config.weight,
         color: poi.color,
       });
+    } else if (entry.marker?.getElement) {
+      const el = entry.marker.getElement();
+      if (el) {
+        el.style.borderColor = poi.color;
+        const svg = el.querySelector('svg');
+        if (svg) svg.style.color = poi.color;
+      }
     }
 
     const hasAutoExtract = !!poi.autoExtract;
@@ -68,7 +77,7 @@ export const usePointsOfInterest = (mapRef) => {
 
     const config = getPOIConfig();
 
-    // Crear un marcador circular para cada POI
+    // Crear un marcador visual para cada POI
     pois.value.forEach((poi) => {
       let marker;
       
@@ -92,31 +101,30 @@ export const usePointsOfInterest = (mapRef) => {
 
         app.unmount();
       } else {
-        // POI normal - usar círculo
-        marker = L.circleMarker([poi.lat, poi.lng], {
-          radius: config.radius,
-          fillColor: poi.color,
-          color: poi.color,
-          weight: config.weight,
-          opacity: config.opacity,
-          fillOpacity: config.fillOpacity,
-          className: config.className,
+        // POI normal - usar componente POIMarker (SVG placeholder)
+        const container = document.createElement('div');
+        const app = createApp(POIMarker, {
+          iconColor: poi.color,
+          background: '#000',
+          border: poi.color,
+        });
+        app.mount(container);
+
+        const customIcon = L.divIcon({
+          html: container.innerHTML,
+          className: 'poi-marker',
+          iconSize: [28, 28],
+          iconAnchor: [14, 14],
+        });
+
+        marker = L.marker([poi.lat, poi.lng], {
+          icon: customIcon,
+          zIndexOffset: 50,
         }).addTo(mapRef.value);
 
-        // Cambiar cursor al pasar sobre el POI (solo para círculos)
-        marker.on('mouseover', function() {
-          this.setStyle({
-            radius: config.radius * 1.5,
-            weight: config.weight + 1,
-          });
-        });
+        // Hover handled by CSS (.poi-marker) to preserve Leaflet positioning
 
-        marker.on('mouseout', function() {
-          this.setStyle({
-            radius: config.radius,
-            weight: config.weight,
-          });
-        });
+        app.unmount();
       }
 
       // Añadir evento de click para mostrar el diálogo
@@ -201,12 +209,18 @@ export const usePointsOfInterest = (mapRef) => {
    */
   const highlightPOI = (poiId) => {
     const marker = getMarkerById(poiId);
-    if (marker) {
-      marker.setStyle({
-        radius: 10,
-        weight: 4,
-      });
-      marker.openTooltip();
+      if (marker) {
+      if (marker.setStyle) {
+        marker.setStyle({ radius: 10, weight: 4 });
+      } else if (marker.getElement) {
+        const el = marker.getElement();
+        if (el) {
+          el.style.transform = 'translate(-50%, -50%) scale(1.35)';
+          el.style.zIndex = 9999;
+          el.style.filter = 'drop-shadow(0 0 6px rgba(255,255,255,0.6))';
+        }
+      }
+      if (marker.openTooltip) marker.openTooltip();
     }
   };
 
@@ -220,19 +234,33 @@ export const usePointsOfInterest = (mapRef) => {
     const poi = pois.value.find((item) => item.id === poiId);
     if (entry?.marker) {
       if (!poi) {
-        entry.marker.setStyle({
-          radius: config.radius,
-          weight: config.weight,
-        });
-        entry.marker.closeTooltip();
+        if (entry.marker.setStyle) {
+          entry.marker.setStyle({ radius: config.radius, weight: config.weight });
+        } else if (entry.marker.getElement) {
+          const el = entry.marker.getElement();
+          if (el) {
+              el.style.transform = 'translate(-50%, -50%)';
+              el.style.zIndex = '';
+              el.style.filter = '';
+            }
+        }
+        if (entry.marker.closeTooltip) entry.marker.closeTooltip();
         return;
       }
-      entry.marker.setStyle({
-        radius: config.radius,
-        weight: config.weight,
-        color: poi.color,
-      });
-      entry.marker.closeTooltip();
+      if (entry.marker.setStyle) {
+        entry.marker.setStyle({ radius: config.radius, weight: config.weight, color: poi.color });
+      } else if (entry.marker.getElement) {
+        const el = entry.marker.getElement();
+        if (el) {
+          el.style.transform = 'translate(-50%, -50%)';
+          el.style.zIndex = '';
+          el.style.filter = '';
+          el.style.borderColor = poi.color;
+          const svg = el.querySelector('svg');
+          if (svg) svg.style.color = poi.color;
+        }
+      }
+      if (entry.marker.closeTooltip) entry.marker.closeTooltip();
       applyAutoExtractStyle(entry, poi);
     }
   };
