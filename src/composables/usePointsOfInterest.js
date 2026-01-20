@@ -85,6 +85,7 @@ export const usePointsOfInterest = (mapRef) => {
           color: poi.color,
           icon: POI_ICONS[poi.type],
           autoExtract: poi.autoExtract,
+          owned: !!poi.owned,
         });
         app.mount(container);
 

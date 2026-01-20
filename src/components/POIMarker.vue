@@ -1,7 +1,7 @@
 <template>
   <div
     class="poi-marker-core w-5 h-5 bg-black border-2 rounded-full flex items-center justify-center cursor-pointer relative"
-    :class="{ 'has-autoextract': autoExtract }"
+    :class="{ 'has-autoextract': autoExtract, 'is-unowned': !owned }"
     :style="{ '--poi-color': color }"
   >
     <span v-if="icon" class="poi-icon" v-html="icon"></span>
@@ -25,6 +25,10 @@ const props = defineProps({
   autoExtract: {
     type: Boolean,
     default: false
+  },
+  owned: {
+    type: Boolean,
+    default: true
   }
 });
 </script>
@@ -46,5 +50,9 @@ const props = defineProps({
   border-radius: 9999px;
   opacity: 0.85;
   pointer-events: none;
+}
+
+.poi-marker-core.is-unowned {
+  opacity: 0.6;
 }
 </style>
