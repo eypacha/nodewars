@@ -81,9 +81,13 @@
     <Teleport v-if="enemyPane && !showStartPopup && baseConfirmed" :to="enemyPane">
       <div 
         v-for="enemy in enemyMarkers" 
-        :key="enemy.id"
-        class="enemy-marker cursor-pointer pointer-events-auto text-[#ff0000] text-[24px] filter drop-shadow-[0_0_10px_rgba(255,0,0,0.9)] rounded-full w-8 h-8 flex items-center justify-center relative"
-        :class="enemy.id === selectedEnemyId ? 'is-selected' : ''"
+        :key="`${enemy.id}-${enemy.lastDamagedAt}`"
+        class="enemy-marker cursor-pointer pointer-events-auto text-[#ff0000] filter drop-shadow-[0_0_10px_rgba(255,0,0,0.9)] rounded-full flex items-center justify-center relative"
+        :class="[
+          enemy.type === 'tank' ? 'enemy-tank' : 'enemy-scout',
+          enemy.id === selectedEnemyId ? 'is-selected' : '',
+          enemy.lastDamagedAt > 0 ? 'enemy-hit' : ''
+        ]"
         :style="{
           position: 'absolute',
           left: `${enemy.x}px`,
@@ -101,6 +105,13 @@
             :style="enemy.id === selectedEnemyId ? { strokeDashoffset: enemyRingOffset } : null"
           ></circle>
         </svg>
+        <!-- Health indicator -->
+        <div class="enemy-health-bar">
+          <div 
+            class="enemy-health-fill"
+            :style="{ width: `${(enemy.health / enemy.maxHealth) * 100}%` }"
+          ></div>
+        </div>
         ▲
       </div>
     </Teleport>
@@ -946,6 +957,61 @@ watch(selectedBarracksForAttack, (newBarrack) => {
 
 .enemy-marker.is-selected .enemy-ring {
   opacity: 1;
+}
+
+/* Enemy type sizes */
+.enemy-scout {
+  font-size: 20px;
+  width: 24px;
+  height: 24px;
+}
+
+.enemy-tank {
+  font-size: 32px;
+  width: 40px;
+  height: 40px;
+}
+
+/* Hit feedback animation */
+.enemy-hit {
+  animation: enemy-hit-flash 0.3s ease-out;
+}
+
+@keyframes enemy-hit-flash {
+  0% {
+    filter: drop-shadow(0 0 20px rgba(255, 255, 255, 1)) brightness(3);
+  }
+  50% {
+    filter: drop-shadow(0 0 15px rgba(255, 100, 100, 0.9)) brightness(2);
+  }
+  100% {
+    filter: drop-shadow(0 0 10px rgba(255, 0, 0, 0.9)) brightness(1);
+  }
+}
+
+/* Health bar for enemies */
+.enemy-health-bar {
+  position: absolute;
+  bottom: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 70%;
+  height: 3px;
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 2px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.enemy-scout .enemy-health-bar {
+  bottom: -2px;
+}
+
+.enemy-health-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #ff4444, #ff0000);
+  transition: width 0.2s ease-out;
+  box-shadow: 0 0 4px rgba(255, 0, 0, 0.8);
 }
 
 @keyframes sweep {

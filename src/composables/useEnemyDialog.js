@@ -8,7 +8,7 @@ export function useEnemyDialog({
   currentAttackOrigin,
   startAttack,
   closeDialogsKeepAttack,
-  removeEnemy,
+  damageEnemy,
 }) {
   const selectedEnemyId = ref(null);
 
@@ -51,7 +51,7 @@ export function useEnemyDialog({
     if (!target) return;
     const origin = currentAttackOrigin.value || null;
     startAttack({ lat: target.lat, lng: target.lng }, origin, {
-      onHit: () => removeEnemy(enemyId),
+      onHit: () => damageEnemy(enemyId),
       trackTarget: () => {
         const liveEnemy = enemies.value.find((e) => e.id === enemyId);
         if (!liveEnemy) return null;

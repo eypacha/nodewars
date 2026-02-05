@@ -53,11 +53,13 @@ export function useEnemyFeature({
       }
       return null;
     },
-    onBaseHit: () => {
-      gameStore.setBaseHealth(baseHealth.value - 1);
+    onBaseHit: (enemy) => {
+      const damage = enemy?.damage || 1;
+      gameStore.setBaseHealth(baseHealth.value - damage);
     },
-    onBarrackHit: (poiId) => {
-      poiStore.damagePOI(poiId, 1, null, { attackedByEnemy: true });
+    onBarrackHit: (poiId, enemy) => {
+      const damage = enemy?.damage || 1;
+      poiStore.damagePOI(poiId, damage, null, { attackedByEnemy: true });
     },
     radarLevel,
   });
@@ -74,7 +76,7 @@ export function useEnemyFeature({
     currentAttackOrigin,
     startAttack,
     closeDialogsKeepAttack,
-    removeEnemy: enemyStore.removeEnemy,
+    damageEnemy: enemyStore.damageEnemy,
   });
 
   useAutoAttack({
@@ -84,14 +86,14 @@ export function useEnemyFeature({
     autoAttackLevel,
     getCooldownMs: () => gameStore.getAutoAttackCooldownMs(),
     startAttack,
-    removeEnemy: enemyStore.removeEnemy,
+    damageEnemy: enemyStore.damageEnemy,
   });
 
   useBarrackAutoAttack({
     pois,
     enemies,
     startAttack,
-    removeEnemy: enemyStore.removeEnemy,
+    damageEnemy: enemyStore.damageEnemy,
     getCooldownMsForLevel: (level) => gameStore.computeAutoAttackCooldownMs(level),
   });
 
@@ -114,6 +116,10 @@ export function useEnemyFeature({
         x: point.x,
         y: point.y,
         rotation: enemy.heading ?? 0,
+        type: enemy.type || 'scout',
+        health: enemy.health ?? 1,
+        maxHealth: enemy.maxHealth ?? 1,
+        lastDamagedAt: enemy.lastDamagedAt ?? 0,
       };
     });
   });

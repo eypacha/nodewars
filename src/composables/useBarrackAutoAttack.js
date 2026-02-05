@@ -8,7 +8,7 @@ export const useBarrackAutoAttack = ({
   pois,
   enemies,
   startAttack,
-  removeEnemy,
+  damageEnemy,
   getCooldownMsForLevel,
 }) => {
   const AUTO_ATTACK_TICK_MS = 500;
@@ -70,7 +70,7 @@ export const useBarrackAutoAttack = ({
       startAttack({ lat: target.lat, lng: target.lng }, poi, {
         onHit: () => {
           engagedSet.delete(enemyId);
-          removeEnemy?.(enemyId);
+          damageEnemy?.(enemyId);
         },
         trackTarget: () => {
           const liveEnemy = enemies.value.find((e) => e.id === enemyId);

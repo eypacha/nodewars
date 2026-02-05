@@ -1,10 +1,34 @@
 import { ref, onBeforeUnmount, watch } from 'vue';
-import { ENEMY_SPAWN_INTERVAL_MS, ENEMY_WAVE_BASE_SIZE, ENEMY_WAVE_GROWTH_RATE, ENEMY_PROJECTILE_STAGGER_MS } from '@/constants/enemies';
+import {
+  ENEMY_SPAWN_INTERVAL_MS,
+  ENEMY_WAVE_BASE_SIZE,
+  ENEMY_WAVE_GROWTH_RATE,
+  ENEMY_PROJECTILE_STAGGER_MS,
+  TANK_PROBABILITY_START_WAVE,
+  TANK_PROBABILITY_MAX,
+  TANK_PROBABILITY_GROWTH,
+} from '@/constants/enemies';
 import { BARRACKS_MIN_RADIUS, BARRACKS_RADIUS_RATIO_BASE } from '@/constants/player';
 import { useEnemyStore } from '@/stores/enemyStore';
 import { useGameClockStore } from '@/stores/gameClockStore';
 import { getRadarConfig } from '@/services/mapService';
 import { computeBearingRadians, createUniformSpawnOnUnionBoundarySelector } from '@/utils/mathUtils';
+
+/**
+ * Selecciona el tipo de enemigo basado en la oleada actual.
+ * La probabilidad de Tank empieza en 0% para oleada 1 y sube gradualmente.
+ */
+const selectEnemyType = (waveNumber) => {
+  if (waveNumber < TANK_PROBABILITY_START_WAVE) return 'scout';
+
+  const wavesWithTanks = waveNumber - TANK_PROBABILITY_START_WAVE + 1;
+  const tankProbability = Math.min(
+    TANK_PROBABILITY_MAX,
+    wavesWithTanks * TANK_PROBABILITY_GROWTH
+  );
+
+  return Math.random() < tankProbability ? 'tank' : 'scout';
+};
 
 
 export const useEnemySpawn = ({ baseMarkerPosition, pois, radarLevel }) => {
@@ -85,8 +109,9 @@ export const useEnemySpawn = ({ baseMarkerPosition, pois, radarLevel }) => {
   const spawnExtraProjectilesFromEnemyBarracks = () => {
     if (!Array.isArray(pois.value)) return;
     
+    const waveNumber = enemyStore.waveNumber;
     const enemyBarracks = pois.value.filter((poi) => poi.type === 'barrack' && !poi.owned);
-    const extraShotsPerBarrack = Math.max(1, Math.floor(1 + enemyStore.waveNumber / 2));
+    const extraShotsPerBarrack = Math.max(1, Math.floor(1 + waveNumber / 2));
 
     enemyBarracks.forEach((barrack, barrackIndex) => {
       const target = getTargetForEnemyBarrack(barrack);
@@ -94,6 +119,7 @@ export const useEnemySpawn = ({ baseMarkerPosition, pois, radarLevel }) => {
 
       for (let shotIndex = 0; shotIndex < extraShotsPerBarrack; shotIndex += 1) {
         const delayMs = (barrackIndex * extraShotsPerBarrack + shotIndex) * ENEMY_PROJECTILE_STAGGER_MS;
+        const enemyType = selectEnemyType(waveNumber);
         scheduleSpawnInGame(delayMs, () => {
           const angle = computeBearingRadians({ lat: barrack.lat, lng: barrack.lng }, target.position);
 
@@ -109,6 +135,7 @@ export const useEnemySpawn = ({ baseMarkerPosition, pois, radarLevel }) => {
             angle,
             targetType: target.type,
             targetId: target.id,
+            enemyType,
           });
         });
       }
@@ -145,7 +172,8 @@ export const useEnemySpawn = ({ baseMarkerPosition, pois, radarLevel }) => {
   };
 
   const spawnEnemyAtRadarEdge = () => {
-    const growth = Math.pow(1 + ENEMY_WAVE_GROWTH_RATE, Math.max(0, enemyStore.waveNumber - 1));
+    const waveNumber = enemyStore.waveNumber;
+    const growth = Math.pow(1 + ENEMY_WAVE_GROWTH_RATE, Math.max(0, waveNumber - 1));
     const waveSize = Math.max(1, Math.ceil(ENEMY_WAVE_BASE_SIZE * growth));
 
     if (spawnSelector.value) {
@@ -154,6 +182,7 @@ export const useEnemySpawn = ({ baseMarkerPosition, pois, radarLevel }) => {
         if (!selection) break;
         const { radar, angle } = selection;
         const target = getTargetForRadar(radar);
+        const enemyType = selectEnemyType(waveNumber);
         scheduleSpawnInGame(i * ENEMY_PROJECTILE_STAGGER_MS, () => {
           enemyStore.spawnEnemy({
             center: radar.center,
@@ -161,6 +190,7 @@ export const useEnemySpawn = ({ baseMarkerPosition, pois, radarLevel }) => {
             angle,
             targetType: target.targetType,
             targetId: target.targetId,
+            enemyType,
           });
         });
       }

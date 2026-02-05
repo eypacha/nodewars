@@ -9,7 +9,7 @@ export const useAutoAttack = ({
   autoAttackLevel,
   getCooldownMs,
   startAttack,
-  removeEnemy,
+  damageEnemy,
 }) => {
   const autoAttackTargetIndex = ref(0);
   const gameClockStore = useGameClockStore();
@@ -50,7 +50,7 @@ export const useAutoAttack = ({
     if (!target) return;
     const enemyId = target.id;
     startAttack({ lat: target.lat, lng: target.lng }, null, {
-      onHit: () => removeEnemy?.(enemyId),
+      onHit: () => damageEnemy?.(enemyId),
       trackTarget: () => {
         const liveEnemy = enemies.value.find((e) => e.id === enemyId);
         if (!liveEnemy) return null;

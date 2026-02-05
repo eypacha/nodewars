@@ -1,16 +1,18 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
-import { ENEMY_SPEED_MPS } from '@/constants/enemies';
+import { ENEMY_SPEED_MPS, ENEMY_TYPES } from '@/constants/enemies';
 import { computeBearingRadians, moveTowards, toDegrees } from '@/utils/mathUtils';
 import { calculateDistance } from '@/utils/mapHelpers';
 import { db } from '@/services/dbService';
 import { useGameClockStore } from '@/stores/gameClockStore';
 
-const createEnemyAtEdge = (center, radius, angle, targetType, targetId, nowMs = Date.now()) => {
+const createEnemyAtEdge = (center, radius, angle, targetType, targetId, enemyType = 'scout', nowMs = Date.now()) => {
   const chosenAngle = typeof angle === 'number' ? angle : Math.random() * Math.PI * 2;
   const distance = radius;
   const deltaLat = toDegrees((distance * Math.cos(chosenAngle)) / 6371000);
   const deltaLng = toDegrees((distance * Math.sin(chosenAngle)) / (6371000 * Math.cos((center.lat * Math.PI) / 180)));
+
+  const typeConfig = ENEMY_TYPES[enemyType] || ENEMY_TYPES.scout;
 
   return {
     id: `enemy-${nowMs}-${Math.random().toString(16).slice(2)}`,
@@ -21,6 +23,10 @@ const createEnemyAtEdge = (center, radius, angle, targetType, targetId, nowMs = 
     targetId,
     lastUpdatedAt: nowMs,
     spawnedAt: nowMs,
+    type: typeConfig.id,
+    damage: typeConfig.damage,
+    health: typeConfig.health,
+    maxHealth: typeConfig.health,
   };
 };
 
@@ -121,9 +127,9 @@ export const useEnemyStore = defineStore('enemy', () => {
     }, 1000);
   };
 
-  const spawnEnemy = ({ center, radius, angle, targetType = 'base', targetId = 'base' }) => {
+  const spawnEnemy = ({ center, radius, angle, targetType = 'base', targetId = 'base', enemyType = 'scout' }) => {
     if (!center) return null;
-    const enemy = createEnemyAtEdge(center, radius, angle, targetType, targetId, gameClockStore.now());
+    const enemy = createEnemyAtEdge(center, radius, angle, targetType, targetId, enemyType, gameClockStore.now());
     enemies.value.push(enemy);
     schedulePersist();
     return enemy;
@@ -135,14 +141,16 @@ export const useEnemyStore = defineStore('enemy', () => {
       if (!targetPos) return false;
 
       const distanceToTarget = calculateDistance([enemy.lat, enemy.lng], [targetPos.lat, targetPos.lng]);
-      const speed = Number.isFinite(speedMps) ? speedMps : ENEMY_SPEED_MPS;
+      const baseSpeed = Number.isFinite(speedMps) ? speedMps : ENEMY_SPEED_MPS;
+      const typeConfig = ENEMY_TYPES[enemy.type] || ENEMY_TYPES.scout;
+      const speed = baseSpeed * typeConfig.speedMultiplier;
       const stepDistance = speed * deltaSeconds;
 
       if (distanceToTarget <= stepDistance) {
         if (enemy.targetType === 'base') {
-          onBaseHit?.();
+          onBaseHit?.(enemy);
         } else if (enemy.targetType === 'barrack') {
-          onBarrackHit?.(enemy.targetId);
+          onBarrackHit?.(enemy.targetId, enemy);
         }
         return false;
       }
@@ -168,6 +176,22 @@ export const useEnemyStore = defineStore('enemy', () => {
     }
     db.enemies.delete(id).catch((err) => console.error('Error deleting enemy from DB', err));
     schedulePersist();
+  };
+
+  const damageEnemy = (id, amount = 1) => {
+    const enemy = enemies.value.find((e) => e.id === id);
+    if (!enemy) return false;
+
+    enemy.health = Math.max(0, (enemy.health ?? 1) - amount);
+    enemy.lastDamagedAt = gameClockStore.now();
+    
+    if (enemy.health <= 0) {
+      removeEnemy(id);
+      return true; // Enemy destroyed
+    }
+    
+    schedulePersist();
+    return false; // Enemy still alive
   };
 
   const setNextWaveTimestamp = (timestamp) => {
@@ -219,6 +243,7 @@ export const useEnemyStore = defineStore('enemy', () => {
     spawnEnemy,
     moveEnemies,
     removeEnemy,
+    damageEnemy,
     clearEnemies,
     persistEnemies,
     persistWaveNumber,
