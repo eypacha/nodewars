@@ -5,10 +5,21 @@
 
 import { BASE_RADAR_RADIUS } from '@/constants/player';
 
+// CARTO exige API key en los tiles raster (https://carto.com/basemaps/apikey)
+const CARTO_TILE_URL = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+const CARTO_API_KEY = import.meta.env.VITE_CARTO_API_KEY;
+
+const buildCartoTileUrl = () => {
+  if (!CARTO_API_KEY) return CARTO_TILE_URL;
+
+  const params = new URLSearchParams({ key: CARTO_API_KEY });
+  return `${CARTO_TILE_URL}?${params.toString()}`;
+};
+
 export const MAP_CONFIG = {
   // Configuración de tiles
   TILE_LAYER: {
-    url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+    url: buildCartoTileUrl(),
     options: {
       attribution: '',
       subdomains: 'abcd',
